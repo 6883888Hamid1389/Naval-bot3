@@ -1,5 +1,7 @@
+
 import os
 import time
+import asyncpg
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
@@ -8,9 +10,12 @@ from telegram.ext import (
 
 TOKEN = os.environ.get("BOT_TOKEN", "")
 ADMIN_ID = 8849773822
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 if not TOKEN:
     raise SystemExit("BOT_TOKEN not set!")
+if not DATABASE_URL:
+    raise SystemExit("DATABASE_URL not set!")
 
 GOVS = {
     "dictator": "✊ دیکتاتوری",
@@ -46,6 +51,7 @@ GOV_SUBS = {
     },
     "republic": {
         "sec": ["🏛️ جمهوری سکولار", 80, "👥 زیر نظر کل مردم"],
+        "theo": ["⚖️ جمهوری تئوکراتیک", 55, "📖 زیر نظر مردم و روحانیت"],
     },
 }
 
@@ -89,7 +95,7 @@ banned_users = set()
 spam_limit = 5
 spam_window = 10
 
-DB = {"countries": {}, "pending": {}, "regions": {}}
+pool = None
 
 
 def kb(rows):
@@ -108,6 +114,188 @@ def check_spam(uid: int) -> bool:
     return False
 
 
+async def init_db():
+    global pool
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS countries (
+                user_id BIGINT PRIMARY KEY,
+                username TEXT,
+                name TEXT,
+                leader TEXT,
+                age INT,
+                reign TEXT,
+                gov TEXT,
+                gov_sub TEXT,
+                religion TEXT,
+                rel_sub TEXT,
+                expert TEXT,
+                region TEXT,
+                happiness INT,
+                science TEXT,
+                flag_id TEXT,
+                status TEXT,
+                economy INT DEFAULT 500,
+                army INT DEFAULT 100,
+                revolt INT DEFAULT 5,
+                ban_reason TEXT
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS pending (
+                user_id BIGINT PRIMARY KEY,
+                username TEXT,
+                name TEXT,
+                leader TEXT,
+                age INT,
+                reign TEXT,
+                gov TEXT,
+                gov_sub TEXT,
+                religion TEXT,
+                rel_sub TEXT,
+                expert TEXT,
+                region TEXT,
+                happiness INT,
+                science TEXT,
+                flag_id TEXT
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS regions (
+                code TEXT PRIMARY KEY,
+                user_id BIGINT
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS spam_banned (
+                user_id BIGINT PRIMARY KEY
+            )
+        """)
+    # load banned users
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT user_id FROM spam_banned")
+        for r in rows:
+            banned_users.add(r["user_id"])
+
+
+async def get_country(uid):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
+        return dict(row) if row else None
+
+
+async def get_pending(uid):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow("SELECT * FROM pending WHERE user_id = $1", uid)
+        return dict(row) if row else None
+
+
+async def save_pending(uid, data):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO pending (user_id, username, name, leader, age, reign, gov, gov_sub,
+                religion, rel_sub, expert, region, happiness, science, flag_id)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)
+            ON CONFLICT (user_id) DO UPDATE SET
+                username=$2, name=$3, leader=$4, age=$5, reign=$6, gov=$7, gov_sub=$8,
+                religion=$9, rel_sub=$10, expert=$11, region=$12, happiness=$13,
+                science=$14, flag_id=$15
+        """, uid, data.get("username"), data.get("name"), data.get("leader"),
+            data.get("age"), data.get("reign"), data.get("gov"), data.get("gov_sub"),
+            data.get("religion"), data.get("rel_sub"), data.get("expert"),
+            data.get("region"), data.get("happiness"), data.get("science"),
+            data.get("flag_id"))
+
+
+async def delete_pending(uid):
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM pending WHERE user_id = $1", uid)
+
+
+async def save_country(uid, data):
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO countries (user_id, username, name, leader, age, reign, gov, gov_sub,
+                religion, rel_sub, expert, region, happiness, science, flag_id, status,
+                economy, army, revolt)
+            VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,'approved',500,100,5)
+            ON CONFLICT (user_id) DO UPDATE SET
+                username=$2, name=$3, leader=$4, age=$5, reign=$6, gov=$7, gov_sub=$8,
+                religion=$9, rel_sub=$10, expert=$11, region=$12, happiness=$13,
+                science=$14, flag_id=$15, status='approved'
+        """, uid, data.get("username"), data.get("name"), data.get("leader"),
+            data.get("age"), data.get("reign"), data.get("gov"), data.get("gov_sub"),
+            data.get("religion"), data.get("rel_sub"), data.get("expert"),
+            data.get("region"), data.get("happiness"), data.get("science"),
+            data.get("flag_id"))
+
+
+async def set_country_status(uid, status, ban_reason=None):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE countries SET status=$1, ban_reason=$2 WHERE user_id=$3",
+            status, ban_reason, uid
+        )
+
+
+async def delete_country(uid):
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM countries WHERE user_id = $1", uid)
+
+
+async def get_all_countries():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM countries ORDER BY user_id DESC")
+        return [dict(r) for r in rows]
+
+
+async def get_banned_countries():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM countries WHERE status='banned' ORDER BY user_id DESC")
+        return [dict(r) for r in rows]
+
+
+async def get_pending_all():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT * FROM pending")
+        return [dict(r) for r in rows]
+
+
+async def get_regions():
+    async with pool.acquire() as conn:
+        rows = await conn.fetch("SELECT code, user_id FROM regions")
+        return {r["code"]: r["user_id"] for r in rows}
+
+
+async def take_region(code, uid):
+    async with pool.acquire() as conn:
+        try:
+            await conn.execute(
+                "INSERT INTO regions (code, user_id) VALUES ($1, $2)", code, uid
+            )
+            return True
+        except asyncpg.UniqueViolationError:
+            return False
+
+
+async def free_region(code):
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM regions WHERE code = $1", code)
+
+
+async def add_spam_ban(uid):
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "INSERT INTO spam_banned (user_id) VALUES ($1) ON CONFLICT DO NOTHING", uid
+        )
+
+
+async def remove_spam_ban(uid):
+    async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM spam_banned WHERE user_id = $1", uid)
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     chat_id = update.effective_chat.id
@@ -118,10 +306,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if check_spam(uid) and uid != ADMIN_ID:
         await context.bot.send_message(chat_id, "🚫 اسپم! شما مسدود شدید.")
+        await add_spam_ban(uid)
         return
 
-    if uid in DB["countries"]:
-        c = DB["countries"][uid]
+    c = await get_country(uid)
+    if c:
         if c["status"] == "approved":
             await context.bot.send_message(chat_id, "✅ کشور شما قبلاً تأیید شده است.")
         elif c["status"] == "banned":
@@ -155,10 +344,13 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     temp.pop(uid, None)
     chat_id = update.effective_chat.id
-    total = len(DB["countries"])
-    approved = len([c for c in DB["countries"].values() if c["status"] == "approved"])
-    banned = len([c for c in DB["countries"].values() if c["status"] == "banned"])
-    pending = len(DB["pending"])
+
+    all_c = await get_all_countries()
+    total = len(all_c)
+    approved = len([c for c in all_c if c["status"] == "approved"])
+    banned = len([c for c in all_c if c["status"] == "banned"])
+    pending_list = await get_pending_all()
+    pending = len(pending_list)
 
     text = (
         f"👑 *پنل مدیریت ناوال لیگ*\n\n"
@@ -201,10 +393,12 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             pass
 
     if data == "adm_panel" and uid == ADMIN_ID:
-        total = len(DB["countries"])
-        approved = len([c for c in DB["countries"].values() if c["status"] == "approved"])
-        banned = len([c for c in DB["countries"].values() if c["status"] == "banned"])
-        pending = len(DB["pending"])
+        all_c = await get_all_countries()
+        total = len(all_c)
+        approved = len([c for c in all_c if c["status"] == "approved"])
+        banned = len([c for c in all_c if c["status"] == "banned"])
+        pending_list = await get_pending_all()
+        pending = len(pending_list)
         text = (
             f"👑 *پنل مدیریت ناوال لیگ*\n\n"
             f"📊 آمار کلی:\n"
@@ -245,13 +439,14 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         banned_users.discard(target)
         spam_tracker.pop(target, None)
+        await remove_spam_ban(target)
         await edit("✅ کاربر از مسدودی اسپم خارج شد.",
                    kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_spamlist")]]))
         return
 
     if data == "register_country":
-        if uid in DB["countries"]:
-            c = DB["countries"][uid]
+        c = await get_country(uid)
+        if c:
             msg = ("✅ قبلاً ثبت شدی." if c["status"] == "approved"
                    else "🚫 مسدود هستی." if c["status"] == "banned"
                    else "⏳ در انتظار تأیید.")
@@ -345,9 +540,10 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t["step"] = "REGION"
         temp[uid] = t
 
+        taken = await get_regions()
         rows, row, count = [], [], 0
         for code in REGIONS:
-            if code in DB["regions"]:
+            if code in taken:
                 row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
             else:
                 row.append(InlineKeyboardButton(f"🟢 {code}", callback_data=f"region_{code}"))
@@ -367,7 +563,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("region_"):
         code = data.replace("region_", "")
-        if code in DB["regions"]:
+        taken = await get_regions()
+        if code in taken:
             await cb.answer("🔒 این منطقه همین الان گرفته شد!", show_alert=True)
             return
         t["region"] = code
@@ -391,7 +588,8 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         d = temp.get(uid)
         if not d:
             return
-        if d.get("region") in DB["regions"]:
+        taken = await get_regions()
+        if d.get("region") in taken:
             try:
                 await context.bot.edit_message_caption(
                     chat_id=chat_id, message_id=msg_id,
@@ -418,7 +616,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ رد", callback_data=f"adm_no_{uid}")],
         ])
 
-        DB["pending"][uid] = d
+        await save_pending(uid, d)
 
         await context.bot.send_photo(
             chat_id=ADMIN_ID, photo=d["flag_id"],
@@ -450,12 +648,13 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "adm_pending_0" and uid == ADMIN_ID:
-        if not DB["pending"]:
+        pending_list = await get_pending_all()
+        if not pending_list:
             await edit("⏳ هیچ درخواست در انتظاری وجود ندارد.",
                        kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
             return
         text = "⏳ *درخواست‌های در انتظار:*\n\n"
-        for tuid, d in DB["pending"].items():
+        for d in pending_list:
             text += f"🏛️ {d['name']} — @{d.get('username', '')}\n"
         await edit(text, kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
         return
@@ -485,13 +684,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target = int(data.replace("adm_unban_", ""))
         except ValueError:
             return
-        if target in DB["countries"]:
-            DB["countries"][target]["status"] = "approved"
-            DB["countries"][target]["ban_reason"] = None
-            try:
-                await context.bot.send_message(target, "✅ کشور شما از مسدودی خارج شد!")
-            except Exception:
-                pass
+        await set_country_status(target, "approved", None)
+        try:
+            await context.bot.send_message(target, "✅ کشور شما از مسدودی خارج شد!")
+        except Exception:
+            pass
         await show_country_detail(chat_id, msg_id, context, target)
         return
 
@@ -500,11 +697,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target = int(data.replace("adm_del_", ""))
         except ValueError:
             return
-        if target in DB["countries"]:
-            c = DB["countries"][target]
-            if c.get("region") in DB["regions"]:
-                del DB["regions"][c["region"]]
-            del DB["countries"][target]
+        c = await get_country(target)
+        if c:
+            if c.get("region"):
+                await free_region(c["region"])
+            await delete_country(target)
             try:
                 await context.bot.send_message(
                     target, f"🗑️ کشور *{c['name']}* توسط ادمین حذف شد.",
@@ -518,8 +715,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if data.startswith("adm_free_") and uid == ADMIN_ID:
         code = data.replace("adm_free_", "")
-        if code in DB["regions"]:
-            del DB["regions"][code]
+        await free_region(code)
         await show_regions_status(chat_id, msg_id, context)
         return
 
@@ -539,23 +735,19 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             target_uid = int(data.split("_")[2])
         except (IndexError, ValueError):
             return
-        if target_uid not in DB["pending"]:
+        d = await get_pending(target_uid)
+        if not d:
+            await cb.answer("⚠️ این درخواست منقضی شده!", show_alert=True)
             return
-        d = DB["pending"][target_uid]
         original_caption = cb.message.caption or ""
 
         if action == "ok":
-            if d["region"] in DB["regions"]:
+            ok = await take_region(d["region"], target_uid)
+            if not ok:
                 await cb.answer("⚠️ این منطقه الان گرفته شده!", show_alert=True)
                 return
-            DB["regions"][d["region"]] = target_uid
-            d["user_id"] = target_uid
-            d["status"] = "approved"
-            d["economy"] = 500
-            d["army"] = 100
-            d["revolt"] = 5
-            DB["countries"][target_uid] = d
-            del DB["pending"][target_uid]
+            await save_country(target_uid, d)
+            await delete_pending(target_uid)
             temp.pop(target_uid, None)
             try:
                 await context.bot.edit_message_caption(
@@ -574,7 +766,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
         else:
-            del DB["pending"][target_uid]
+            await delete_pending(target_uid)
             temp.pop(target_uid, None)
             try:
                 await context.bot.edit_message_caption(
@@ -600,11 +792,10 @@ async def show_country_list(chat_id, msg_id, context, page, status):
     offset = page * per_page
 
     if status == "banned":
-        all_list = [c for c in DB["countries"].values() if c["status"] == "banned"]
+        all_list = await get_banned_countries()
     else:
-        all_list = list(DB["countries"].values())
+        all_list = await get_all_countries()
 
-    all_list.sort(key=lambda x: x.get("user_id", 0), reverse=True)
     page_list = all_list[offset:offset + per_page]
 
     if not page_list:
@@ -639,13 +830,13 @@ async def show_country_list(chat_id, msg_id, context, page, status):
 
 
 async def show_country_detail(chat_id, msg_id, context, target_uid):
-    if target_uid not in DB["countries"]:
+    c = await get_country(target_uid)
+    if not c:
         await context.bot.edit_message_text(
             chat_id=chat_id, message_id=msg_id, text="❌ کشور پیدا نشد.",
         )
         return
 
-    c = DB["countries"][target_uid]
     status_text = ("✅ فعال" if c["status"] == "approved"
                    else "🚫 مسدود" if c["status"] == "banned"
                    else "⏳ در انتظار")
@@ -687,7 +878,7 @@ async def show_country_detail(chat_id, msg_id, context, target_uid):
 
 
 async def show_regions_status(chat_id, msg_id, context):
-    taken = DB["regions"]
+    taken = await get_regions()
     text = "🗺️ *وضعیت مناطق:*\n\n"
     buttons, row = [], []
 
@@ -726,6 +917,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if check_spam(uid) and uid != ADMIN_ID:
         await context.bot.send_message(chat_id, "🚫 اسپم! مسدود شدی.")
+        await add_spam_ban(uid)
         return
 
     t = temp.get(uid)
@@ -736,7 +928,8 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if len(text) < 3 or len(text) > 25:
             await context.bot.send_message(chat_id, "❌ نام کشور باید بین ۳ تا ۲۵ حرف باشد. دوباره بنویس:")
             return
-        for c in DB["countries"].values():
+        all_c = await get_all_countries()
+        for c in all_c:
             if c["name"] == text:
                 await context.bot.send_message(chat_id, "❌ این نام قبلاً استفاده شده. نام دیگری بنویس:")
                 return
@@ -781,9 +974,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if t.get("step") == "BAN_REASON" and uid == ADMIN_ID:
         target_uid = t.get("targetUid")
-        if target_uid in DB["countries"]:
-            DB["countries"][target_uid]["status"] = "banned"
-            DB["countries"][target_uid]["ban_reason"] = text
+        await set_country_status(target_uid, "banned", text)
         temp.pop(uid, None)
         await context.bot.send_message(
             chat_id, f"🚫 کشور با موفقیت مسدود شد.\n📝 دلیل: {text}",
@@ -835,8 +1026,17 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+async def post_init(application):
+    await init_db()
+
+
 def main():
-    app = Application.builder().token(TOKEN).build()
+    app = (
+        Application.builder()
+        .token(TOKEN)
+        .post_init(post_init)
+        .build()
+    )
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", cancel))
