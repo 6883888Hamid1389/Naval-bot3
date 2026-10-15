@@ -1,7 +1,7 @@
 import os
 import time
 import asyncpg
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, filters, ContextTypes,
@@ -143,6 +143,9 @@ REGION_COEF = {
     "DDD": 0.9, "WWW": 0.9, "QQQ": 0.9,
 }
 
+SOLDIER_COST = 1500
+POPULATION_MILITARY_CAP = 0.02
+
 temp = {}
 spam_tracker = {}
 banned_users = set()
@@ -262,19 +265,19 @@ async def init_db():
                 gdp BIGINT DEFAULT 10000000,
                 treasury BIGINT DEFAULT 1000000,
                 population BIGINT DEFAULT 50000000,
-                tax_rate INT DEFAULT 15,
+                tax_rate INT DEFAULT 25,
                 infrastructure INT DEFAULT 25,
                 happiness INT DEFAULT 60,
                 science_base INT DEFAULT 10,
                 science_applied INT DEFAULT 10,
                 science_military INT DEFAULT 10,
                 science_space INT DEFAULT 5,
-                research_budget INT DEFAULT 5,
+                research_budget INT DEFAULT 3,
                 military_budget INT DEFAULT 5,
-                education_budget INT DEFAULT 5,
-                infrastructure_budget INT DEFAULT 10,
-                welfare_budget INT DEFAULT 20,
-                army INT DEFAULT 50,
+                education_budget INT DEFAULT 3,
+                infrastructure_budget INT DEFAULT 5,
+                welfare_budget INT DEFAULT 10,
+                army INT DEFAULT 0,
                 unemployment INT DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES countries(user_id)
             )
@@ -357,14 +360,27 @@ async def init_country_stats_for(uid, data):
     gdp = int(10_000_000 * gdp_coef * rel_coef * exp_coef * reg_coef)
     mil_coef = GOV_MIL_COEF.get(gov_sub_name, 1.0)
     military_budget_pct = int(5 * mil_coef)
+    if military_budget_pct > 20:
+        military_budget_pct = 20
 
     async with pool.acquire() as conn:
         await conn.execute("""
-            INSERT INTO country_stats (user_id, gdp, military_budget)
-            VALUES ($1, $2, $3)
+            INSERT INTO country_stats (
+                user_id, gdp, tax_rate,
+                military_budget, research_budget, education_budget,
+                infrastructure_budget, welfare_budget
+            )
+            VALUES ($1, $2, 25, $3, 3, 3, 5, 10)
             ON CONFLICT (user_id) DO UPDATE SET
-                gdp = $2, military_budget = $3
+                gdp = $2, tax_rate = 25,
+                military_budget = $3,
+                research_budget = 3,
+                education_budget = 3,
+                infrastructure_budget = 5,
+                welfare_budget = 10
         """, uid, gdp, military_budget_pct)
+
+    await calculate_army_for(uid)
 
 
 async def set_country_status(uid, status, ban_reason=None):
@@ -484,6 +500,44 @@ async def get_stats(uid):
         return dict(stats)
 
 
+async def calculate_army_for(uid):
+    async with pool.acquire() as conn:
+        stats = await conn.fetchrow(
+            "SELECT gdp, population, military_budget FROM country_stats WHERE user_id = $1",
+            uid
+        )
+        if not stats:
+            return 0
+
+        gdp = stats["gdp"]
+        population = stats["population"]
+        mil_pct = stats["military_budget"]
+
+        pop_cap = int(population * POPULATION_MILITARY_CAP / 1000)
+        mil_budget = gdp * mil_pct // 100
+        budget_cap = mil_budget // SOLDIER_COST
+        army = min(pop_cap, budget_cap)
+
+        await conn.execute(
+            "UPDATE country_stats SET army = $1 WHERE user_id = $2",
+            army, uid
+        )
+        return army
+
+
+async def set_bot_commands(application):
+    commands = [
+        BotCommand("start", "شروع بازی و ثبت کشور"),
+        BotCommand("country", "نمایش وضعیت کامل کشور"),
+        BotCommand("economy", "وضعیت اقتصادی و مالی"),
+        BotCommand("science", "وضعیت علمی و فناوری"),
+        BotCommand("date", "تاریخ جاری بازی"),
+        BotCommand("admin", "پنل مدیریت (فقط ادمین)"),
+        BotCommand("cancel", "لغو عملیات جاری"),
+    ]
+    await application.bot.set_my_commands(commands)
+
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     chat_id = update.effective_chat.id
@@ -574,6 +628,44 @@ async def date_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
 
+async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c:
+        await context.bot.send_message(chat_id, "❌ هنوز کشوری ثبت نکردی. /start رو بزن.")
+        return
+
+    status_emoji = "✅" if c["status"] == "approved" else "🚫" if c["status"] == "banned" else "⏳"
+    status_text = "فعال" if c["status"] == "approved" else "مسدود" if c["status"] == "banned" else "در انتظار تأیید"
+
+    text = (
+        f"🏛️ *کشور {c['name']}*\n"
+        f"📌 وضعیت: {status_emoji} {status_text}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 *رهبر*\n"
+        f"   نام: {c['leader']}\n"
+        f"   سن: {c['age']} سال\n"
+        f"   مدت حکومت: {c['reign']}\n\n"
+        f"⚙️ *حکومت*\n"
+        f"   نوع: {c['gov']}\n"
+        f"   نظام: {c['gov_sub']}\n"
+        f"   دین: {c['religion']}\n"
+        f"   مذهب: {c['rel_sub']}\n"
+        f"   تخصص: {c['expert']}\n\n"
+        f"📍 *موقعیت*\n"
+        f"   منطقه: {c['region']}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"😊 رضایت مردمی: {c['happiness']}٪\n"
+        f"🔬 علم: {c['science']}\n"
+        f"💰 اقتصاد: {c.get('economy', 0)} میلیون دلار\n"
+        f"⚠️ شورش: {c.get('revolt', 0)}٪"
+    )
+
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
+
+
 async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     chat_id = update.effective_chat.id
@@ -583,6 +675,7 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
         return
 
+    await calculate_army_for(uid)
     stats = await get_stats(uid)
 
     gdp = stats["gdp"]
@@ -590,7 +683,7 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     tax = stats["tax_rate"]
 
     tax_income = gdp * tax // 100
-    resource_income = gdp * 3 // 100
+    resource_income = gdp * 5 // 100
     total_income = tax_income + resource_income
 
     military_cost = gdp * stats["military_budget"] // 100
@@ -602,19 +695,22 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     net = total_income - total_cost
 
+    pop_cap = int(stats["population"] * POPULATION_MILITARY_CAP / 1000)
+    budget_cap = (gdp * stats["military_budget"] // 100) // SOLDIER_COST
+
     text = (
         f"💰 *اقتصاد کشور {c['name']}*\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"📈 GDP: {format_money(gdp)}\n"
         f"💵 درآمد مالیات ({tax}٪): {format_money(tax_income)}\n"
-        f"⛏️ درآمد منابع: {format_money(resource_income)}\n"
+        f"⛏️ درآمد منابع (۵٪): {format_money(resource_income)}\n"
         f"💵 *جمع درآمد: {format_money(total_income)}*\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"💸 هزینه نظامی: {format_money(military_cost)}\n"
-        f"🔬 هزینه تحقیق: {format_money(research_cost)}\n"
-        f"🎓 هزینه آموزش: {format_money(edu_cost)}\n"
-        f"🏗️ هزینه زیرساخت: {format_money(infra_cost)}\n"
-        f"🏥 هزینه رفاه: {format_money(welfare_cost)}\n"
+        f"💸 هزینه نظامی ({stats['military_budget']}٪): {format_money(military_cost)}\n"
+        f"🔬 هزینه تحقیق ({stats['research_budget']}٪): {format_money(research_cost)}\n"
+        f"🎓 هزینه آموزش ({stats['education_budget']}٪): {format_money(edu_cost)}\n"
+        f"🏗️ هزینه زیرساخت ({stats['infrastructure_budget']}٪): {format_money(infra_cost)}\n"
+        f"🏥 هزینه رفاه ({stats['welfare_budget']}٪): {format_money(welfare_cost)}\n"
         f"💸 *جمع هزینه: {format_money(total_cost)}*\n\n"
         f"━━━━━━━━━━━━━━━━━━━━━\n"
         f"💰 خزانه: {format_money(treasury)}\n"
@@ -622,8 +718,12 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 *وضعیت*\n"
         f"😊 رضایت: {stats['happiness']}٪\n"
         f"🏗️ زیرساخت: {stats['infrastructure']}/۱۰۰\n"
-        f"🪖 ارتش: {stats['army']} هزار سرباز\n"
-        f"⚠️ بیکاری: {stats['unemployment']}٪"
+        f"⚠️ بیکاری: {stats['unemployment']}٪\n\n"
+        f"🪖 *نیروی زمینی*\n"
+        f"   تعداد: {stats['army']:,} هزار سرباز\n"
+        f"   💸 هزینه: {format_money(stats['army'] * SOLDIER_COST)}\n"
+        f"   🧑 سقف جمعیتی: {pop_cap:,} هزار (۲٪)\n"
+        f"   💰 سقف بودجه‌ای: {budget_cap:,} هزار"
     )
     await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
@@ -1321,44 +1421,8 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def post_init(application):
     await init_db()
+    await set_bot_commands(application)
 
-async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    chat_id = update.effective_chat.id
-
-    c = await get_country(uid)
-    if not c:
-        await context.bot.send_message(chat_id, "❌ هنوز کشوری ثبت نکردی. /start رو بزن.")
-        return
-
-    status_emoji = "✅" if c["status"] == "approved" else "🚫" if c["status"] == "banned" else "⏳"
-    status_text = "فعال" if c["status"] == "approved" else "مسدود" if c["status"] == "banned" else "در انتظار تأیید"
-
-    text = (
-        f"🏛️ *کشور {c['name']}*\n"
-        f"📌 وضعیت: {status_emoji} {status_text}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"👤 *رهبر*\n"
-        f"   نام: {c['leader']}\n"
-        f"   سن: {c['age']} سال\n"
-        f"   مدت حکومت: {c['reign']}\n\n"
-        f"⚙️ *حکومت*\n"
-        f"   نوع: {c['gov']}\n"
-        f"   نظام: {c['gov_sub']}\n"
-        f"   دین: {c['religion']}\n"
-        f"   مذهب: {c['rel_sub']}\n"
-        f"   تخصص: {c['expert']}\n\n"
-        f"📍 *موقعیت*\n"
-        f"   منطقه: {c['region']}\n\n"
-        f"━━━━━━━━━━━━━━━━━━━━━\n"
-        f"😊 رضایت مردمی: {c['happiness']}٪\n"
-        f"🔬 علم: {c['science']}\n"
-        f"💰 اقتصاد: {c.get('economy', 0)} میلیون دلار\n"
-        f"🪖 ارتش: {c.get('army', 0)} هزار سرباز\n"
-        f"⚠️ شورش: {c.get('revolt', 0)}٪\n"
-    )
-
-    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
 def main():
     app = (
@@ -1371,26 +1435,4 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(CommandHandler("admin", admin_cmd))
-    app.add_handler(CommandHandler("date", date_cmd))
-    app.add_handler(CommandHandler("economy", economy_cmd))
-    app.add_handler(CommandHandler("science", science_cmd))
-    app.add_handler(CallbackQueryHandler(callback_handler))
-    app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-
-    render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-    if render_host:
-        port = int(os.environ.get("PORT", 8443))
-        app.run_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=TOKEN,
-            webhook_url=f"https://{render_host}/{TOKEN}",
-            drop_pending_updates=True,
-        )
-    else:
-        app.run_polling(drop_pending_updates=True)
-
-
-if __name__ == "__main__":
-    main()
+    app.add_handler(CommandHandler("date", date_cm
