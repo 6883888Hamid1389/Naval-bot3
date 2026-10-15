@@ -1,4 +1,3 @@
-
 import os
 import time
 import asyncpg
@@ -15,80 +14,8 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not TOKEN:
     raise SystemExit("BOT_TOKEN not set!")
 if not DATABASE_URL:
-    raise SystemExit("DATABASE_URL not set") 
-async def init_game_state():
-    async with pool.acquire() as conn:
-        await conn.execute("""
-            CREATE TABLE IF NOT EXISTS game_state (
-                id INT PRIMARY KEY DEFAULT 1,
-                current_year INT DEFAULT 1970,
-                current_month INT DEFAULT 1,
-                total_turns INT DEFAULT 0,
-                last_update TIMESTAMP DEFAULT NOW()
-            )
-        """)
-        row = await conn.fetchrow("SELECT * FROM game_state WHERE id = 1")
-        if not row:
-            await conn.execute("INSERT INTO game_state (id) VALUES (1)")
+    raise SystemExit("DATABASE_URL not set!")
 
-
-async def get_game_date():
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
-        )
-        if not row:
-            await init_game_state()
-            return {"year": 1970, "month": 1, "turns": 0}
-        return {
-            "year": row["current_year"],
-            "month": row["current_month"],
-            "turns": row["total_turns"],
-        }
-
-
-async def advance_game_time():
-    async with pool.acquire() as conn:
-        row = await conn.fetchrow(
-            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
-        )
-        year = row["current_year"]
-        month = row["current_month"]
-        turns = row["total_turns"] + 1
-
-        month += 6
-        if month > 12:
-            month -= 12
-            year += 1
-
-        await conn.execute(
-            """UPDATE game_state 
-               SET current_year = $1, current_month = $2, 
-                   total_turns = $3, last_update = NOW()
-               WHERE id = 1""",
-            year, month, turns,
-        )
-
-
-def format_game_date(year: int, month: int) -> str:
-    month_names = [
-        "فروردین", "اردیبهشت", "خرداد", "تیر",
-        "مرداد", "شهریور", "مهر", "آبان",
-        "آذر", "دی", "بهمن", "اسفند",
-    ]
-    return f"{month_names[month-1]} {year}"
-
-
-def format_money(amount: int) -> str:
-    dollars = amount * 1000
-    if dollars >= 1_000_000_000:
-        return f"{dollars/1_000_000_000:.2f} میلیارد دلار"
-    elif dollars >= 1_000_000:
-        return f"{dollars/1_000_000:.1f} میلیون دلار"
-    elif dollars >= 1_000:
-        return f"{dollars/1_000:.0f} هزار دلار"
-    else:
-        return f"{dollars:.0f} دلار"
 GOVS = {
     "dictator": "✊ دیکتاتوری",
     "democracy": "🗳️ دموکراسی",
@@ -161,6 +88,61 @@ EXPERTS = {
 REGIONS = ["III", "GGG", "YYY", "OOO", "TTT", "FFF", "SSS", "AAA",
            "HHH", "KKK", "LLL", "RRR", "DDD", "WWW", "QQQ"]
 
+GOV_GDP_COEF = {
+    "دموکراسی پارلمانی": 1.3,
+    "دموکراسی ریاستی": 1.2,
+    "جمهوری سکولار": 1.2,
+    "سلطنت مشروطه": 1.1,
+    "جمهوری تئوکراتیک": 1.0,
+    "سلطنت مطلقه": 0.9,
+    "تئوکراسی میانه‌رو": 0.8,
+    "تئوکراسی قانون‌گرا": 0.8,
+    "کمونیسم تک‌حزبی": 0.8,
+    "تئوکراسی نظامی-دینی": 0.8,
+    "دیکتاتوری نظامی": 0.8,
+    "دیکتاتوری فردی": 0.7,
+    "تئوکراسی افراطی": 0.5,
+}
+
+GOV_MIL_COEF = {
+    "دیکتاتوری نظامی": 2.0,
+    "تئوکراسی نظامی-دینی": 1.8,
+    "تئوکراسی افراطی": 1.7,
+    "دیکتاتوری فردی": 1.5,
+    "کمونیسم تک‌حزبی": 1.4,
+    "سلطنت مطلقه": 1.3,
+    "سلطنت مشروطه": 1.0,
+    "جمهوری تئوکراتیک": 1.0,
+    "تئوکراسی میانه‌رو": 0.9,
+    "تئوکراسی قانون‌گرا": 0.9,
+    "جمهوری سکولار": 0.8,
+    "دموکراسی ریاستی": 0.8,
+    "دموکراسی پارلمانی": 0.7,
+}
+
+RELIGION_COEF = {
+    "سکولار": 1.1,
+    "اسلام": 1.0,
+    "مسیحیت": 0.95,
+    "یهودیت": 1.0,
+    "بودیسم": 0.9,
+    "هندوئیسم": 0.8,
+}
+
+EXPERT_GDP_COEF = {
+    "صنایع سنگین": 1.3,
+    "سوخت و انرژی": 1.5,
+    "غلات و کشاورزی": 1.0,
+    "صنایع نظامی": 1.1,
+}
+
+REGION_COEF = {
+    "III": 1.2, "GGG": 1.1, "YYY": 1.1,
+    "OOO": 1.0, "TTT": 1.0, "FFF": 1.0, "SSS": 1.0, "AAA": 1.0,
+    "HHH": 1.0, "KKK": 1.0, "LLL": 0.9, "RRR": 0.9,
+    "DDD": 0.9, "WWW": 0.9, "QQQ": 0.9,
+}
+
 temp = {}
 spam_tracker = {}
 banned_users = set()
@@ -184,6 +166,27 @@ def check_spam(uid: int) -> bool:
         banned_users.add(uid)
         return True
     return False
+
+
+def format_money(amount: int) -> str:
+    dollars = amount * 1000
+    if dollars >= 1_000_000_000:
+        return f"{dollars/1_000_000_000:.2f} میلیارد دلار"
+    elif dollars >= 1_000_000:
+        return f"{dollars/1_000_000:.1f} میلیون دلار"
+    elif dollars >= 1_000:
+        return f"{dollars/1_000:.0f} هزار دلار"
+    else:
+        return f"{dollars:.0f} دلار"
+
+
+def format_game_date(year: int, month: int) -> str:
+    month_names = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر",
+        "مرداد", "شهریور", "مهر", "آبان",
+        "آذر", "دی", "بهمن", "اسفند",
+    ]
+    return f"{month_names[month-1]} {year}"
 
 
 async def init_db():
@@ -244,7 +247,42 @@ async def init_db():
                 user_id BIGINT PRIMARY KEY
             )
         """)
-    # load banned users
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS game_state (
+                id INT PRIMARY KEY DEFAULT 1,
+                current_year INT DEFAULT 1970,
+                current_month INT DEFAULT 1,
+                total_turns INT DEFAULT 0,
+                last_update TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS country_stats (
+                user_id BIGINT PRIMARY KEY,
+                gdp BIGINT DEFAULT 10000000,
+                treasury BIGINT DEFAULT 1000000,
+                population BIGINT DEFAULT 50000000,
+                tax_rate INT DEFAULT 15,
+                infrastructure INT DEFAULT 25,
+                happiness INT DEFAULT 60,
+                science_base INT DEFAULT 10,
+                science_applied INT DEFAULT 10,
+                science_military INT DEFAULT 10,
+                science_space INT DEFAULT 5,
+                research_budget INT DEFAULT 5,
+                military_budget INT DEFAULT 5,
+                education_budget INT DEFAULT 5,
+                infrastructure_budget INT DEFAULT 10,
+                welfare_budget INT DEFAULT 20,
+                army INT DEFAULT 50,
+                unemployment INT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES countries(user_id)
+            )
+        """)
+        row = await conn.fetchrow("SELECT * FROM game_state WHERE id = 1")
+        if not row:
+            await conn.execute("INSERT INTO game_state (id) VALUES (1)")
+
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT user_id FROM spam_banned")
         for r in rows:
@@ -301,6 +339,32 @@ async def save_country(uid, data):
             data.get("religion"), data.get("rel_sub"), data.get("expert"),
             data.get("region"), data.get("happiness"), data.get("science"),
             data.get("flag_id"))
+
+    await init_country_stats_for(uid, data)
+
+
+async def init_country_stats_for(uid, data):
+    gov_sub_name = data.get("gov_sub", "")
+    religion_name = data.get("religion", "")
+    expert_name = data.get("expert", "")
+    region = data.get("region", "")
+
+    gdp_coef = GOV_GDP_COEF.get(gov_sub_name, 1.0)
+    rel_coef = RELIGION_COEF.get(religion_name, 1.0)
+    exp_coef = EXPERT_GDP_COEF.get(expert_name, 1.0)
+    reg_coef = REGION_COEF.get(region, 1.0)
+
+    gdp = int(10_000_000 * gdp_coef * rel_coef * exp_coef * reg_coef)
+    mil_coef = GOV_MIL_COEF.get(gov_sub_name, 1.0)
+    military_budget_pct = int(5 * mil_coef)
+
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            INSERT INTO country_stats (user_id, gdp, military_budget)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+                gdp = $2, military_budget = $3
+        """, uid, gdp, military_budget_pct)
 
 
 async def set_country_status(uid, status, ban_reason=None):
@@ -366,6 +430,58 @@ async def add_spam_ban(uid):
 async def remove_spam_ban(uid):
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM spam_banned WHERE user_id = $1", uid)
+
+
+async def get_game_date():
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
+        )
+        if not row:
+            return {"year": 1970, "month": 1, "turns": 0}
+        return {
+            "year": row["current_year"],
+            "month": row["current_month"],
+            "turns": row["total_turns"],
+        }
+
+
+async def advance_game_time():
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
+        )
+        year = row["current_year"]
+        month = row["current_month"]
+        turns = row["total_turns"] + 1
+
+        month += 6
+        if month > 12:
+            month -= 12
+            year += 1
+
+        await conn.execute(
+            """UPDATE game_state 
+               SET current_year = $1, current_month = $2, 
+                   total_turns = $3, last_update = NOW()
+               WHERE id = 1""",
+            year, month, turns,
+        )
+
+
+async def get_stats(uid):
+    async with pool.acquire() as conn:
+        stats = await conn.fetchrow(
+            "SELECT * FROM country_stats WHERE user_id = $1", uid
+        )
+        if not stats:
+            await conn.execute(
+                "INSERT INTO country_stats (user_id) VALUES ($1)", uid
+            )
+            stats = await conn.fetchrow(
+                "SELECT * FROM country_stats WHERE user_id = $1", uid
+            )
+        return dict(stats)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -443,6 +559,111 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
 
     await context.bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=keyboard)
+
+
+async def date_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    chat_id = update.effective_chat.id
+    gd = await get_game_date()
+    text = (
+        f"📅 *تاریخ بازی*\n\n"
+        f"🗓️ {format_game_date(gd['year'], gd['month'])}\n"
+        f"🔄 تعداد نوبت‌ها: {gd['turns']}\n\n"
+        f"⏱️ هر نوبت = ۶ ماه بازی\n"
+        f"🌍 سال شروع: ۱۹۷۰"
+    )
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
+
+
+async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    stats = await get_stats(uid)
+
+    gdp = stats["gdp"]
+    treasury = stats["treasury"]
+    tax = stats["tax_rate"]
+
+    tax_income = gdp * tax // 100
+    resource_income = gdp * 3 // 100
+    total_income = tax_income + resource_income
+
+    military_cost = gdp * stats["military_budget"] // 100
+    research_cost = gdp * stats["research_budget"] // 100
+    edu_cost = gdp * stats["education_budget"] // 100
+    infra_cost = gdp * stats["infrastructure_budget"] // 100
+    welfare_cost = gdp * stats["welfare_budget"] // 100
+    total_cost = military_cost + research_cost + edu_cost + infra_cost + welfare_cost
+
+    net = total_income - total_cost
+
+    text = (
+        f"💰 *اقتصاد کشور {c['name']}*\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📈 GDP: {format_money(gdp)}\n"
+        f"💵 درآمد مالیات ({tax}٪): {format_money(tax_income)}\n"
+        f"⛏️ درآمد منابع: {format_money(resource_income)}\n"
+        f"💵 *جمع درآمد: {format_money(total_income)}*\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💸 هزینه نظامی: {format_money(military_cost)}\n"
+        f"🔬 هزینه تحقیق: {format_money(research_cost)}\n"
+        f"🎓 هزینه آموزش: {format_money(edu_cost)}\n"
+        f"🏗️ هزینه زیرساخت: {format_money(infra_cost)}\n"
+        f"🏥 هزینه رفاه: {format_money(welfare_cost)}\n"
+        f"💸 *جمع هزینه: {format_money(total_cost)}*\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"💰 خزانه: {format_money(treasury)}\n"
+        f"{'✅' if net >= 0 else '❌'} *تراز نوبت: {format_money(abs(net))} {'سود' if net >= 0 else 'ضرر'}*\n\n"
+        f"📊 *وضعیت*\n"
+        f"😊 رضایت: {stats['happiness']}٪\n"
+        f"🏗️ زیرساخت: {stats['infrastructure']}/۱۰۰\n"
+        f"🪖 ارتش: {stats['army']} هزار سرباز\n"
+        f"⚠️ بیکاری: {stats['unemployment']}٪"
+    )
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
+
+
+async def science_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    stats = await get_stats(uid)
+
+    sb = stats["science_base"]
+    sa = stats["science_applied"]
+    sm = stats["science_military"]
+    ss = stats["science_space"]
+
+    def bar(val):
+        filled = val // 10
+        return "█" * filled + "░" * (10 - filled)
+
+    text = (
+        f"🔬 *علم کشور {c['name']}*\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"🔬 علم پایه: {sb}/۱۰۰\n"
+        f"   {bar(sb)}\n\n"
+        f"⚙️ علم کاربردی: {sa}/۱۰۰\n"
+        f"   {bar(sa)}\n\n"
+        f"🪖 علم نظامی: {sm}/۱۰۰\n"
+        f"   {bar(sm)}\n\n"
+        f"🚀 علم فضایی: {ss}/۱۰۰\n"
+        f"   {bar(ss)}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"📊 بودجه تحقیق: {stats['research_budget']}٪ GDP\n"
+        f"💵 هزینه تحقیق: {format_money(stats['gdp'] * stats['research_budget'] // 100)}"
+    )
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -1113,6 +1334,9 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(CommandHandler("admin", admin_cmd))
+    app.add_handler(CommandHandler("date", date_cmd))
+    app.add_handler(CommandHandler("economy", economy_cmd))
+    app.add_handler(CommandHandler("science", science_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
