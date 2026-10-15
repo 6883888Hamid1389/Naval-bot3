@@ -1322,6 +1322,43 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def post_init(application):
     await init_db()
 
+async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c:
+        await context.bot.send_message(chat_id, "❌ هنوز کشوری ثبت نکردی. /start رو بزن.")
+        return
+
+    status_emoji = "✅" if c["status"] == "approved" else "🚫" if c["status"] == "banned" else "⏳"
+    status_text = "فعال" if c["status"] == "approved" else "مسدود" if c["status"] == "banned" else "در انتظار تأیید"
+
+    text = (
+        f"🏛️ *کشور {c['name']}*\n"
+        f"📌 وضعیت: {status_emoji} {status_text}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"👤 *رهبر*\n"
+        f"   نام: {c['leader']}\n"
+        f"   سن: {c['age']} سال\n"
+        f"   مدت حکومت: {c['reign']}\n\n"
+        f"⚙️ *حکومت*\n"
+        f"   نوع: {c['gov']}\n"
+        f"   نظام: {c['gov_sub']}\n"
+        f"   دین: {c['religion']}\n"
+        f"   مذهب: {c['rel_sub']}\n"
+        f"   تخصص: {c['expert']}\n\n"
+        f"📍 *موقعیت*\n"
+        f"   منطقه: {c['region']}\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"😊 رضایت مردمی: {c['happiness']}٪\n"
+        f"🔬 علم: {c['science']}\n"
+        f"💰 اقتصاد: {c.get('economy', 0)} میلیون دلار\n"
+        f"🪖 ارتش: {c.get('army', 0)} هزار سرباز\n"
+        f"⚠️ شورش: {c.get('revolt', 0)}٪\n"
+    )
+
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
 def main():
     app = (
