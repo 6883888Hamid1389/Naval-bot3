@@ -15,8 +15,80 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 if not TOKEN:
     raise SystemExit("BOT_TOKEN not set!")
 if not DATABASE_URL:
-    raise SystemExit("DATABASE_URL not set!")
+    raise SystemExit("DATABASE_URL not set") 
+async def init_game_state():
+    async with pool.acquire() as conn:
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS game_state (
+                id INT PRIMARY KEY DEFAULT 1,
+                current_year INT DEFAULT 1970,
+                current_month INT DEFAULT 1,
+                total_turns INT DEFAULT 0,
+                last_update TIMESTAMP DEFAULT NOW()
+            )
+        """)
+        row = await conn.fetchrow("SELECT * FROM game_state WHERE id = 1")
+        if not row:
+            await conn.execute("INSERT INTO game_state (id) VALUES (1)")
 
+
+async def get_game_date():
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
+        )
+        if not row:
+            await init_game_state()
+            return {"year": 1970, "month": 1, "turns": 0}
+        return {
+            "year": row["current_year"],
+            "month": row["current_month"],
+            "turns": row["total_turns"],
+        }
+
+
+async def advance_game_time():
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
+        )
+        year = row["current_year"]
+        month = row["current_month"]
+        turns = row["total_turns"] + 1
+
+        month += 6
+        if month > 12:
+            month -= 12
+            year += 1
+
+        await conn.execute(
+            """UPDATE game_state 
+               SET current_year = $1, current_month = $2, 
+                   total_turns = $3, last_update = NOW()
+               WHERE id = 1""",
+            year, month, turns,
+        )
+
+
+def format_game_date(year: int, month: int) -> str:
+    month_names = [
+        "فروردین", "اردیبهشت", "خرداد", "تیر",
+        "مرداد", "شهریور", "مهر", "آبان",
+        "آذر", "دی", "بهمن", "اسفند",
+    ]
+    return f"{month_names[month-1]} {year}"
+
+
+def format_money(amount: int) -> str:
+    dollars = amount * 1000
+    if dollars >= 1_000_000_000:
+        return f"{dollars/1_000_000_000:.2f} میلیارد دلار"
+    elif dollars >= 1_000_000:
+        return f"{dollars/1_000_000:.1f} میلیون دلار"
+    elif dollars >= 1_000:
+        return f"{dollars/1_000:.0f} هزار دلار"
+    else:
+        return f"{dollars:.0f} دلار"
 GOVS = {
     "dictator": "✊ دیکتاتوری",
     "democracy": "🗳️ دموکراسی",
