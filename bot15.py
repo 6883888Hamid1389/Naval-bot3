@@ -359,7 +359,7 @@ def format_game_date(year: int, month: int) -> str:
 
 async def init_db():
     global pool
-    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
+    pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=1, command_timeout=60)
     async with pool.acquire() as conn:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS countries (
