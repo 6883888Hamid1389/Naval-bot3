@@ -1961,6 +1961,21 @@ async def start_web_server():
     print(f"✅ Web server started on port {port}")
     return runner
 
+async def health(request):
+    return web.Response(text="OK")
+
+
+async def start_web_server():
+    port = int(os.environ.get("PORT", 10000))
+    web_app = web.Application()
+    web_app.router.add_get("/", health)
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"✅ Web server started on port {port}")
+    return runner
+
 
 async def run_bot():
     app = (
@@ -1987,22 +2002,8 @@ async def run_bot():
 
     await app.initialize()
     await app.start()
-
-    render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
-    port = int(os.environ.get("PORT", 8443))
-
-    if render_host:
-        await app.updater.start_webhook(
-            listen="0.0.0.0",
-            port=port,
-            url_path=TOKEN,
-            webhook_url=f"https://{render_host}/{TOKEN}",
-            drop_pending_updates=True,
-        )
-        print(f"✅ Bot webhook started on port {port}")
-    else:
-        await app.updater.start_polling(drop_pending_updates=True)
-        print("✅ Bot polling started")
+    await app.updater.start_polling(drop_pending_updates=True, allowed_updates=Update.ALL_TYPES)
+    print("✅ Bot polling started")
 
     await start_web_server()
     await asyncio.Event().wait()
