@@ -1,5 +1,6 @@
 import os
 import time
+import random
 import asyncpg
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
@@ -15,6 +16,18 @@ if not TOKEN:
     raise SystemExit("BOT_TOKEN not set!")
 if not DATABASE_URL:
     raise SystemExit("DATABASE_URL not set!")
+
+START_YEAR = 2075
+BASE_POPULATION = 15_000_000
+BASE_GDP = 500_000
+BASE_TREASURY = 50_000
+SOLDIER_COST = 1500
+POPULATION_MILITARY_CAP = 0.02
+
+REGIONS_19 = [
+    "III", "GGG", "YYY", "OOO", "TTT", "FFF", "SSS", "AAA", "HHH", "KKK",
+    "LLL", "RRR", "DDD", "WWW", "QQQ", "UUU", "PPP", "EEE", "MMM",
+]
 
 GOVS = {
     "dictator": "✊ دیکتاتوری",
@@ -32,45 +45,38 @@ GOV_SUBS = {
     },
     "democracy": {
         "parl": ["📜 دموکراسی پارلمانی", 85, "👥 زیر نظر کل مردم"],
-        "pres": ["🗳️ دموکراسی ریاستی", 80, "👥 زیر نظر کل مردم (با نفوذ نخبگان)"],
+        "pres": ["🗳️ دموکراسی ریاستی", 80, "👥 زیر نظر کل مردم"],
     },
     "religious": {
-        "trad": ["🕌 تئوکراسی سنتی", 70, "🕌 زیر نظر روحانیت و مردم"],
+        "trad": ["🕌 تئوکراسی سنتی", 70, "🕌 زیر نظر روحانیت"],
         "mod": ["⚖️ تئوکراسی میانه‌رو", 80, "🤝 زیر نظر مردم و دین"],
-        "mil": ["🛡️ تئوکراسی نظامی-دینی", 55, "🪖 زیر نظر ارتش و روحانیت"],
-        "legal": ["📜 تئوکراسی قانون‌گرا", 75, "📜 زیر نظر قانون و مردم"],
-        "radical": ["💀 تئوکراسی افراطی", 25, "💀 زیر نظر گروه کوچک قدرت"],
+        "mil": ["🛡️ تئوکراسی نظامی-دینی", 55, "🪖 ارتش و روحانیت"],
+        "legal": ["📜 تئوکراسی قانون‌گرا", 75, "📜 قانون و مردم"],
+        "radical": ["💀 تئوکراسی افراطی", 25, "💀 گروه کوچک قدرت"],
     },
     "monarch": {
-        "abs": ["👑 سلطنت مطلقه", 45, "👑 زیر نظر خانواده سلطنتی"],
-        "const": ["🏛️ سلطنت مشروطه", 75, "👥 زیر نظر مردم و پادشاه"],
+        "abs": ["👑 سلطنت مطلقه", 45, "👑 خانواده سلطنتی"],
+        "const": ["🏛️ سلطنت مشروطه", 75, "👥 مردم و پادشاه"],
     },
     "communist": {
-        "one": ["☭ کمونیسم تک‌حزبی", 60, "☭ زیر نظر حزب واحد"],
+        "one": ["☭ کمونیسم تک‌حزبی", 60, "☭ حزب واحد"],
     },
     "republic": {
-        "sec": ["🏛️ جمهوری سکولار", 80, "👥 زیر نظر کل مردم"],
-        "theo": ["⚖️ جمهوری تئوکراتیک", 55, "📖 زیر نظر مردم و روحانیت"],
+        "sec": ["🏛️ جمهوری سکولار", 80, "👥 کل مردم"],
+        "theo": ["⚖️ جمهوری تئوکراتیک", 55, "📖 مردم و روحانیت"],
     },
 }
 
 RELIGIONS = {
-    "islam": "☪️ اسلام",
-    "christ": "✝️ مسیحیت",
-    "jew": "✡️ یهودیت",
-    "hindu": "🕉️ هندوئیسم",
-    "budd": "☸️ بودیسم",
-    "secular": "🕊️ سکولار",
+    "islam": "☪️ اسلام", "christ": "✝️ مسیحیت", "jew": "✡️ یهودیت",
+    "hindu": "🕉️ هندوئیسم", "budd": "☸️ بودیسم", "secular": "🕊️ سکولار",
 }
 
 REL_SUBS = {
     "islam": {
-        "shia12": "🔵 شیعه دوازده‌امامی",
-        "shia_ism": "🟢 شیعه اسماعیلی",
-        "shia_zayd": "🟡 شیعه زیدی",
-        "suni_hanafi": "🟠 سنی حنفی",
-        "suni_shafei": "🔴 سنی شافعی",
-        "suni_maleki": "🟣 سنی مالکی",
+        "shia12": "🔵 شیعه دوازده‌امامی", "shia_ism": "🟢 شیعه اسماعیلی",
+        "shia_zayd": "🟡 شیعه زیدی", "suni_hanafi": "🟠 سنی حنفی",
+        "suni_shafei": "🔴 سنی شافعی", "suni_maleki": "🟣 سنی مالکی",
         "suni_hanbali": "⚫ سنی حنبلی",
     },
     "christ": {"cath": "⛪ کاتولیک", "orth": "🏛️ ارتدوکس", "prot": "📖 پروتستان"},
@@ -79,61 +85,38 @@ REL_SUBS = {
 }
 
 EXPERTS = {
-    "heavy": "🏭 صنایع سنگین",
-    "energy": "⛽ سوخت و انرژی",
-    "grain": "🌾 غلات و کشاورزی",
-    "military": "🔫 صنایع نظامی",
+    "heavy": "🏭 صنایع سنگین", "energy": "⛽ سوخت و انرژی",
+    "grain": "🌾 غلات و کشاورزی", "military": "🔫 صنایع نظامی",
 }
 
-REGIONS = ["III", "GGG", "YYY", "OOO", "TTT", "FFF", "SSS", "AAA",
-           "HHH", "KKK", "LLL", "RRR", "DDD", "WWW", "QQQ"]
-
 GOV_GDP_COEF = {
-    "دموکراسی پارلمانی": 1.3,
-    "دموکراسی ریاستی": 1.2,
-    "جمهوری سکولار": 1.2,
-    "سلطنت مشروطه": 1.1,
-    "جمهوری تئوکراتیک": 1.0,
-    "سلطنت مطلقه": 0.9,
-    "تئوکراسی میانه‌رو": 0.8,
-    "تئوکراسی قانون‌گرا": 0.8,
-    "کمونیسم تک‌حزبی": 0.8,
-    "تئوکراسی نظامی-دینی": 0.8,
-    "دیکتاتوری نظامی": 0.8,
-    "دیکتاتوری فردی": 0.7,
+    "دموکراسی پارلمانی": 1.3, "دموکراسی ریاستی": 1.2,
+    "جمهوری سکولار": 1.2, "سلطنت مشروطه": 1.1,
+    "جمهوری تئوکراتیک": 1.0, "سلطنت مطلقه": 0.9,
+    "تئوکراسی میانه‌رو": 0.8, "تئوکراسی قانون‌گرا": 0.8,
+    "کمونیسم تک‌حزبی": 0.8, "تئوکراسی نظامی-دینی": 0.8,
+    "دیکتاتوری نظامی": 0.8, "دیکتاتوری فردی": 0.7,
     "تئوکراسی افراطی": 0.5,
 }
 
 GOV_MIL_COEF = {
-    "دیکتاتوری نظامی": 2.0,
-    "تئوکراسی نظامی-دینی": 1.8,
-    "تئوکراسی افراطی": 1.7,
-    "دیکتاتوری فردی": 1.5,
-    "کمونیسم تک‌حزبی": 1.4,
-    "سلطنت مطلقه": 1.3,
-    "سلطنت مشروطه": 1.0,
-    "جمهوری تئوکراتیک": 1.0,
-    "تئوکراسی میانه‌رو": 0.9,
-    "تئوکراسی قانون‌گرا": 0.9,
-    "جمهوری سکولار": 0.8,
-    "دموکراسی ریاستی": 0.8,
+    "دیکتاتوری نظامی": 2.0, "تئوکراسی نظامی-دینی": 1.8,
+    "تئوکراسی افراطی": 1.7, "دیکتاتوری فردی": 1.5,
+    "کمونیسم تک‌حزبی": 1.4, "سلطنت مطلقه": 1.3,
+    "سلطنت مشروطه": 1.0, "جمهوری تئوکراتیک": 1.0,
+    "تئوکراسی میانه‌رو": 0.9, "تئوکراسی قانون‌گرا": 0.9,
+    "جمهوری سکولار": 0.8, "دموکراسی ریاستی": 0.8,
     "دموکراسی پارلمانی": 0.7,
 }
 
 RELIGION_COEF = {
-    "سکولار": 1.1,
-    "اسلام": 1.0,
-    "مسیحیت": 0.95,
-    "یهودیت": 1.0,
-    "بودیسم": 0.9,
-    "هندوئیسم": 0.8,
+    "سکولار": 1.1, "اسلام": 1.0, "مسیحیت": 0.95,
+    "یهودیت": 1.0, "بودیسم": 0.9, "هندوئیسم": 0.8,
 }
 
 EXPERT_GDP_COEF = {
-    "صنایع سنگین": 1.3,
-    "سوخت و انرژی": 1.5,
-    "غلات و کشاورزی": 1.0,
-    "صنایع نظامی": 1.1,
+    "صنایع سنگین": 1.3, "سوخت و انرژی": 1.5,
+    "غلات و کشاورزی": 1.0, "صنایع نظامی": 1.1,
 }
 
 REGION_COEF = {
@@ -141,17 +124,171 @@ REGION_COEF = {
     "OOO": 1.0, "TTT": 1.0, "FFF": 1.0, "SSS": 1.0, "AAA": 1.0,
     "HHH": 1.0, "KKK": 1.0, "LLL": 0.9, "RRR": 0.9,
     "DDD": 0.9, "WWW": 0.9, "QQQ": 0.9,
+    "UUU": 1.0, "PPP": 1.0, "EEE": 1.0, "MMM": 1.0,
 }
 
-SOLDIER_COST = 1500
-POPULATION_MILITARY_CAP = 0.02
+RESOURCE_NAMES = {
+    "water": "💧 آب",
+    "wheat": "🌾 گندم",
+    "iron": "⛏ آهن",
+    "titanium": "⚙️ تیتانیوم",
+    "gold": "🏵 طلا",
+    "oil": "🛢 نفت",
+    "power": "⚡️ برق",
+    "steel": "🏗 فولاد",
+    "yellowcake": "🟡 کیک زرد",
+    "uranium": "☢ اورانیوم",
+}
+
+RESOURCE_UNITS = {
+    "water": "متر مکعب",
+    "wheat": "تن",
+    "iron": "تن",
+    "titanium": "تن",
+    "gold": "شمش",
+    "oil": "بشکه",
+    "power": "واحد",
+    "steel": "تن",
+    "yellowcake": "واحد",
+    "uranium": "گرم",
+}
+
+WAREHOUSE_DEFAULT = {
+    "water": 1_000_000,
+    "wheat": 100_000,
+    "iron": 50_000,
+    "titanium": 20_000,
+    "gold": 10_000,
+    "oil": 1_000_000,
+    "power": 500_000,
+    "steel": 50_000,
+    "yellowcake": 5_000,
+    "uranium": 10_000,
+}
+
+REGION_SIZES = {
+    "small": {"name": "کوچک", "capacity": 3, "clear_cost": 500, "foundation_cost": 1000},
+    "medium": {"name": "متوسط", "capacity": 6, "clear_cost": 1000, "foundation_cost": 2000},
+    "large": {"name": "بزرگ", "capacity": 10, "clear_cost": 2000, "foundation_cost": 4000},
+    "huge": {"name": "عظیم", "capacity": 20, "clear_cost": 5000, "foundation_cost": 10000},
+}
+
+REGION_TYPES = {
+    "residential": {"name": "🏘️ مسکونی"},
+    "industrial": {"name": "🏭 صنعتی"},
+    "agricultural": {"name": "🌾 کشاورزی"},
+    "extractive": {"name": "⛽ استخراجی"},
+    "mining": {"name": "⛏️ معدنی"},
+    "commercial": {"name": "🏪 تجاری"},
+}
+
+BUILDINGS = {
+    "park": {"name": "🌳 پارک", "type": "residential", "cost": 500, "workers": 50, "happiness": 0.5},
+    "school": {"name": "🏫 مدرسه", "type": "residential", "cost": 1000, "workers": 200, "education": 100},
+    "house": {"name": "🏠 خانه", "type": "residential", "cost": 200, "workers": 10, "pop": 100_000},
+    "apartment": {"name": "🏢 آپارتمان", "type": "residential", "cost": 1500, "workers": 50, "pop": 500_000, "happiness": 0.3},
+    "hospital": {"name": "🏥 بیمارستان", "type": "residential", "cost": 5000, "workers": 500, "happiness": 2.0},
+    "tower": {"name": "🏙️ برج", "type": "residential", "cost": 5000, "workers": 200, "pop": 1_500_000, "happiness": 0.5},
+    "skyscraper": {"name": "🌆 آسمان‌خراش", "type": "residential", "cost": 15000, "workers": 800, "pop": 5_000_000, "happiness": 1.0},
+
+    "vocational": {"name": "🔧 هنرستان", "type": "educational", "cost": 4000, "workers": 300},
+    "university": {"name": "🎓 دانشگاه", "type": "educational", "cost": 12000, "workers": 1000},
+    "research": {"name": "👨‍🔬 پژوهشگاه", "type": "educational", "cost": 25000, "workers": 2500},
+    "lab": {"name": "🧪 آزمایشگاه", "type": "educational", "cost": 8000, "workers": 800},
+
+    "small_workshop": {
+        "name": "🏭 کارگاه کوچک", "type": "industrial", "cost": 7000, "workers": 100,
+        "input": {"oil": 15, "power": 5, "steel": 2}, "income": 1500,
+    },
+    "medium_factory": {
+        "name": "🏭 کارخانه متوسط", "type": "industrial", "cost": 10000, "workers": 200,
+        "input": {"oil": 20, "power": 7, "steel": 3}, "income": 2000,
+    },
+    "big_factory": {
+        "name": "🏭 کارخانه بزرگ", "type": "industrial", "cost": 15000, "workers": 350,
+        "input": {"oil": 25, "power": 10, "steel": 5}, "income": 6000,
+    },
+    "huge_factory": {
+        "name": "🏭 کارخانه عظیم", "type": "industrial", "cost": 25000, "workers": 600,
+        "input": {"oil": 40, "power": 15, "steel": 8}, "income": 23000,
+    },
+    "oil_refinery": {
+        "name": "🛢 پالایشگاه نفت", "type": "industrial", "cost": 5000, "workers": 50,
+        "input": {"power": 25, "steel": 1}, "output": {"oil": 250}, "income": 250,
+    },
+    "power_plant": {
+        "name": "⚡️ پالایشگاه برق", "type": "industrial", "cost": 5000, "workers": 80,
+        "input": {"oil": 5, "steel": 2}, "output": {"power": 100}, "income": 400,
+    },
+    "yellowcake_plant": {
+        "name": "☢ کارخانه فرآوری اورانیوم", "type": "industrial", "cost": 65000, "workers": 120,
+        "input": {"uranium": 400, "oil": 200, "power": 50, "steel": 5},
+        "output": {"yellowcake": 1},
+    },
+    "reactor": {
+        "name": "🏭 راکتور اتمی", "type": "industrial", "cost": 35000, "workers": 500,
+        "input": {"yellowcake": 1, "steel": 10}, "income": 50000,
+    },
+
+    "iron_mine": {
+        "name": "⛏ معدن آهن و فولاد", "type": "mining", "cost": 1000, "workers": 45,
+        "input": {"power": 500, "oil": 500}, "output": {"iron": 1, "steel": 1},
+    },
+    "gold_mine": {
+        "name": "🏵 معدن طلا", "type": "mining", "cost": 8000, "workers": 50,
+        "input": {"oil": 5, "power": 4}, "output": {"gold": 5}, "limit": 10,
+    },
+    "uranium_mine": {
+        "name": "☢ معدن اورانیوم", "type": "mining", "cost": 15000, "workers": 60,
+        "input": {"oil": 15, "power": 12}, "output": {"uranium": 200}, "limit": 5,
+    },
+    "titanium_mine": {
+        "name": "⚙️ معدن تیتانیوم", "type": "mining", "cost": 12000, "workers": 55,
+        "input": {"oil": 10, "power": 10}, "output": {"titanium": 5}, "limit": 8,
+    },
+
+    "wheat_farm": {"name": "🌾 مزرعه گندم", "type": "agricultural", "cost": 1000, "workers": 100, "output": {"wheat": 100}},
+    "livestock": {"name": "🐄 دامداری", "type": "agricultural", "cost": 1500, "workers": 150, "output": {"wheat": 150}},
+    "fish_farm": {"name": "🐟 مزرعه ماهی", "type": "agricultural", "cost": 2000, "workers": 200, "output": {"wheat": 200}},
+    "orchard": {"name": "🌴 باغ میوه", "type": "agricultural", "cost": 1200, "workers": 120, "output": {"wheat": 120}},
+
+    "bazaar": {"name": "🏪 بازار", "type": "commercial", "cost": 2000, "workers": 100, "income": 300},
+    "mall": {"name": "🏬 مرکز خرید", "type": "commercial", "cost": 8000, "workers": 300, "income": 1200},
+    "bank": {"name": "🏦 بانک", "type": "commercial", "cost": 15000, "workers": 200, "income": 2500},
+    "port": {"name": "🚢 بندر", "type": "commercial", "cost": 30000, "workers": 500, "income": 5000, "unlocks_trade": True},
+    "railway": {"name": "🛤️ راه‌آهن", "type": "commercial", "cost": 20000, "workers": 400, "income": 3500},
+    "airport": {"name": "✈️ فرودگاه", "type": "commercial", "cost": 40000, "workers": 600, "income": 6000},
+
+    "dam": {"name": "🌊 سد", "type": "infrastructure", "cost": 1500, "workers": 20, "input": {"power": 600}, "output": {"water": 120}, "limit": 20},
+    "oil_storage": {"name": "🛢 انبار نفت", "type": "infrastructure", "cost": 1000, "workers": 15, "input": {"power": 500}, "capacity": {"oil": 1_000_000}, "limit": 30},
+    "warehouse": {"name": "📦 انبار", "type": "infrastructure", "cost": 800, "workers": 10, "capacity": {"steel": 50_000, "iron": 50_000, "wheat": 100_000, "titanium": 20_000}},
+}
+
+EXPLORATION_COST = {
+    "oil": 5000,
+    "gas": 5000,
+    "iron": 3000,
+    "steel": 3000,
+    "titanium": 4000,
+    "gold": 5000,
+    "uranium": 7000,
+}
+
+EXPLORATION_CHANCES = {
+    "oil": 0.30,
+    "gas": 0.20,
+    "iron": 0.40,
+    "steel": 0.30,
+    "titanium": 0.20,
+    "gold": 0.15,
+    "uranium": 0.10,
+}
 
 temp = {}
 spam_tracker = {}
 banned_users = set()
 spam_limit = 5
 spam_window = 10
-
 pool = None
 
 
@@ -253,7 +390,7 @@ async def init_db():
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS game_state (
                 id INT PRIMARY KEY DEFAULT 1,
-                current_year INT DEFAULT 1970,
+                current_year INT DEFAULT 2075,
                 current_month INT DEFAULT 1,
                 total_turns INT DEFAULT 0,
                 last_update TIMESTAMP DEFAULT NOW()
@@ -262,9 +399,9 @@ async def init_db():
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS country_stats (
                 user_id BIGINT PRIMARY KEY,
-                gdp BIGINT DEFAULT 10000000,
-                treasury BIGINT DEFAULT 1000000,
-                population BIGINT DEFAULT 50000000,
+                gdp BIGINT DEFAULT 500000,
+                treasury BIGINT DEFAULT 50000,
+                population BIGINT DEFAULT 15000000,
                 tax_rate INT DEFAULT 25,
                 infrastructure INT DEFAULT 25,
                 happiness INT DEFAULT 60,
@@ -279,12 +416,79 @@ async def init_db():
                 welfare_budget INT DEFAULT 10,
                 army INT DEFAULT 0,
                 unemployment INT DEFAULT 0,
+                labor_used INT DEFAULT 0,
                 FOREIGN KEY (user_id) REFERENCES countries(user_id)
             )
         """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS country_regions (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT,
+                region_code TEXT,
+                region_type TEXT,
+                name TEXT,
+                size TEXT,
+                capacity INT,
+                used INT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES countries(user_id)
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS region_buildings (
+                id SERIAL PRIMARY KEY,
+                region_id INT,
+                building_key TEXT,
+                active BOOLEAN DEFAULT TRUE,
+                lifespan INT DEFAULT NULL,
+                FOREIGN KEY (region_id) REFERENCES country_regions(id)
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS country_resources (
+                user_id BIGINT PRIMARY KEY,
+                water BIGINT DEFAULT 0,
+                wheat BIGINT DEFAULT 0,
+                iron BIGINT DEFAULT 0,
+                titanium BIGINT DEFAULT 0,
+                gold BIGINT DEFAULT 0,
+                oil BIGINT DEFAULT 0,
+                power BIGINT DEFAULT 0,
+                steel BIGINT DEFAULT 0,
+                yellowcake BIGINT DEFAULT 0,
+                uranium BIGINT DEFAULT 0,
+                FOREIGN KEY (user_id) REFERENCES countries(user_id)
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS resource_capacities (
+                user_id BIGINT PRIMARY KEY,
+                water BIGINT DEFAULT 1000000,
+                wheat BIGINT DEFAULT 100000,
+                iron BIGINT DEFAULT 50000,
+                titanium BIGINT DEFAULT 20000,
+                gold BIGINT DEFAULT 10000,
+                oil BIGINT DEFAULT 1000000,
+                power BIGINT DEFAULT 500000,
+                steel BIGINT DEFAULT 50000,
+                yellowcake BIGINT DEFAULT 5000,
+                uranium BIGINT DEFAULT 10000,
+                FOREIGN KEY (user_id) REFERENCES countries(user_id)
+            )
+        """)
+        await conn.execute("""
+            CREATE TABLE IF NOT EXISTS exploration (
+                id SERIAL PRIMARY KEY,
+                user_id BIGINT,
+                resource_type TEXT,
+                status TEXT DEFAULT 'searching',
+                started_at TIMESTAMP DEFAULT NOW(),
+                FOREIGN KEY (user_id) REFERENCES countries(user_id)
+            )
+        """)
+
         row = await conn.fetchrow("SELECT * FROM game_state WHERE id = 1")
         if not row:
-            await conn.execute("INSERT INTO game_state (id) VALUES (1)")
+            await conn.execute("INSERT INTO game_state (id, current_year, current_month) VALUES (1, 2075, 1)")
 
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT user_id FROM spam_banned")
@@ -357,7 +561,7 @@ async def init_country_stats_for(uid, data):
     exp_coef = EXPERT_GDP_COEF.get(expert_name, 1.0)
     reg_coef = REGION_COEF.get(region, 1.0)
 
-    gdp = int(10_000_000 * gdp_coef * rel_coef * exp_coef * reg_coef)
+    gdp = int(BASE_GDP * gdp_coef * rel_coef * exp_coef * reg_coef)
     mil_coef = GOV_MIL_COEF.get(gov_sub_name, 1.0)
     military_budget_pct = int(5 * mil_coef)
     if military_budget_pct > 20:
@@ -366,19 +570,26 @@ async def init_country_stats_for(uid, data):
     async with pool.acquire() as conn:
         await conn.execute("""
             INSERT INTO country_stats (
-                user_id, gdp, tax_rate,
+                user_id, gdp, treasury, population, tax_rate,
                 military_budget, research_budget, education_budget,
                 infrastructure_budget, welfare_budget
             )
-            VALUES ($1, $2, 25, $3, 3, 3, 5, 10)
+            VALUES ($1, $2, $3, $4, 25, $5, 3, 3, 5, 10)
             ON CONFLICT (user_id) DO UPDATE SET
-                gdp = $2, tax_rate = 25,
-                military_budget = $3,
-                research_budget = 3,
-                education_budget = 3,
-                infrastructure_budget = 5,
-                welfare_budget = 10
-        """, uid, gdp, military_budget_pct)
+                gdp = $2, treasury = $3, population = $4, tax_rate = 25,
+                military_budget = $5, research_budget = 3,
+                education_budget = 3, infrastructure_budget = 5, welfare_budget = 10
+        """, uid, gdp, BASE_TREASURY, BASE_POPULATION, military_budget_pct)
+
+        await conn.execute("""
+            INSERT INTO country_resources (user_id) VALUES ($1)
+            ON CONFLICT (user_id) DO NOTHING
+        """, uid)
+
+        await conn.execute("""
+            INSERT INTO resource_capacities (user_id) VALUES ($1)
+            ON CONFLICT (user_id) DO NOTHING
+        """, uid)
 
     await calculate_army_for(uid)
 
@@ -454,7 +665,7 @@ async def get_game_date():
             "SELECT current_year, current_month, total_turns FROM game_state WHERE id = 1"
         )
         if not row:
-            return {"year": 1970, "month": 1, "turns": 0}
+            return {"year": 2075, "month": 1, "turns": 0}
         return {
             "year": row["current_year"],
             "month": row["current_month"],
@@ -471,9 +682,9 @@ async def advance_game_time():
         month = row["current_month"]
         turns = row["total_turns"] + 1
 
-        month += 6
+        month += 1
         if month > 12:
-            month -= 12
+            month = 1
             year += 1
 
         await conn.execute(
@@ -498,6 +709,36 @@ async def get_stats(uid):
                 "SELECT * FROM country_stats WHERE user_id = $1", uid
             )
         return dict(stats)
+
+
+async def get_resources(uid):
+    async with pool.acquire() as conn:
+        res = await conn.fetchrow(
+            "SELECT * FROM country_resources WHERE user_id = $1", uid
+        )
+        if not res:
+            await conn.execute(
+                "INSERT INTO country_resources (user_id) VALUES ($1)", uid
+            )
+            res = await conn.fetchrow(
+                "SELECT * FROM country_resources WHERE user_id = $1", uid
+            )
+        return dict(res)
+
+
+async def get_capacities(uid):
+    async with pool.acquire() as conn:
+        cap = await conn.fetchrow(
+            "SELECT * FROM resource_capacities WHERE user_id = $1", uid
+        )
+        if not cap:
+            await conn.execute(
+                "INSERT INTO resource_capacities (user_id) VALUES ($1)", uid
+            )
+            cap = await conn.fetchrow(
+                "SELECT * FROM resource_capacities WHERE user_id = $1", uid
+            )
+        return dict(cap)
 
 
 async def calculate_army_for(uid):
@@ -622,8 +863,8 @@ async def date_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📅 *تاریخ بازی*\n\n"
         f"🗓️ {format_game_date(gd['year'], gd['month'])}\n"
         f"🔄 تعداد نوبت‌ها: {gd['turns']}\n\n"
-        f"⏱️ هر نوبت = ۶ ماه بازی\n"
-        f"🌍 سال شروع: ۱۹۷۰"
+        f"⏱️ هر روز واقعی = ۱ ماه بازی\n"
+        f"🌍 سال شروع: ۲۰۷۵"
     )
     await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
@@ -935,7 +1176,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         taken = await get_regions()
         rows, row, count = [], [], 0
-        for code in REGIONS:
+        for code in REGIONS_19:
             if code in taken:
                 row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
             else:
@@ -1103,8 +1344,9 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             except Exception:
                 pass
         await edit("🗑️ کشور با موفقیت حذف شد.",
-                   kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")]]))
-        return
+                   
+                                               kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")]]))
+            return
 
     if data.startswith("adm_free_") and uid == ADMIN_ID:
         code = data.replace("adm_free_", "")
@@ -1272,10 +1514,10 @@ async def show_country_detail(chat_id, msg_id, context, target_uid):
 
 async def show_regions_status(chat_id, msg_id, context):
     taken = await get_regions()
-    text = "🗺️ *وضعیت مناطق:*\n\n"
+    text = "🗺️ *وضعیت ۱۹ منطقه:*\n\n"
     buttons, row = [], []
 
-    for code in REGIONS:
+    for code in REGIONS_19:
         if code in taken:
             text += f"🔒 {code} — گرفته شده\n"
             row.append(InlineKeyboardButton(f"🔓 {code}", callback_data=f"adm_free_{code}"))
@@ -1431,7 +1673,6 @@ def main():
         .post_init(post_init)
         .build()
     )
-
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", cancel))
