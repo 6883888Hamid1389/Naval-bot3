@@ -1941,9 +1941,16 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def post_init(application):
-    await init_db()
-    await set_bot_commands(application)
-
+    try:
+        await init_db()
+        print("DB connected")
+    except Exception as e:
+        print(f"DB ERROR: {e}")
+        raise
+    try:
+        await set_bot_commands(application)
+    except Exception as e:
+        print(f"Commands error: {e}")
 
 
 async def health(request):
