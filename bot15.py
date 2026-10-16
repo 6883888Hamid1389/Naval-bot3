@@ -1945,7 +1945,24 @@ async def post_init(application):
     await set_bot_commands(application)
 
 
-def main():
+
+async def health(request):
+    return web.Response(text="OK")
+
+
+async def start_web_server():
+    port = int(os.environ.get("PORT", 8443))
+    web_app = web.Application()
+    web_app.router.add_get("/", health)
+    runner = web.AppRunner(web_app)
+    await runner.setup()
+    site = web.TCPSite(runner, "0.0.0.0", port)
+    await site.start()
+    print(f"✅ Web server started on port {port}")
+    return runner
+
+
+async def run_bot():
     app = (
         Application.builder()
         .token(TOKEN)
@@ -1968,18 +1985,31 @@ def main():
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
 
+    await app.initialize()
+    await app.start()
+
     render_host = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    port = int(os.environ.get("PORT", 8443))
+
     if render_host:
-        port = int(os.environ.get("PORT", 8443))
-        app.run_webhook(
+        await app.updater.start_webhook(
             listen="0.0.0.0",
             port=port,
             url_path=TOKEN,
             webhook_url=f"https://{render_host}/{TOKEN}",
             drop_pending_updates=True,
         )
+        print(f"✅ Bot webhook started on port {port}")
     else:
-        app.run_polling(drop_pending_updates=True)
+        await app.updater.start_polling(drop_pending_updates=True)
+        print("✅ Bot polling started")
+
+    await start_web_server()
+    await asyncio.Event().wait()
+
+
+def main():
+    asyncio.run(run_bot())
 
 
 if __name__ == "__main__":
