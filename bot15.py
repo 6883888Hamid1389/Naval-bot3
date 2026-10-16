@@ -2,6 +2,8 @@ import os
 import time
 import random
 import asyncpg
+import asyncio
+from aiohttp import web
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
