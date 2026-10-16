@@ -68,55 +68,94 @@ GOV_SUBS = {
 }
 
 RELIGIONS = {
-    "islam": "☪️ اسلام", "christ": "✝️ مسیحیت", "jew": "✡️ یهودیت",
-    "hindu": "🕉️ هندوئیسم", "budd": "☸️ بودیسم", "secular": "🕊️ سکولار",
+    "islam": "☪️ اسلام",
+    "christ": "✝️ مسیحیت",
+    "jew": "✡️ یهودیت",
+    "hindu": "🕉️ هندوئیسم",
+    "budd": "☸️ بودیسم",
+    "secular": "🕊️ سکولار",
 }
 
 REL_SUBS = {
     "islam": {
-        "shia12": "🔵 شیعه دوازده‌امامی", "shia_ism": "🟢 شیعه اسماعیلی",
-        "shia_zayd": "🟡 شیعه زیدی", "suni_hanafi": "🟠 سنی حنفی",
-        "suni_shafei": "🔴 سنی شافعی", "suni_maleki": "🟣 سنی مالکی",
+        "shia12": "🔵 شیعه دوازده‌امامی",
+        "shia_ism": "🟢 شیعه اسماعیلی",
+        "shia_zayd": "🟡 شیعه زیدی",
+        "suni_hanafi": "🟠 سنی حنفی",
+        "suni_shafei": "🔴 سنی شافعی",
+        "suni_maleki": "🟣 سنی مالکی",
         "suni_hanbali": "⚫ سنی حنبلی",
     },
-    "christ": {"cath": "⛪ کاتولیک", "orth": "🏛️ ارتدوکس", "prot": "📖 پروتستان"},
-    "jew": {"orth": "✡️ ارتدوکس", "cons": "🕎 محافظه‌کار", "ref": "📜 اصلاح‌طلب"},
-    "budd": {"thera": "🟡 تراوادا", "maha": "🔴 ماهایانا", "vajra": "⚫ وجریانا"},
+    "christ": {
+        "cath": "⛪ کاتولیک",
+        "orth": "🏛️ ارتدوکس",
+        "prot": "📖 پروتستان",
+    },
+    "jew": {
+        "orth": "✡️ ارتدوکس",
+        "cons": "🕎 محافظه‌کار",
+        "ref": "📜 اصلاح‌طلب",
+    },
+    "budd": {
+        "thera": "🟡 تراوادا",
+        "maha": "🔴 ماهایانا",
+        "vajra": "⚫ وجریانا",
+    },
 }
 
 EXPERTS = {
-    "heavy": "🏭 صنایع سنگین", "energy": "⛽ سوخت و انرژی",
-    "grain": "🌾 غلات و کشاورزی", "military": "🔫 صنایع نظامی",
+    "heavy": "🏭 صنایع سنگین",
+    "energy": "⛽ سوخت و انرژی",
+    "grain": "🌾 غلات و کشاورزی",
+    "military": "🔫 صنایع نظامی",
 }
 
 GOV_GDP_COEF = {
-    "دموکراسی پارلمانی": 1.3, "دموکراسی ریاستی": 1.2,
-    "جمهوری سکولار": 1.2, "سلطنت مشروطه": 1.1,
-    "جمهوری تئوکراتیک": 1.0, "سلطنت مطلقه": 0.9,
-    "تئوکراسی میانه‌رو": 0.8, "تئوکراسی قانون‌گرا": 0.8,
-    "کمونیسم تک‌حزبی": 0.8, "تئوکراسی نظامی-دینی": 0.8,
-    "دیکتاتوری نظامی": 0.8, "دیکتاتوری فردی": 0.7,
+    "دموکراسی پارلمانی": 1.3,
+    "دموکراسی ریاستی": 1.2,
+    "جمهوری سکولار": 1.2,
+    "سلطنت مشروطه": 1.1,
+    "جمهوری تئوکراتیک": 1.0,
+    "سلطنت مطلقه": 0.9,
+    "تئوکراسی میانه‌رو": 0.8,
+    "تئوکراسی قانون‌گرا": 0.8,
+    "کمونیسم تک‌حزبی": 0.8,
+    "تئوکراسی نظامی-دینی": 0.8,
+    "دیکتاتوری نظامی": 0.8,
+    "دیکتاتوری فردی": 0.7,
     "تئوکراسی افراطی": 0.5,
 }
 
 GOV_MIL_COEF = {
-    "دیکتاتوری نظامی": 2.0, "تئوکراسی نظامی-دینی": 1.8,
-    "تئوکراسی افراطی": 1.7, "دیکتاتوری فردی": 1.5,
-    "کمونیسم تک‌حزبی": 1.4, "سلطنت مطلقه": 1.3,
-    "سلطنت مشروطه": 1.0, "جمهوری تئوکراتیک": 1.0,
-    "تئوکراسی میانه‌رو": 0.9, "تئوکراسی قانون‌گرا": 0.9,
-    "جمهوری سکولار": 0.8, "دموکراسی ریاستی": 0.8,
+    "دیکتاتوری نظامی": 2.0,
+    "تئوکراسی نظامی-دینی": 1.8,
+    "تئوکراسی افراطی": 1.7,
+    "دیکتاتوری فردی": 1.5,
+    "کمونیسم تک‌حزبی": 1.4,
+    "سلطنت مطلقه": 1.3,
+    "سلطنت مشروطه": 1.0,
+    "جمهوری تئوکراتیک": 1.0,
+    "تئوکراسی میانه‌رو": 0.9,
+    "تئوکراسی قانون‌گرا": 0.9,
+    "جمهوری سکولار": 0.8,
+    "دموکراسی ریاستی": 0.8,
     "دموکراسی پارلمانی": 0.7,
 }
 
 RELIGION_COEF = {
-    "سکولار": 1.1, "اسلام": 1.0, "مسیحیت": 0.95,
-    "یهودیت": 1.0, "بودیسم": 0.9, "هندوئیسم": 0.8,
+    "سکولار": 1.1,
+    "اسلام": 1.0,
+    "مسیحیت": 0.95,
+    "یهودیت": 1.0,
+    "بودیسم": 0.9,
+    "هندوئیسم": 0.8,
 }
 
 EXPERT_GDP_COEF = {
-    "صنایع سنگین": 1.3, "سوخت و انرژی": 1.5,
-    "غلات و کشاورزی": 1.0, "صنایع نظامی": 1.1,
+    "صنایع سنگین": 1.3,
+    "سوخت و انرژی": 1.5,
+    "غلات و کشاورزی": 1.0,
+    "صنایع نظامی": 1.1,
 }
 
 REGION_COEF = {
@@ -151,19 +190,6 @@ RESOURCE_UNITS = {
     "steel": "تن",
     "yellowcake": "واحد",
     "uranium": "گرم",
-}
-
-WAREHOUSE_DEFAULT = {
-    "water": 1_000_000,
-    "wheat": 100_000,
-    "iron": 50_000,
-    "titanium": 20_000,
-    "gold": 10_000,
-    "oil": 1_000_000,
-    "power": 500_000,
-    "steel": 50_000,
-    "yellowcake": 5_000,
-    "uranium": 10_000,
 }
 
 REGION_SIZES = {
@@ -593,7 +619,6 @@ async def init_country_stats_for(uid, data):
 
     await calculate_army_for(uid)
 
-
 async def set_country_status(uid, status, ban_reason=None):
     async with pool.acquire() as conn:
         await conn.execute(
@@ -766,6 +791,31 @@ async def calculate_army_for(uid):
         return army
 
 
+async def get_user_regions(uid):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT * FROM country_regions WHERE user_id = $1 ORDER BY id", uid
+        )
+        return [dict(r) for r in rows]
+
+
+async def get_region(region_id, uid):
+    async with pool.acquire() as conn:
+        row = await conn.fetchrow(
+            "SELECT * FROM country_regions WHERE id = $1 AND user_id = $2",
+            region_id, uid
+        )
+        return dict(row) if row else None
+
+
+async def get_region_buildings(region_id):
+    async with pool.acquire() as conn:
+        rows = await conn.fetch(
+            "SELECT * FROM region_buildings WHERE region_id = $1", region_id
+        )
+        return [dict(r) for r in rows]
+
+
 async def set_bot_commands(application):
     commands = [
         BotCommand("start", "شروع بازی و ثبت کشور"),
@@ -773,11 +823,14 @@ async def set_bot_commands(application):
         BotCommand("economy", "وضعیت اقتصادی و مالی"),
         BotCommand("science", "وضعیت علمی و فناوری"),
         BotCommand("date", "تاریخ جاری بازی"),
+        BotCommand("regions", "لیست مناطق کشور"),
+        BotCommand("newregion", "ساخت منطقه جدید"),
+        BotCommand("build", "ساخت ساختمون در منطقه"),
+        BotCommand("resources", "وضعیت منابع و انبارها"),
         BotCommand("admin", "پنل مدیریت (فقط ادمین)"),
         BotCommand("cancel", "لغو عملیات جاری"),
     ]
     await application.bot.set_my_commands(commands)
-
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -1006,6 +1059,149 @@ async def science_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
+async def regions_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    regions = await get_user_regions(uid)
+
+    if not regions:
+        await context.bot.send_message(
+            chat_id,
+            "🗺️ هنوز هیچ منطقه‌ای نساختی.\n\n"
+            "برای ساخت منطقه از /newregion استفاده کن.",
+            parse_mode="Markdown",
+        )
+        return
+
+    text = f"🗺️ *مناطق کشور {c['name']}*\n\n📊 تعداد: {len(regions)}\n━━━━━━━━━━━━━━━━━━━━━\n\n"
+
+    for r in regions:
+        emoji = {
+            "residential": "🏘️", "industrial": "🏭",
+            "agricultural": "🌾", "extractive": "⛽",
+            "mining": "⛏️", "commercial": "🏪",
+        }.get(r["region_type"], "❓")
+        size_name = REGION_SIZES.get(r["size"], {}).get("name", "?")
+        text += (
+            f"{emoji} *{r['name']}*\n"
+            f"   نوع: {REGION_TYPES.get(r['region_type'], {}).get('name', '?')}\n"
+            f"   اندازه: {size_name}\n"
+            f"   ظرفیت: {r['used']}/{r['capacity']}\n"
+            f"   📍 موقعیت: {r['region_code']}\n\n"
+        )
+
+    text += "━━━━━━━━━━━━━━━━━━━━━\n"
+    text += "🔨 ساخت ساختمون: /build"
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
+
+
+async def newregion_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    temp[uid] = {"step": "NEWREGION_TYPE"}
+    rows = [
+        [InlineKeyboardButton("🏘️ مسکونی", callback_data="newreg_type_residential")],
+        [InlineKeyboardButton("🏭 صنعتی", callback_data="newreg_type_industrial")],
+        [InlineKeyboardButton("🌾 کشاورزی", callback_data="newreg_type_agricultural")],
+        [InlineKeyboardButton("⛽ استخراجی", callback_data="newreg_type_extractive")],
+        [InlineKeyboardButton("⛏️ معدنی", callback_data="newreg_type_mining")],
+        [InlineKeyboardButton("🏪 تجاری", callback_data="newreg_type_commercial")],
+        [InlineKeyboardButton("🔙 انصراف", callback_data="newreg_cancel")],
+    ]
+    await context.bot.send_message(
+        chat_id,
+        "🏗️ *ساخت منطقه جدید*\n\n"
+        "نوع منطقه رو انتخاب کن:",
+        parse_mode="Markdown",
+        reply_markup=kb(rows),
+    )
+
+
+async def build_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    regions = await get_user_regions(uid)
+
+    if not regions:
+        await context.bot.send_message(chat_id, "❌ هنوز هیچ منطقه‌ای نساختی. /newregion")
+        return
+
+    rows = []
+    for r in regions:
+        emoji = {
+            "residential": "🏘️", "industrial": "🏭",
+            "agricultural": "🌾", "extractive": "⛽",
+            "mining": "⛏️", "commercial": "🏪",
+        }.get(r["region_type"], "❓")
+        rows.append([InlineKeyboardButton(
+            f"{emoji} {r['name']} ({r['used']}/{r['capacity']})",
+            callback_data=f"bld_region_{r['id']}"
+        )])
+
+    rows.append([InlineKeyboardButton("🔙 انصراف", callback_data="bld_cancel")])
+
+    await context.bot.send_message(
+        chat_id,
+        "🔨 *ساخت ساختمون*\n\n🗺️ کدوم منطقه رو انتخاب می‌کنی؟",
+        parse_mode="Markdown",
+        reply_markup=kb(rows),
+    )
+
+
+async def resources_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    chat_id = update.effective_chat.id
+
+    c = await get_country(uid)
+    if not c or c["status"] != "approved":
+        await context.bot.send_message(chat_id, "❌ اول باید کشورت تأیید بشه.")
+        return
+
+    res = await get_resources(uid)
+    cap = await get_capacities(uid)
+
+    def line(key):
+        name = RESOURCE_NAMES.get(key, key)
+        unit = RESOURCE_UNITS.get(key, "")
+        amount = res.get(key, 0)
+        capacity = cap.get(key, 0)
+        pct = int(amount / capacity * 100) if capacity else 0
+        return f"{name}: {amount:,} / {capacity:,} {unit} ({pct}٪)"
+
+    text = (
+        f"📦 *منابع کشور {c['name']}*\n\n"
+        f"━━━━━━━━━━━━━━━━━━━━━\n"
+        f"{line('water')}\n"
+        f"{line('wheat')}\n"
+        f"{line('iron')}\n"
+        f"{line('titanium')}\n"
+        f"{line('gold')}\n"
+        f"{line('oil')}\n"
+        f"{line('power')}\n"
+        f"{line('steel')}\n"
+        f"{line('uranium')}\n"
+        f"{line('yellowcake')}\n"
+        f"━━━━━━━━━━━━━━━━━━━━━"
+    )
+    await context.bot.send_message(chat_id, text, parse_mode="Markdown")
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cb = update.callback_query
@@ -1026,327 +1222,128 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
+    # ========== ادمین ==========
     if data == "adm_panel" and uid == ADMIN_ID:
         all_c = await get_all_countries()
         total = len(all_c)
         approved = len([c for c in all_c if c["status"] == "approved"])
         banned = len([c for c in all_c if c["status"] == "banned"])
-        pending_list = await get_pending_all()
-        pending = len(pending_list)
+        pending = len(await get_pending_all())
         text = (
             f"👑 *پنل مدیریت ناوال لیگ*\n\n"
-            f"📊 آمار کلی:\n"
-            f"• کل کشورها: {total}\n"
+            f"📊 آمار:\n"
+            f"• کل: {total}\n"
             f"• فعال: {approved}\n"
             f"• مسدود: {banned}\n"
-            f"• در انتظار تأیید: {pending}\n\n"
-            f"یکی از گزینه‌ها را انتخاب کن:"
+            f"• در انتظار: {pending}"
         )
         keyboard = kb([
             [InlineKeyboardButton("📋 لیست کشورها", callback_data="adm_list_0")],
             [InlineKeyboardButton("🚫 لیست مسدودها", callback_data="adm_banned_0")],
-            [InlineKeyboardButton("⏳ درخواست‌های در انتظار", callback_data="adm_pending_0")],
-            [InlineKeyboardButton("🗺️ وضعیت مناطق", callback_data="adm_regions")],
-            [InlineKeyboardButton("🛡️ لیست مسدودهای اسپم", callback_data="adm_spamlist")],
+            [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_pending_0")],
+            [InlineKeyboardButton("🗺️ مناطق", callback_data="adm_regions")],
+            [InlineKeyboardButton("🛡️ اسپم‌ها", callback_data="adm_spamlist")],
         ])
         await edit(text, keyboard)
         return
 
     if data == "adm_spamlist" and uid == ADMIN_ID:
         if not banned_users:
-            await edit("🛡️ هیچ کاربر اسپمی مسدود نشده.",
-                       kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
+            await edit("🛡️ خالی.", kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
             return
-        text = "🛡️ *کاربران مسدود (اسپم):*\n\n"
-        buttons = []
-        for bu in banned_users:
-            text += f"🆔 `{bu}`\n"
-            buttons.append([InlineKeyboardButton(f"✅ رفع مسدودی {bu}", callback_data=f"adm_unspam_{bu}")])
-        buttons.append([InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")])
-        await edit(text, kb(buttons))
+        text = "🛡️ *مسدودها:*\n\n"
+        btns = []
+        for b in banned_users:
+            text += f"🆔 `{b}`\n"
+            btns.append([InlineKeyboardButton(f"✅ رفع {b}", callback_data=f"adm_unspam_{b}")])
+        btns.append([InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")])
+        await edit(text, kb(btns))
         return
 
     if data.startswith("adm_unspam_") and uid == ADMIN_ID:
         try:
-            target = int(data.replace("adm_unspam_", ""))
+            tt = int(data.replace("adm_unspam_", ""))
         except ValueError:
             return
-        banned_users.discard(target)
-        spam_tracker.pop(target, None)
-        await remove_spam_ban(target)
-        await edit("✅ کاربر از مسدودی اسپم خارج شد.",
-                   kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_spamlist")]]))
-        return
-
-    if data == "register_country":
-        c = await get_country(uid)
-        if c:
-            msg = ("✅ قبلاً ثبت شدی." if c["status"] == "approved"
-                   else "🚫 مسدود هستی." if c["status"] == "banned"
-                   else "⏳ در انتظار تأیید.")
-            await cb.answer(msg, show_alert=True)
-            return
-        temp[uid] = {
-            "username": cb.from_user.username or cb.from_user.first_name,
-            "step": "NAME",
-        }
-        await edit("🏛️ *نام کشور* خود را بنویس:\n\n(Enter your country name)")
-        return
-
-    if data.startswith("reign_"):
-        map_ = {
-            "reign_5": "۵ سال", "reign_10": "۱۰ سال",
-            "reign_20": "۲۰ سال", "reign_30": "۳۰ سال",
-            "reign_life": "مادام‌العمر",
-        }
-        t["reign"] = map_.get(data, "۱۰ سال")
-        t["step"] = "GOV"
-        temp[uid] = t
-        rows = [[InlineKeyboardButton(v, callback_data=f"gov_{k}")] for k, v in GOVS.items()]
-        await edit("⚙️ *نوع حکومت* را انتخاب کن:", kb(rows))
-        return
-
-    if data.startswith("gov_") and not data.startswith("govsub_"):
-        gov_key = data.replace("gov_", "")
-        if gov_key not in GOVS:
-            return
-        t["gov"] = GOVS[gov_key]
-        t["step"] = "GOV_SUB"
-        temp[uid] = t
-        rows = [[InlineKeyboardButton(v[0], callback_data=f"govsub_{gov_key}_{k}")]
-                for k, v in GOV_SUBS[gov_key].items()]
-        await edit("🏛️ *نظام حکومتی* را انتخاب کن:", kb(rows))
-        return
-
-    if data.startswith("govsub_"):
-        parts = data.replace("govsub_", "").split("_")
-        gov_key = parts[0]
-        sub_key = "_".join(parts[1:])
-        if gov_key not in GOV_SUBS or sub_key not in GOV_SUBS[gov_key]:
-            return
-        sub_name, happiness, science = GOV_SUBS[gov_key][sub_key]
-        t["gov_sub"] = sub_name
-        t["happiness"] = happiness
-        t["science"] = science
-        t["step"] = "RELIGION"
-        temp[uid] = t
-        rows = [[InlineKeyboardButton(v, callback_data=f"rel_{k}")] for k, v in RELIGIONS.items()]
-        await edit("☪️ *دین رسمی* را انتخاب کن:", kb(rows))
-        return
-
-    if data.startswith("rel_") and not data.startswith("relsub_"):
-        rel_key = data.replace("rel_", "")
-        if rel_key not in RELIGIONS:
-            return
-        t["religion"] = RELIGIONS[rel_key]
-        if rel_key == "secular" or rel_key not in REL_SUBS:
-            t["rel_sub"] = "—"
-            t["step"] = "EXPERT"
-            temp[uid] = t
-            rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
-            await edit("🏭 *تخصص اقتصادی* را انتخاب کن:", kb(rows))
-            return
-        t["step"] = "REL_SUB"
-        temp[uid] = t
-        rows = [[InlineKeyboardButton(v, callback_data=f"relsub_{rel_key}_{k}")]
-                for k, v in REL_SUBS[rel_key].items()]
-        await edit("📖 *مذهب* را انتخاب کن:", kb(rows))
-        return
-
-    if data.startswith("relsub_"):
-        parts = data.replace("relsub_", "").split("_")
-        rel_key = parts[0]
-        sub_key = "_".join(parts[1:])
-        if rel_key not in REL_SUBS or sub_key not in REL_SUBS[rel_key]:
-            return
-        t["rel_sub"] = REL_SUBS[rel_key][sub_key]
-        t["step"] = "EXPERT"
-        temp[uid] = t
-        rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
-        await edit("🏭 *تخصص اقتصادی* را انتخاب کن:", kb(rows))
-        return
-
-    if data.startswith("exp_"):
-        exp_key = data.replace("exp_", "")
-        if exp_key not in EXPERTS:
-            return
-        t["expert"] = EXPERTS[exp_key]
-        t["step"] = "REGION"
-        temp[uid] = t
-
-        taken = await get_regions()
-        rows, row, count = [], [], 0
-        for code in REGIONS_19:
-            if code in taken:
-                row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
-            else:
-                row.append(InlineKeyboardButton(f"🟢 {code}", callback_data=f"region_{code}"))
-            count += 1
-            if count % 3 == 0:
-                rows.append(row)
-                row = []
-        if row:
-            rows.append(row)
-
-        await edit("📍 *منطقه مورد نظر* را انتخاب کن:\n🔒 = گرفته شده", kb(rows))
-        return
-
-    if data == "region_locked":
-        await cb.answer("🔒 این منطقه قبلاً گرفته شده!", show_alert=True)
-        return
-
-    if data.startswith("region_"):
-        code = data.replace("region_", "")
-        taken = await get_regions()
-        if code in taken:
-            await cb.answer("🔒 این منطقه همین الان گرفته شد!", show_alert=True)
-            return
-        t["region"] = code
-        t["step"] = "FLAG"
-        temp[uid] = t
-        await edit(f"✅ منطقه *{code}* انتخاب شد.\n\n🖼️ حالا *عکس پرچم کشور* را ارسال کن:")
-        return
-
-    if data == "confirm_restart":
-        temp.pop(uid, None)
-        try:
-            await context.bot.edit_message_caption(
-                chat_id=chat_id, message_id=msg_id,
-                caption="🔄 فرم پاک شد. /start را بزن.",
-            )
-        except Exception:
-            pass
-        return
-
-    if data == "confirm_yes":
-        d = temp.get(uid)
-        if not d:
-            return
-        taken = await get_regions()
-        if d.get("region") in taken:
-            try:
-                await context.bot.edit_message_caption(
-                    chat_id=chat_id, message_id=msg_id,
-                    caption=f"❌ متأسفانه منطقه *{d['region']}* همین الان گرفته شد.\n"
-                            f"/start بزن و منطقه دیگری انتخاب کن.",
-                    parse_mode="Markdown",
-                )
-            except Exception:
-                pass
-            temp.pop(uid, None)
-            return
-
-        admin_text = (
-            f"📥 *درخواست ثبت کشور جدید*\n\n"
-            f"🏛️ کشور: {d['name']}\n👤 رهبر: {d['leader']}\n🎂 سن: {d['age']} سال\n"
-            f"⏳ مدت حکومت: {d['reign']}\n⚙️ حکومت: {d['gov']}\n🏛️ نظام حکومتی: {d['gov_sub']}\n"
-            f"☪️ دین: {d['religion']} — {d['rel_sub']}\n🏭 تخصص: {d['expert']}\n"
-            f"📍 منطقه: {d['region']}\n😊 رضایت مردمی: {d['happiness']}٪\n🔬 علم: {d['science']}\n\n"
-            f"👤 کاربر: @{d.get('username', '')}\n🆔 آیدی: `{uid}`"
-        )
-
-        keyboard = kb([
-            [InlineKeyboardButton("✅ تأیید", callback_data=f"adm_ok_{uid}")],
-            [InlineKeyboardButton("❌ رد", callback_data=f"adm_no_{uid}")],
-        ])
-
-        await save_pending(uid, d)
-
-        await context.bot.send_photo(
-            chat_id=ADMIN_ID, photo=d["flag_id"],
-            caption=admin_text, parse_mode="Markdown", reply_markup=keyboard,
-        )
-        try:
-            await context.bot.edit_message_caption(
-                chat_id=chat_id, message_id=msg_id,
-                caption="⏳ درخواست شما به ادمین ارسال شد. منتظر تأیید باش.",
-            )
-        except Exception:
-            pass
+        banned_users.discard(tt)
+        spam_tracker.pop(tt, None)
+        await remove_spam_ban(tt)
+        await edit("✅ رفع شد.", kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_spamlist")]]))
         return
 
     if data.startswith("adm_list_") and uid == ADMIN_ID:
         try:
-            page = int(data.replace("adm_list_", ""))
+            p = int(data.replace("adm_list_", ""))
         except ValueError:
-            page = 0
-        await show_country_list(chat_id, msg_id, context, page, "all")
+            p = 0
+        await show_country_list(chat_id, msg_id, context, p, "all")
         return
 
     if data.startswith("adm_banned_") and uid == ADMIN_ID:
         try:
-            page = int(data.replace("adm_banned_", ""))
+            p = int(data.replace("adm_banned_", ""))
         except ValueError:
-            page = 0
-        await show_country_list(chat_id, msg_id, context, page, "banned")
+            p = 0
+        await show_country_list(chat_id, msg_id, context, p, "banned")
         return
 
     if data == "adm_pending_0" and uid == ADMIN_ID:
-        pending_list = await get_pending_all()
-        if not pending_list:
-            await edit("⏳ هیچ درخواست در انتظاری وجود ندارد.",
-                       kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
+        pl = await get_pending_all()
+        if not pl:
+            await edit("⏳ خالیه.", kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
             return
-        text = "⏳ *درخواست‌های در انتظار:*\n\n"
-        for d in pending_list:
+        text = "⏳ *در انتظار:*\n\n"
+        for d in pl:
             text += f"🏛️ {d['name']} — @{d.get('username', '')}\n"
         await edit(text, kb([[InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")]]))
         return
 
     if data.startswith("adm_view_") and uid == ADMIN_ID:
         try:
-            target = int(data.replace("adm_view_", ""))
+            tt = int(data.replace("adm_view_", ""))
         except ValueError:
             return
-        await show_country_detail(chat_id, msg_id, context, target)
+        await show_country_detail(chat_id, msg_id, context, tt)
         return
 
     if data.startswith("adm_ban_") and uid == ADMIN_ID:
         try:
-            target = int(data.replace("adm_ban_", ""))
+            tt = int(data.replace("adm_ban_", ""))
         except ValueError:
             return
-        temp[uid] = {"step": "BAN_REASON", "targetUid": target}
-        await edit(
-            f"📝 دلیل مسدود کردن کشور را بنویس:\n\n🆔 آیدی هدف: `{target}`",
-            kb([[InlineKeyboardButton("❌ لغو", callback_data=f"adm_view_{target}")]]),
-        )
+        temp[uid] = {"step": "BAN_REASON", "targetUid": tt}
+        await edit(f"📝 دلیل:\n\n🆔 `{tt}`", kb([[InlineKeyboardButton("❌ لغو", callback_data=f"adm_view_{tt}")]]))
         return
 
     if data.startswith("adm_unban_") and uid == ADMIN_ID:
         try:
-            target = int(data.replace("adm_unban_", ""))
+            tt = int(data.replace("adm_unban_", ""))
         except ValueError:
             return
-        await set_country_status(target, "approved", None)
+        await set_country_status(tt, "approved", None)
         try:
-            await context.bot.send_message(target, "✅ کشور شما از مسدودی خارج شد!")
+            await context.bot.send_message(tt, "✅ رفع مسدودی!")
         except Exception:
             pass
-        await show_country_detail(chat_id, msg_id, context, target)
+        await show_country_detail(chat_id, msg_id, context, tt)
         return
 
     if data.startswith("adm_del_") and uid == ADMIN_ID:
         try:
-            target = int(data.replace("adm_del_", ""))
+            tt = int(data.replace("adm_del_", ""))
         except ValueError:
             return
-        c = await get_country(target)
+        c = await get_country(tt)
         if c:
             if c.get("region"):
                 await free_region(c["region"])
-            await delete_country(target)
+            await delete_country(tt)
             try:
-                await context.bot.send_message(
-                    target, f"🗑️ کشور *{c['name']}* توسط ادمین حذف شد.",
-                    parse_mode="Markdown",
-                )
+                await context.bot.send_message(tt, f"🗑️ *{c['name']}* حذف شد.", parse_mode="Markdown")
             except Exception:
                 pass
-        await edit("🗑️ کشور با موفقیت حذف شد.",
-                   
-                                               kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")]]))
-            return
+        await edit("🗑️ حذف شد.", kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")]]))
+        return
 
     if data.startswith("adm_free_") and uid == ADMIN_ID:
         code = data.replace("adm_free_", "")
@@ -1359,7 +1356,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data == "adm_noop":
-        await cb.answer("این منطقه آزاده ✅")
+        await cb.answer("آزاده ✅")
         return
 
     if data.startswith("adm_ok_") or data.startswith("adm_no_"):
@@ -1367,176 +1364,456 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return
         action = "ok" if data.startswith("adm_ok_") else "no"
         try:
-            target_uid = int(data.split("_")[2])
+            tu = int(data.split("_")[2])
         except (IndexError, ValueError):
             return
-        d = await get_pending(target_uid)
+        d = await get_pending(tu)
         if not d:
-            await cb.answer("⚠️ این درخواست منقضی شده!", show_alert=True)
+            await cb.answer("⚠️ منقضی شده!", show_alert=True)
             return
-        original_caption = cb.message.caption or ""
-
+        oc = cb.message.caption or ""
         if action == "ok":
-            ok = await take_region(d["region"], target_uid)
+            ok = await take_region(d["region"], tu)
             if not ok:
-                await cb.answer("⚠️ این منطقه الان گرفته شده!", show_alert=True)
+                await cb.answer("⚠️ منطقه گرفته شد!", show_alert=True)
                 return
-            await save_country(target_uid, d)
-            await delete_pending(target_uid)
-            temp.pop(target_uid, None)
+            await save_country(tu, d)
+            await delete_pending(tu)
+            temp.pop(tu, None)
             try:
-                await context.bot.edit_message_caption(
-                    chat_id=chat_id, message_id=msg_id,
-                    caption=original_caption + "\n\n✅ *تأیید شد*",
-                    parse_mode="Markdown",
-                )
+                await context.bot.edit_message_caption(chat_id=chat_id, message_id=msg_id, caption=oc + "\n\n✅ *تأیید شد*", parse_mode="Markdown")
             except Exception:
                 pass
             try:
-                await context.bot.send_message(
-                    target_uid,
-                    f"🎉 تبریک! کشور *{d['name']}* تأیید شد.\n📍 منطقه: {d['region']}",
-                    parse_mode="Markdown",
-                )
+                await context.bot.send_message(tu, f"🎉 *{d['name']}* تأیید شد!\n📍 {d['region']}", parse_mode="Markdown")
             except Exception:
                 pass
         else:
-            await delete_pending(target_uid)
-            temp.pop(target_uid, None)
+            await delete_pending(tu)
+            temp.pop(tu, None)
             try:
-                await context.bot.edit_message_caption(
-                    chat_id=chat_id, message_id=msg_id,
-                    caption=original_caption + "\n\n❌ *رد شد*",
-                    parse_mode="Markdown",
-                )
+                await context.bot.edit_message_caption(chat_id=chat_id, message_id=msg_id, caption=oc + "\n\n❌ *رد شد*", parse_mode="Markdown")
             except Exception:
                 pass
             try:
-                await context.bot.send_message(
-                    target_uid,
-                    "❌ متأسفانه درخواست کشورت رد شد.\n"
-                    "می‌توانی دوباره با /start فرم پر کنی.",
-                )
+                await context.bot.send_message(tu, "❌ رد شد.")
             except Exception:
                 pass
+        return
+
+    # ========== ثبت کشور ==========
+    if data == "register_country":
+        c = await get_country(uid)
+        if c:
+            m = ("✅ قبلاً ثبت شدی." if c["status"] == "approved"
+                 else "🚫 مسدود." if c["status"] == "banned"
+                 else "⏳ در انتظار.")
+            await cb.answer(m, show_alert=True)
+            return
+        temp[uid] = {"username": cb.from_user.username or cb.from_user.first_name, "step": "NAME"}
+        await edit("🏛️ *نام کشور* را بنویس:")
+        return
+
+    if data.startswith("reign_"):
+        mp = {"reign_5": "۵ سال", "reign_10": "۱۰ سال", "reign_20": "۲۰ سال", "reign_30": "۳۰ سال", "reign_life": "مادام‌العمر"}
+        t["reign"] = mp.get(data, "۱۰ سال")
+        t["step"] = "GOV"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"gov_{k}")] for k, v in GOVS.items()]
+        await edit("⚙️ *حکومت*:", kb(rows))
+        return
+
+    if data.startswith("gov_") and not data.startswith("govsub_"):
+        gk = data.replace("gov_", "")
+        if gk not in GOVS:
+            return
+        t["gov"] = GOVS[gk]
+        t["step"] = "GOV_SUB"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v[0], callback_data=f"govsub_{gk}_{k}")] for k, v in GOV_SUBS[gk].items()]
+        await edit("🏛️ *نظام حکومتی*:", kb(rows))
+        return
+
+    if data.startswith("govsub_"):
+        parts = data.replace("govsub_", "").split("_")
+        gk = parts[0]
+        sk = "_".join(parts[1:])
+        if gk not in GOV_SUBS or sk not in GOV_SUBS[gk]:
+            return
+        sub, hap, sci = GOV_SUBS[gk][sk]
+        t["gov_sub"] = sub
+        t["happiness"] = hap
+        t["science"] = sci
+        t["step"] = "RELIGION"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"rel_{k}")] for k, v in RELIGIONS.items()]
+        await edit("☪️ *دین*:", kb(rows))
+        return
+
+    if data.startswith("rel_") and not data.startswith("relsub_"):
+        rk = data.replace("rel_", "")
+        if rk not in RELIGIONS:
+            return
+        t["religion"] = RELIGIONS[rk]
+        if rk == "secular" or rk not in REL_SUBS:
+            t["rel_sub"] = "—"
+            t["step"] = "EXPERT"
+            temp[uid] = t
+            rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
+            await edit("🏭 *تخصص*:", kb(rows))
+            return
+        t["step"] = "REL_SUB"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"relsub_{rk}_{k}")] for k, v in REL_SUBS[rk].items()]
+        await edit("📖 *مذهب*:", kb(rows))
+        return
+
+    if data.startswith("relsub_"):
+        parts = data.replace("relsub_", "").split("_")
+        rk = parts[0]
+        sk = "_".join(parts[1:])
+        if rk not in REL_SUBS or sk not in REL_SUBS[rk]:
+            return
+        t["rel_sub"] = REL_SUBS[rk][sk]
+        t["step"] = "EXPERT"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
+        await edit("🏭 *تخصص*:", kb(rows))
+        return
+
+    if data.startswith("exp_"):
+        ek = data.replace("exp_", "")
+        if ek not in EXPERTS:
+            return
+        t["expert"] = EXPERTS[ek]
+        t["step"] = "REGION"
+        temp[uid] = t
+        taken = await get_regions()
+        rows, row, cnt = [], [], 0
+        for code in REGIONS_19:
+            if code in taken:
+                row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
+            else:
+                row.append(InlineKeyboardButton(f"🟢 {code}", callback_data=f"region_{code}"))
+            cnt += 1
+            if cnt % 3 == 0:
+                rows.append(row)
+                row = []
+        if row:
+            rows.append(row)
+        await edit("📍 *منطقه*:", kb(rows))
+        return
+
+    if data == "region_locked":
+        await cb.answer("🔒 گرفته شده!", show_alert=True)
+        return
+
+    if data.startswith("region_"):
+        code = data.replace("region_", "")
+        taken = await get_regions()
+        if code in taken:
+            await cb.answer("🔒 گرفته شد!", show_alert=True)
+            return
+        t["region"] = code
+        t["step"] = "FLAG"
+        temp[uid] = t
+        await edit(f"✅ منطقه *{code}*.\n\n🖼️ عکس پرچم رو بفرست:")
+        return
+
+    if data == "confirm_restart":
+        temp.pop(uid, None)
+        try:
+            await context.bot.edit_message_caption(chat_id=chat_id, message_id=msg_id, caption="🔄 پاک شد. /start")
+        except Exception:
+            pass
+        return
+
+    if data == "confirm_yes":
+        d = temp.get(uid)
+        if not d:
+            return
+        taken = await get_regions()
+        if d.get("region") in taken:
+            try:
+                await context.bot.edit_message_caption(chat_id=chat_id, message_id=msg_id, caption=f"❌ منطقه *{d['region']}* گرفته شد.", parse_mode="Markdown")
+            except Exception:
+                pass
+            temp.pop(uid, None)
+            return
+        at = (
+            f"📥 *درخواست ثبت*\n\n"
+            f"🏛️ {d['name']}\n👤 {d['leader']}\n🎂 {d['age']}\n"
+            f"⏳ {d['reign']}\n⚙️ {d['gov']}\n🏛️ {d['gov_sub']}\n"
+            f"☪️ {d['religion']} — {d['rel_sub']}\n🏭 {d['expert']}\n"
+            f"📍 {d['region']}\n😊 {d['happiness']}٪\n🔬 {d['science']}\n\n"
+            f"👤 @{d.get('username', '')}\n🆔 `{uid}`"
+        )
+        keyboard = kb([
+            [InlineKeyboardButton("✅ تأیید", callback_data=f"adm_ok_{uid}")],
+            [InlineKeyboardButton("❌ رد", callback_data=f"adm_no_{uid}")],
+        ])
+        await save_pending(uid, d)
+        await context.bot.send_photo(chat_id=ADMIN_ID, photo=d["flag_id"], caption=at, parse_mode="Markdown", reply_markup=keyboard)
+        try:
+            await context.bot.edit_message_caption(chat_id=chat_id, message_id=msg_id, caption="⏳ ارسال شد.")
+        except Exception:
+            pass
+        return
+
+    # ========== مناطق ==========
+    if data == "newreg_cancel":
+        temp.pop(uid, None)
+        await edit("❌ لغو شد.")
+        return
+
+    if data.startswith("newreg_type_"):
+        rt = data.replace("newreg_type_", "")
+        if rt not in REGION_TYPES:
+            return
+        t["newreg_type"] = rt
+        t["step"] = "NEWREGION_CODE"
+        temp[uid] = t
+        taken = await get_regions()
+        rows, row, cnt = [], [], 0
+        for code in REGIONS_19:
+            if code in taken:
+                row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
+            else:
+                row.append(InlineKeyboardButton(f"🟢 {code}", callback_data=f"newreg_code_{code}"))
+            cnt += 1
+            if cnt % 3 == 0:
+                rows.append(row)
+                row = []
+        if row:
+            rows.append(row)
+        rows.append([InlineKeyboardButton("🔙 انصراف", callback_data="newreg_cancel")])
+        await edit(f"📍 *موقعیت منطقه* ({REGION_TYPES[rt]['name']}):", kb(rows))
+        return
+
+    if data.startswith("newreg_code_"):
+        code = data.replace("newreg_code_", "")
+        taken = await get_regions()
+        if code in taken:
+            await cb.answer("🔒 گرفته شده!", show_alert=True)
+            return
+        t["newreg_code"] = code
+        t["step"] = "NEWREGION_NAME"
+        temp[uid] = t
+        await edit(f"✅ موقعیت: *{code}*\n\n📝 حالا اسم منطقه رو بنویس:")
+        return
+
+    if data.startswith("newreg_size_"):
+        sz = data.replace("newreg_size_", "")
+        if sz not in REGION_SIZES:
+            return
+        info = REGION_SIZES[sz]
+        total_cost = info["clear_cost"] + info["foundation_cost"]
+        stats = await get_stats(uid)
+        if stats["treasury"] < total_cost:
+            await cb.answer(f"❌ خزانه کافی نیست! نیاز: {format_money(total_cost)}", show_alert=True)
+            return
+        rt = t.get("newreg_type")
+        code = t.get("newreg_code")
+        name = t.get("newreg_name")
+        if not rt or not code or not name:
+            await cb.answer("❌ اطلاعات ناقص!", show_alert=True)
+            return
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE country_stats SET treasury = treasury - $1 WHERE user_id = $2",
+                total_cost, uid
+            )
+            await conn.execute("""
+                INSERT INTO country_regions (user_id, region_code, region_type, name, size, capacity, used)
+                VALUES ($1, $2, $3, $4, $5, $6, 0)
+            """, uid, code, rt, name, sz, info["capacity"])
+        temp.pop(uid, None)
+        await cb.answer("✅ منطقه ساخته شد!", show_alert=True)
+        await edit(
+            f"🎉 *منطقه ساخته شد!*\n\n"
+            f"📛 نام: {name}\n"
+            f"🏷️ نوع: {REGION_TYPES[rt]['name']}\n"
+            f"📐 اندازه: {info['name']}\n"
+            f"📍 موقعیت: {code}\n"
+            f"💰 هزینه: {format_money(total_cost)}\n"
+            f"📦 ظرفیت: {info['capacity']}\n\n"
+            f"🔨 برای ساخت ساختمون /build"
+        )
+        return
+
+    if data == "bld_cancel":
+        temp.pop(uid, None)
+        await edit("❌ لغو شد.")
+        return
+
+    if data.startswith("bld_region_"):
+        try:
+            rid = int(data.replace("bld_region_", ""))
+        except ValueError:
+            return
+        region = await get_region(rid, uid)
+        if not region:
+            await cb.answer("❌ پیدا نشد!", show_alert=True)
+            return
+        if region["used"] >= region["capacity"]:
+            await cb.answer("⚠️ پر شده!", show_alert=True)
+            return
+        rt = region["region_type"]
+        available = [(k, v) for k, v in BUILDINGS.items() if v["type"] == rt]
+        if not available:
+            await cb.answer("⚠️ ساختمونی نیست!", show_alert=True)
+            return
+        t["selected_region"] = rid
+        temp[uid] = t
+        rows = []
+        for k, v in available:
+            rows.append([InlineKeyboardButton(
+                f"{v['name']} — {format_money(v['cost'])}",
+                callback_data=f"bld_make_{k}"
+            )])
+        rows.append([InlineKeyboardButton("🔙 بازگشت", callback_data="bld_back")])
+        await edit(
+            f"🏗️ *ساخت ساختمون*\n\n"
+            f"📍 {region['name']}\n"
+            f"📐 ظرفیت: {region['used']}/{region['capacity']}\n\n"
+            f"کدوم ساختمون؟",
+            kb(rows)
+        )
+        return
+
+    if data == "bld_back":
+        await build_cmd(update, context)
+        return
+
+    if data.startswith("bld_make_"):
+        bk = data.replace("bld_make_", "")
+        if bk not in BUILDINGS:
+            await cb.answer("❌ نامعتبر!", show_alert=True)
+            return
+        rid = t.get("selected_region")
+        if not rid:
+            await cb.answer("❌ اول منطقه انتخاب کن!", show_alert=True)
+            return
+        b = BUILDINGS[bk]
+        region = await get_region(rid, uid)
+        if not region:
+            await cb.answer("❌ پیدا نشد!", show_alert=True)
+            return
+        if region["used"] >= region["capacity"]:
+            await cb.answer("⚠️ پر شده!", show_alert=True)
+            return
+        if b["type"] != region["region_type"]:
+            await cb.answer("⚠️ نوع ساختمون سازگار نیست!", show_alert=True)
+            return
+        stats = await get_stats(uid)
+        if stats["treasury"] < b["cost"]:
+            await cb.answer(f"❌ خزانه کم! نیاز: {format_money(b['cost'])}", show_alert=True)
+            return
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE country_stats SET treasury = treasury - $1 WHERE user_id = $2", b["cost"], uid)
+            await conn.execute("INSERT INTO region_buildings (region_id, building_key) VALUES ($1, $2)", rid, bk)
+            await conn.execute("UPDATE country_regions SET used = used + 1 WHERE id = $1", rid)
+        await cb.answer(f"✅ {b['name']} ساخته شد!", show_alert=True)
+        region = await get_region(rid, uid)
+        rt = region["region_type"]
+        available = [(k, v) for k, v in BUILDINGS.items() if v["type"] == rt]
+        rows = []
+        for k, v in available:
+            rows.append([InlineKeyboardButton(
+                f"{v['name']} — {format_money(v['cost'])}",
+                callback_data=f"bld_make_{k}"
+            )])
+        rows.append([InlineKeyboardButton("🔙 بازگشت", callback_data="bld_back")])
+        await edit(
+            f"🏗️ *ساخت ساختمون*\n\n"
+            f"📍 {region['name']}\n"
+            f"📐 ظرفیت: {region['used']}/{region['capacity']}\n"
+            f"✅ ساخته شد!\n\n"
+            f"یکی دیگه؟",
+            kb(rows)
+        )
         return
 
 
 async def show_country_list(chat_id, msg_id, context, page, status):
     per_page = 5
     offset = page * per_page
-
     if status == "banned":
         all_list = await get_banned_countries()
     else:
         all_list = await get_all_countries()
-
     page_list = all_list[offset:offset + per_page]
-
     if not page_list:
-        text = "🚫 هیچ کشور مسدودی وجود ندارد." if status == "banned" else "📋 هیچ کشوری ثبت نشده."
+        text = "🚫 خالی." if status == "banned" else "📋 خالی."
         await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text)
         return
-
-    text = "🚫 *کشورهای مسدود:*\n\n" if status == "banned" else "📋 *لیست کشورها:*\n\n"
+    text = "🚫 *مسدودها:*\n\n" if status == "banned" else "📋 *کشورها:*\n\n"
     buttons = []
-
     for c in page_list:
         icon = "✅" if c["status"] == "approved" else "🚫" if c["status"] == "banned" else "⏳"
-        text += f"{icon} *{c['name']}* — {c['gov']}\n📍 منطقه: {c['region']}\n\n"
+        text += f"{icon} *{c['name']}* — {c['gov']}\n📍 {c['region']}\n\n"
         buttons.append([InlineKeyboardButton(f"🔍 {c['name']}", callback_data=f"adm_view_{c['user_id']}")])
-
     prefix = "banned" if status == "banned" else "list"
     nav = []
     if page > 0:
-        nav.append(InlineKeyboardButton("⬅️ قبلی", callback_data=f"adm_{prefix}_{page - 1}"))
+        nav.append(InlineKeyboardButton("⬅️", callback_data=f"adm_{prefix}_{page - 1}"))
     nav.append(InlineKeyboardButton("🔙 پنل", callback_data="adm_panel"))
     if offset + per_page < len(all_list):
-        nav.append(InlineKeyboardButton("➡️ بعدی", callback_data=f"adm_{prefix}_{page + 1}"))
+        nav.append(InlineKeyboardButton("➡️", callback_data=f"adm_{prefix}_{page + 1}"))
     buttons.append(nav)
-
     try:
-        await context.bot.edit_message_text(
-            chat_id=chat_id, message_id=msg_id,
-            text=text, parse_mode="Markdown", reply_markup=kb(buttons),
-        )
+        await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
     except Exception:
         pass
 
 
-async def show_country_detail(chat_id, msg_id, context, target_uid):
-    c = await get_country(target_uid)
+async def show_country_detail(chat_id, msg_id, context, tu):
+    c = await get_country(tu)
     if not c:
-        await context.bot.edit_message_text(
-            chat_id=chat_id, message_id=msg_id, text="❌ کشور پیدا نشد.",
-        )
+        await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text="❌ پیدا نشد.")
         return
-
-    status_text = ("✅ فعال" if c["status"] == "approved"
-                   else "🚫 مسدود" if c["status"] == "banned"
-                   else "⏳ در انتظار")
-
+    st = "✅ فعال" if c["status"] == "approved" else "🚫 مسدود" if c["status"] == "banned" else "⏳ در انتظار"
     text = (
         f"🏛️ *{c['name']}*\n\n"
-        f"👤 رهبر: {c['leader']}\n"
-        f"🎂 سن: {c['age']} سال\n"
-        f"⏳ مدت حکومت: {c['reign']}\n"
-        f"⚙️ حکومت: {c['gov']}\n"
-        f"🏛️ نظام: {c['gov_sub']}\n"
-        f"☪️ دین: {c['religion']} — {c['rel_sub']}\n"
-        f"🏭 تخصص: {c['expert']}\n"
-        f"📍 منطقه: {c['region']}\n"
-        f"😊 رضایت مردمی: {c['happiness']}٪\n"
-        f"🔬 علم: {c['science']}\n"
-        f"💰 اقتصاد: {c.get('economy', 0)}\n"
-        f"🪖 ارتش: {c.get('army', 0)}\n"
-        f"⚠️ شورش: {c.get('revolt', 0)}٪\n"
-        f"📌 وضعیت: {status_text}\n\n"
-        f"👤 کاربر: @{c.get('username', '')}\n🆔 آیدی: `{c['user_id']}`"
+        f"👤 {c['leader']}\n🎂 {c['age']}\n⏳ {c['reign']}\n"
+        f"⚙️ {c['gov']}\n🏛️ {c['gov_sub']}\n"
+        f"☪️ {c['religion']} — {c['rel_sub']}\n🏭 {c['expert']}\n"
+        f"📍 {c['region']}\n😊 {c['happiness']}٪\n🔬 {c['science']}\n"
+        f"💰 {c.get('economy', 0)}\n🪖 {c.get('army', 0)}\n⚠️ {c.get('revolt', 0)}٪\n"
+        f"📌 {st}\n\n👤 @{c.get('username', '')}\n🆔 `{c['user_id']}`"
     )
-
     buttons = []
     if c["status"] == "banned":
-        buttons.append([InlineKeyboardButton("✅ رفع مسدودی", callback_data=f"adm_unban_{target_uid}")])
+        buttons.append([InlineKeyboardButton("✅ رفع", callback_data=f"adm_unban_{tu}")])
     else:
-        buttons.append([InlineKeyboardButton("🚫 مسدود کردن", callback_data=f"adm_ban_{target_uid}")])
-    buttons.append([InlineKeyboardButton("🗑️ حذف کشور", callback_data=f"adm_del_{target_uid}")])
-    buttons.append([InlineKeyboardButton("🔙 بازگشت به لیست", callback_data="adm_list_0")])
-
+        buttons.append([InlineKeyboardButton("🚫 مسدود", callback_data=f"adm_ban_{tu}")])
+    buttons.append([InlineKeyboardButton("🗑️ حذف", callback_data=f"adm_del_{tu}")])
+    buttons.append([InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")])
     try:
-        await context.bot.edit_message_text(
-            chat_id=chat_id, message_id=msg_id,
-            text=text, parse_mode="Markdown", reply_markup=kb(buttons),
-        )
+        await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
     except Exception:
         pass
 
 
 async def show_regions_status(chat_id, msg_id, context):
     taken = await get_regions()
-    text = "🗺️ *وضعیت ۱۹ منطقه:*\n\n"
+    text = "🗺️ *مناطق:*\n\n"
     buttons, row = [], []
-
     for code in REGIONS_19:
         if code in taken:
-            text += f"🔒 {code} — گرفته شده\n"
+            text += f"🔒 {code}\n"
             row.append(InlineKeyboardButton(f"🔓 {code}", callback_data=f"adm_free_{code}"))
         else:
-            text += f"🟢 {code} — آزاد\n"
+            text += f"🟢 {code}\n"
             row.append(InlineKeyboardButton(f"🟢 {code}", callback_data="adm_noop"))
         if len(row) == 3:
             buttons.append(row)
             row = []
     if row:
         buttons.append(row)
-
     buttons.append([InlineKeyboardButton("🔙 پنل", callback_data="adm_panel")])
-
     try:
-        await context.bot.edit_message_text(
-            chat_id=chat_id, message_id=msg_id,
-            text=text, parse_mode="Markdown", reply_markup=kb(buttons),
-        )
+        await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
     except Exception:
         pass
 
@@ -1551,7 +1828,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if check_spam(uid) and uid != ADMIN_ID:
-        await context.bot.send_message(chat_id, "🚫 اسپم! مسدود شدی.")
+        await context.bot.send_message(chat_id, "🚫 اسپم!")
         await add_spam_ban(uid)
         return
 
@@ -1561,36 +1838,34 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if t.get("step") == "NAME":
         if len(text) < 3 or len(text) > 25:
-            await context.bot.send_message(chat_id, "❌ نام کشور باید بین ۳ تا ۲۵ حرف باشد. دوباره بنویس:")
+            await context.bot.send_message(chat_id, "❌ ۳ تا ۲۵ حرف:")
             return
         all_c = await get_all_countries()
         for c in all_c:
             if c["name"] == text:
-                await context.bot.send_message(chat_id, "❌ این نام قبلاً استفاده شده. نام دیگری بنویس:")
+                await context.bot.send_message(chat_id, "❌ تکراری:")
                 return
         t["name"] = text
         t["step"] = "LEADER"
-        await context.bot.send_message(chat_id, "👤 *نام رهبر* را بنویس:", parse_mode="Markdown")
+        await context.bot.send_message(chat_id, "👤 *نام رهبر*:", parse_mode="Markdown")
         return
 
     if t.get("step") == "LEADER":
         if len(text) < 2:
-            await context.bot.send_message(chat_id, "❌ نام خیلی کوتاهه. دوباره بنویس:")
+            await context.bot.send_message(chat_id, "❌ کوتاه:")
             return
         t["leader"] = text
         t["step"] = "AGE"
-        await context.bot.send_message(
-            chat_id, "🎂 *سن رهبر* را بنویس (بین ۳۵ تا ۴۵):", parse_mode="Markdown",
-        )
+        await context.bot.send_message(chat_id, "🎂 *سن* (۳۵-۴۵):", parse_mode="Markdown")
         return
 
     if t.get("step") == "AGE":
         if not text.isdigit():
-            await context.bot.send_message(chat_id, "❌ فقط عدد بنویس (بین ۳۵ تا ۴۵):")
+            await context.bot.send_message(chat_id, "❌ عدد:")
             return
         age = int(text)
         if age < 35 or age > 45:
-            await context.bot.send_message(chat_id, "❌ سن باید بین ۳۵ تا ۴۵ باشد. دوباره بنویس:")
+            await context.bot.send_message(chat_id, "❌ ۳۵-۴۵:")
             return
         t["age"] = age
         t["step"] = "REIGN"
@@ -1599,25 +1874,36 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("⏳ ۱۰ سال", callback_data="reign_10")],
             [InlineKeyboardButton("⏳ ۲۰ سال", callback_data="reign_20")],
             [InlineKeyboardButton("⏳ ۳۰ سال", callback_data="reign_30")],
-            [InlineKeyboardButton("♾️ مادام‌العمر", callback_data="reign_life")],
+            [InlineKeyboardButton("♾️ مادام", callback_data="reign_life")],
         ]
-        await context.bot.send_message(
-            chat_id, "⏳ *مدت حکومت رهبر* را انتخاب کن:",
-            parse_mode="Markdown", reply_markup=kb(rows),
-        )
+        await context.bot.send_message(chat_id, "⏳ *مدت حکومت*:", parse_mode="Markdown", reply_markup=kb(rows))
+        return
+
+    if t.get("step") == "NEWREGION_NAME":
+        if len(text) < 2 or len(text) > 30:
+            await context.bot.send_message(chat_id, "❌ ۲ تا ۳۰ حرف:")
+            return
+        t["newreg_name"] = text
+        t["step"] = "NEWREGION_SIZE"
+        temp[uid] = t
+        rows = []
+        for k, v in REGION_SIZES.items():
+            total = v["clear_cost"] + v["foundation_cost"]
+            rows.append([InlineKeyboardButton(
+                f"{v['name']} — ظرفیت {v['capacity']} — {format_money(total)}",
+                callback_data=f"newreg_size_{k}"
+            )])
+        rows.append([InlineKeyboardButton("🔙 انصراف", callback_data="newreg_cancel")])
+        await context.bot.send_message(chat_id, "📐 *اندازه منطقه*:", parse_mode="Markdown", reply_markup=kb(rows))
         return
 
     if t.get("step") == "BAN_REASON" and uid == ADMIN_ID:
-        target_uid = t.get("targetUid")
-        await set_country_status(target_uid, "banned", text)
+        tu = t.get("targetUid")
+        await set_country_status(tu, "banned", text)
         temp.pop(uid, None)
-        await context.bot.send_message(
-            chat_id, f"🚫 کشور با موفقیت مسدود شد.\n📝 دلیل: {text}",
-        )
+        await context.bot.send_message(chat_id, f"🚫 مسدود شد.\n📝 {text}")
         try:
-            await context.bot.send_message(
-                target_uid, f"🚫 کشور شما توسط ادمین مسدود شد.\n📝 دلیل: {text}",
-            )
+            await context.bot.send_message(tu, f"🚫 مسدود شدی.\n📝 {text}")
         except Exception:
             pass
         return
@@ -1627,38 +1913,22 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     msg = update.message
     uid = msg.from_user.id
     t = temp.get(uid)
-
     if not t or t.get("step") != "FLAG":
         return
-
-    file_id = msg.photo[-1].file_id
-    t["flag_id"] = file_id
+    fid = msg.photo[-1].file_id
+    t["flag_id"] = fid
     t["step"] = "CONFIRM"
-
     text = (
-        f"🏛️ کشور: *{t['name']}*\n"
-        f"👤 رهبر: {t['leader']}\n"
-        f"🎂 سن: {t['age']} سال\n"
-        f"⏳ مدت حکومت: {t['reign']}\n"
-        f"⚙️ حکومت: {t['gov']}\n"
-        f"🏛️ نظام حکومتی: {t['gov_sub']}\n"
-        f"☪️ دین: {t['religion']} — {t['rel_sub']}\n"
-        f"🏭 تخصص: {t['expert']}\n"
-        f"📍 منطقه: {t['region']}\n"
-        f"😊 رضایت مردمی: {t['happiness']}٪\n"
-        f"🔬 علم: {t['science']}\n\n"
-        f"آیا اطلاعات صحیح است؟"
+        f"🏛️ {t['name']}\n👤 {t['leader']}\n🎂 {t['age']}\n⏳ {t['reign']}\n"
+        f"⚙️ {t['gov']}\n🏛️ {t['gov_sub']}\n"
+        f"☪️ {t['religion']} — {t['rel_sub']}\n🏭 {t['expert']}\n"
+        f"📍 {t['region']}\n😊 {t['happiness']}٪\n🔬 {t['science']}\n\nآیا درسته؟"
     )
-
     rows = [
-        [InlineKeyboardButton("✅ ثبت نهایی", callback_data="confirm_yes")],
-        [InlineKeyboardButton("🔄 شروع مجدد", callback_data="confirm_restart")],
+        [InlineKeyboardButton("✅ ثبت", callback_data="confirm_yes")],
+        [InlineKeyboardButton("🔄 مجدد", callback_data="confirm_restart")],
     ]
-
-    await context.bot.send_photo(
-        chat_id=msg.chat.id, photo=file_id,
-        caption=text, parse_mode="Markdown", reply_markup=kb(rows),
-    )
+    await context.bot.send_photo(chat_id=msg.chat.id, photo=fid, caption=text, parse_mode="Markdown", reply_markup=kb(rows))
 
 
 async def post_init(application):
@@ -1681,6 +1951,10 @@ def main():
     app.add_handler(CommandHandler("economy", economy_cmd))
     app.add_handler(CommandHandler("science", science_cmd))
     app.add_handler(CommandHandler("country", country_cmd))
+    app.add_handler(CommandHandler("regions", regions_cmd))
+    app.add_handler(CommandHandler("newregion", newregion_cmd))
+    app.add_handler(CommandHandler("build", build_cmd))
+    app.add_handler(CommandHandler("resources", resources_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
