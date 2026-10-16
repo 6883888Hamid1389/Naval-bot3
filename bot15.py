@@ -629,6 +629,13 @@ async def set_country_status(uid, status, ban_reason=None):
 
 async def delete_country(uid):
     async with pool.acquire() as conn:
+        await conn.execute("DELETE FROM region_buildings WHERE region_id IN (SELECT id FROM country_regions WHERE user_id = $1)", uid)
+        await conn.execute("DELETE FROM country_regions WHERE user_id = $1", uid)
+        await conn.execute("DELETE FROM country_resources WHERE user_id = $1", uid)
+        await conn.execute("DELETE FROM resource_capacities WHERE user_id = $1", uid)
+        await conn.execute("DELETE FROM exploration WHERE user_id = $1", uid)
+        await conn.execute("DELETE FROM country_stats WHERE user_id = $1", uid)
+        await conn.execute("DELETE FROM pending WHERE user_id = $1", uid)
         await conn.execute("DELETE FROM countries WHERE user_id = $1", uid)
 
 
