@@ -1031,20 +1031,20 @@ async def process_turn(force: bool = False) -> bool:
                     treasury_delta, new_pop, new_gdp, new_sci_base, new_sci_appl, user_id,
                 )
 
-                                    new_month = state["current_month"] + 1
-                new_year = state["current_year"]
-                if new_month > 12:
-                    new_month = 1
-                    new_year += 1
-                await conn.execute(
-                    """UPDATE game_state
-                       SET current_year=$1, current_month=$2,
-                           total_turns=total_turns+1, last_update=NOW()
-                       WHERE id=1""",
-                    new_year, new_month,
-                )
-                logger.info("Turn advanced to %s/%s", new_year, new_month)
-                return True
+            new_month = state["current_month"] + 1
+            new_year = state["current_year"]
+            if new_month > 12:
+                new_month = 1
+                new_year += 1
+            await conn.execute(
+                """UPDATE game_state
+                   SET current_year=$1, current_month=$2,
+                       total_turns=total_turns+1, last_update=NOW()
+                   WHERE id=1""",
+                new_year, new_month,
+            )
+            logger.info("Turn advanced to %s/%s", new_year, new_month)
+            return True
 
 
 async def _daily_turn_job(context):
@@ -1063,7 +1063,6 @@ async def post_init(app):
     await set_commands(app)
     await app.bot.delete_webhook(drop_pending_updates=True)
 
-    # Catch-up if a turn is overdue (e.g. bot was asleep)
     try:
         ran = await process_turn()
         if ran:
@@ -1108,5 +1107,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main()            
-            
+    main()
