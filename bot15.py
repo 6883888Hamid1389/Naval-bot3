@@ -395,7 +395,7 @@ async def show_budget_panel(chat_id, context, t):
         f"🏥 رفاه: {t['wel']}٪\n"
         f"🏗️ زیرساخت: {t['inf']}٪"
     )
-        rows = [
+    rows = [
         [InlineKeyboardButton("🪖 +۵٪", callback_data="bud_mil_5"), InlineKeyboardButton("🪖 -۵٪", callback_data="bud_mil_-5")],
         [InlineKeyboardButton("🔬 +۵٪", callback_data="bud_sci_5"), InlineKeyboardButton("🔬 -۵٪", callback_data="bud_sci_-5")],
         [InlineKeyboardButton("🏥 +۵٪", callback_data="bud_wel_5"), InlineKeyboardButton("🏥 -۵٪", callback_data="bud_wel_-5")],
@@ -403,7 +403,6 @@ async def show_budget_panel(chat_id, context, t):
         [InlineKeyboardButton("✅ تایید نهایی", callback_data="bud_confirm")],
     ]
     await context.bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=kb(rows))
-
 async def zones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     cities = await get_cities(uid)
