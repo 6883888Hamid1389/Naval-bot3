@@ -1031,7 +1031,7 @@ async def process_turn(force: bool = False) -> bool:
                     treasury_delta, new_pop, new_gdp, new_sci_base, new_sci_appl, user_id,
                 )
 
-                                new_month = state["current_month"] + 1
+                                    new_month = state["current_month"] + 1
                 new_year = state["current_year"]
                 if new_month > 12:
                     new_month = 1
@@ -1108,4 +1108,5 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    main()            
+            
