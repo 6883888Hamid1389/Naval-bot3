@@ -1031,21 +1031,19 @@ async def process_turn(force: bool = False) -> bool:
                     treasury_delta, new_pop, new_gdp, new_sci_base, new_sci_appl, user_id,
                 )
 
-            new_month = state["current_month"] + 1
-            new_year = state["current_year"]
-            if new_month > 12:
-                new_month = 1
-                new_year += 1
-            await conn.execute(
-                """UPDATE game_state
-                   SET current_year=$1, current_month=$2,
-                       total_turns=total_turns+1, last_update=NOW()
-                   WHERE id=1""",
-                new_year, new_month,
-            )
-            logger.info("Turn advanced to %s/%s", new_year, new_month)
-            ret
-                            logger.info("Turn advanced to %s/%s", new_year, new_month)
+                            new_month = state["current_month"] + 1
+                new_year = state["current_year"]
+                if new_month > 12:
+                    new_month = 1
+                    new_year += 1
+                await conn.execute(
+                    """UPDATE game_state
+                       SET current_year=$1, current_month=$2,
+                           total_turns=total_turns+1, last_update=NOW()
+                       WHERE id=1""",
+                    new_year, new_month,
+                )
+                logger.info("Turn advanced to %s/%s", new_year, new_month)
                 return True
 
 
