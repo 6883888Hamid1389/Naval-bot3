@@ -104,10 +104,8 @@ spam_tracker = {}
 banned_users = set()
 pool = None
 
-
 def kb(rows):
     return InlineKeyboardMarkup(rows)
-
 
 def check_spam(uid):
     now = time.time()
@@ -119,22 +117,16 @@ def check_spam(uid):
         return True
     return False
 
-
 def fmt_money(amount):
     d = amount * 1000
-    if d >= 1_000_000_000:
-        return f"{d/1_000_000_000:.2f} میلیارد دلار"
-    if d >= 1_000_000:
-        return f"{d/1_000_000:.1f} میلیون دلار"
-    if d >= 1_000:
-        return f"{d/1_000:.0f} هزار دلار"
+    if d >= 1_000_000_000: return f"{d/1_000_000_000:.2f} میلیارد دلار"
+    if d >= 1_000_000: return f"{d/1_000_000:.1f} میلیون دلار"
+    if d >= 1_000: return f"{d/1_000:.0f} هزار دلار"
     return f"{d:.0f} دلار"
-
 
 def fmt_date(year, month):
     mn = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
     return f"{mn[month-1]} {year}"
-
 
 async def init_db():
     global pool
@@ -150,8 +142,10 @@ async def init_db():
         await conn.execute("CREATE TABLE IF NOT EXISTS zone_buildings (id SERIAL PRIMARY KEY, zone_id INT, building_key TEXT)")
         await conn.execute("CREATE TABLE IF NOT EXISTS country_resources (user_id BIGINT PRIMARY KEY, water BIGINT DEFAULT 0, wheat BIGINT DEFAULT 0, iron_ore BIGINT DEFAULT 0, bauxite BIGINT DEFAULT 0, copper_ore BIGINT DEFAULT 0, titanium_ore BIGINT DEFAULT 0, gold BIGINT DEFAULT 0, uranium BIGINT DEFAULT 0, rare_earth BIGINT DEFAULT 0, crude_oil BIGINT DEFAULT 0, steel BIGINT DEFAULT 0, aluminum BIGINT DEFAULT 0, copper BIGINT DEFAULT 0, titanium BIGINT DEFAULT 0, power BIGINT DEFAULT 0, chemicals BIGINT DEFAULT 0, explosives_base BIGINT DEFAULT 0, car_parts BIGINT DEFAULT 0, aero_parts BIGINT DEFAULT 0, electronics BIGINT DEFAULT 0, tnt BIGINT DEFAULT 0)")
         await conn.execute("CREATE TABLE IF NOT EXISTS resource_capacities (user_id BIGINT PRIMARY KEY, water BIGINT DEFAULT 1000000, wheat BIGINT DEFAULT 1000000, iron_ore BIGINT DEFAULT 500000, bauxite BIGINT DEFAULT 500000, copper_ore BIGINT DEFAULT 500000, titanium_ore BIGINT DEFAULT 500000, gold BIGINT DEFAULT 100000, uranium BIGINT DEFAULT 100000, rare_earth BIGINT DEFAULT 100000, crude_oil BIGINT DEFAULT 1000000, steel BIGINT DEFAULT 500000, aluminum BIGINT DEFAULT 500000, copper BIGINT DEFAULT 500000, titanium BIGINT DEFAULT 500000, power BIGINT DEFAULT 1000000, chemicals BIGINT DEFAULT 500000, explosives_base BIGINT DEFAULT 500000, car_parts BIGINT DEFAULT 100000, aero_parts BIGINT DEFAULT 100000, electronics BIGINT DEFAULT 100000, tnt BIGINT DEFAULT 50000)")
+        
         await conn.execute("ALTER TABLE countries ADD COLUMN IF NOT EXISTS map_region TEXT")
         await conn.execute("ALTER TABLE pending ADD COLUMN IF NOT EXISTS map_region TEXT")
+        
         r = await conn.fetchrow("SELECT * FROM game_state WHERE id = 1")
         if not r:
             await conn.execute("INSERT INTO game_state (id) VALUES (1)")
@@ -159,18 +153,15 @@ async def init_db():
         for r in await conn.fetch("SELECT user_id FROM spam_banned"):
             banned_users.add(r["user_id"])
 
-
 async def get_country(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         return dict(r) if r else None
 
-
 async def get_pending(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM pending WHERE user_id = $1", uid)
         return dict(r) if r else None
-
 
 async def save_pending(uid, d):
     async with pool.acquire() as conn:
@@ -184,11 +175,9 @@ async def save_pending(uid, d):
             d.get("expert"), d.get("map_region"), d.get("flag_id"),
         )
 
-
 async def delete_pending(uid):
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM pending WHERE user_id = $1", uid)
-
 
 async def save_country(uid, d):
     async with pool.acquire() as conn:
@@ -202,7 +191,6 @@ async def save_country(uid, d):
             d.get("expert"), d.get("map_region"), d.get("flag_id"),
         )
     await init_stats(uid, d)
-
 
 async def init_stats(uid, d):
     g = GOV_GDP_COEF.get(d.get("gov_sub", ""), 1.0)
@@ -221,41 +209,34 @@ async def init_stats(uid, d):
         await conn.execute(f"INSERT INTO country_resources (user_id, {cols}) VALUES ($1, {vals}) ON CONFLICT DO NOTHING", uid, *START_RES.values())
         await conn.execute("INSERT INTO resource_capacities (user_id) VALUES ($1) ON CONFLICT DO NOTHING", uid)
 
-
 async def get_stats(uid):
     async with pool.acquire() as conn:
         s = await conn.fetchrow("SELECT * FROM country_stats WHERE user_id = $1", uid)
         return dict(s) if s else None
-
 
 async def get_resources(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM country_resources WHERE user_id = $1", uid)
         return dict(r) if r else None
 
-
 async def get_cities(uid):
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM cities WHERE user_id = $1 ORDER BY id", uid)
         return [dict(r) for r in rows]
-
 
 async def get_city_zones(city_id):
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM city_zones WHERE city_id = $1 ORDER BY id", city_id)
         return [dict(r) for r in rows]
 
-
 async def get_one_zone(rid, uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM city_zones WHERE id = $1 AND user_id = $2", rid, uid)
         return dict(r) if r else None
 
-
 async def set_status(uid, status, reason=None):
     async with pool.acquire() as conn:
         await conn.execute("UPDATE countries SET status=$1, ban_reason=$2 WHERE user_id=$3", status, reason, uid)
-
 
 async def delete_country(uid):
     async with pool.acquire() as conn:
@@ -268,65 +249,52 @@ async def delete_country(uid):
         await conn.execute("DELETE FROM pending WHERE user_id=$1", uid)
         await conn.execute("DELETE FROM countries WHERE user_id=$1", uid)
 
-
 async def get_all_countries():
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM countries ORDER BY user_id DESC")
         return [dict(r) for r in rows]
-
 
 async def get_banned():
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM countries WHERE status='banned' ORDER BY user_id DESC")
         return [dict(r) for r in rows]
 
-
 async def get_pending_all():
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM pending")
         return [dict(r) for r in rows]
-
 
 async def get_taken_map_regions():
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT map_region, user_id FROM countries WHERE map_region IS NOT NULL")
         return {r["map_region"]: r["user_id"] for r in rows}
 
-
 async def add_spam_ban(uid):
     async with pool.acquire() as conn:
         await conn.execute("INSERT INTO spam_banned (user_id) VALUES ($1) ON CONFLICT DO NOTHING", uid)
 
-
 async def remove_spam_ban(uid):
     async with pool.acquire() as conn:
         await conn.execute("DELETE FROM spam_banned WHERE user_id=$1", uid)
-
 
 async def get_game_date():
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT current_year, current_month, total_turns FROM game_state WHERE id=1")
         return {"year": r["current_year"], "month": r["current_month"], "turns": r["total_turns"]}
 
-
 async def set_commands(application):
     cmds = [
         BotCommand("start", "شروع / ثبت کشور"),
         BotCommand("country", "پروفایل کشور"),
         BotCommand("economy", "مدیریت بودجه و اقتصاد"),
-        BotCommand("science", "علم و فناوری"),
         BotCommand("date", "تاریخ بازی"),
         BotCommand("cities", "مدیریت شهرها"),
         BotCommand("zones", "مدیریت نواحی شهری"),
-        BotCommand("build", "ساخت ساختمون"),
         BotCommand("resources", "منابع و انبار"),
         BotCommand("admin", "پنل ادمین"),
         BotCommand("cancel", "لغو"),
     ]
     await application.bot.set_my_commands(cmds)
-
-
-# ---------- USER COMMANDS ----------
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -354,19 +322,13 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp[uid] = {"username": update.effective_user.username or update.effective_user.first_name, "step": "NAME"}
     await context.bot.send_message(chat_id, "🏛️ نام کشور خود را وارد کنید:")
 
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp.pop(update.effective_user.id, None)
     await update.message.reply_text("❌ لغو شد.")
 
-
 async def date_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     gd = await get_game_date()
-    await context.bot.send_message(
-        update.effective_chat.id,
-        f"📅 تاریخ بازی: {fmt_date(gd['year'], gd['month'])}\n🔄 تعداد نوبت‌ها: {gd['turns']}",
-    )
-
+    await context.bot.send_message(update.effective_chat.id, f"📅 تاریخ بازی: {fmt_date(gd['year'], gd['month'])}\n🔄 تعداد نوبت‌ها: {gd['turns']}")
 
 async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -384,7 +346,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
 
-
 async def cities_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     c = await get_country(uid)
@@ -397,7 +358,6 @@ async def cities_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     temp[uid] = {"step": "CITY_NAME"}
     await context.bot.send_message(update.effective_chat.id, f"🏙️ نام شهر شماره {len(cities)+1} را وارد کنید:")
-
 
 async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -423,7 +383,6 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await context.bot.send_message(update.effective_chat.id, text, parse_mode="Markdown")
 
-
 async def show_budget_panel(chat_id, context, t):
     total = t["mil"] + t["sci"] + t["wel"] + t["inf"]
     cap = 100 - total
@@ -436,7 +395,7 @@ async def show_budget_panel(chat_id, context, t):
         f"🏥 رفاه: {t['wel']}٪\n"
         f"🏗️ زیرساخت: {t['inf']}٪"
     )
-    rows = [
+        rows = [
         [InlineKeyboardButton("🪖 +۵٪", callback_data="bud_mil_5"), InlineKeyboardButton("🪖 -۵٪", callback_data="bud_mil_-5")],
         [InlineKeyboardButton("🔬 +۵٪", callback_data="bud_sci_5"), InlineKeyboardButton("🔬 -۵٪", callback_data="bud_sci_-5")],
         [InlineKeyboardButton("🏥 +۵٪", callback_data="bud_wel_5"), InlineKeyboardButton("🏥 -۵٪", callback_data="bud_wel_-5")],
@@ -444,7 +403,6 @@ async def show_budget_panel(chat_id, context, t):
         [InlineKeyboardButton("✅ تایید نهایی", callback_data="bud_confirm")],
     ]
     await context.bot.send_message(chat_id, text, parse_mode="Markdown", reply_markup=kb(rows))
-
 
 async def zones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -454,11 +412,6 @@ async def zones_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
     rows = [[InlineKeyboardButton(f"🏙️ {city['name']}", callback_data=f"city_view_{city['id']}")] for city in cities]
     await context.bot.send_message(update.effective_chat.id, "🏙️ یک شهر برای مدیریت نواحی انتخاب کنید:", reply_markup=kb(rows))
-
-
-async def build_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await zones_cmd(update, context)
-
 
 async def resources_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -471,9 +424,6 @@ async def resources_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text += f"{RESOURCES.get(k, k)}: {v:,}\n"
     await context.bot.send_message(update.effective_chat.id, text, parse_mode="Markdown")
 
-
-# ---------- ADMIN COMMANDS ----------
-
 def _admin_panel_payload(all_count, pending_count):
     text = f"👑 *پنل مدیریت*\n\n👥 بازیکنان: {all_count}\n⏳ در انتظار: {pending_count}"
     rows = [
@@ -484,7 +434,6 @@ def _admin_panel_payload(all_count, pending_count):
     ]
     return text, kb(rows)
 
-
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
@@ -493,15 +442,11 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text, keyboard = _admin_panel_payload(len(all_c), len(pl))
     await context.bot.send_message(update.effective_chat.id, text, parse_mode="Markdown", reply_markup=keyboard)
 
-
 async def force_turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     ran = await process_turn(force=True)
     await update.message.reply_text("✅ نوبت اجرا شد." if ran else "⏭️ رد شد (اخیراً اجرا شده).")
-
-
-# ---------- CALLBACK HANDLER ----------
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cb = update.callback_query
@@ -523,7 +468,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-    # ----- BUDGET -----
     if data.startswith("bud_") and t.get("step") == "BUDGET_SET":
         if data == "bud_confirm":
             total = t["mil"] + t["sci"] + t["wel"] + t["inf"]
@@ -553,7 +497,111 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await show_budget_panel(chat_id, context, t)
         return
 
-    # ----- ZONES / BUILD -----
+    if data.startswith("reign_"):
+        mp = {"reign_5": "۵ سال", "reign_10": "۱۰ سال", "reign_20": "۲۰ سال", "reign_30": "۳۰ سال", "reign_life": "مادام‌العمر"}
+        t["reign"] = mp.get(data, "۱۰ سال")
+        t["step"] = "GOV"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"gov_{k}")] for k, v in GOVS.items()]
+        await edit("⚙️ *حکومت*:", kb(rows))
+        return
+
+    if data.startswith("gov_") and not data.startswith("govsub_"):
+        gk = data.replace("gov_", "")
+        if gk not in GOVS:
+            return
+        t["gov"] = GOVS[gk]
+        t["step"] = "GOV_SUB"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v[0], callback_data=f"govsub_{gk}_{k}")] for k, v in GOV_SUBS[gk].items()]
+        await edit("🏛️ *نظام حکومتی*:", kb(rows))
+        return
+
+    if data.startswith("govsub_"):
+        parts = data.replace("govsub_", "").split("_")
+        gk = parts[0]
+        sk = "_".join(parts[1:])
+        if gk not in GOV_SUBS or sk not in GOV_SUBS[gk]:
+            return
+        sub, hap = GOV_SUBS[gk][sk]
+        t["gov_sub"] = sub
+        t["happiness"] = hap
+        t["step"] = "RELIGION"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"rel_{k}")] for k, v in RELIGIONS.items()]
+        await edit("☪️ *دین*:", kb(rows))
+        return
+
+    if data.startswith("rel_") and not data.startswith("relsub_"):
+        rk = data.replace("rel_", "")
+        if rk not in RELIGIONS:
+            return
+        t["religion"] = RELIGIONS[rk]
+        if rk == "secular" or rk not in REL_SUBS:
+            t["rel_sub"] = "—"
+            t["step"] = "EXPERT"
+            temp[uid] = t
+            rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
+            await edit("🏭 *تخصص*:", kb(rows))
+            return
+        t["step"] = "REL_SUB"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"relsub_{rk}_{k}")] for k, v in REL_SUBS[rk].items()]
+        await edit("📖 *مذهب*:", kb(rows))
+        return
+
+    if data.startswith("relsub_"):
+        parts = data.replace("relsub_", "").split("_")
+        rk = parts[0]
+        sk = "_".join(parts[1:])
+        if rk not in REL_SUBS or sk not in REL_SUBS[rk]:
+            return
+        t["rel_sub"] = REL_SUBS[rk][sk]
+        t["step"] = "EXPERT"
+        temp[uid] = t
+        rows = [[InlineKeyboardButton(v, callback_data=f"exp_{k}")] for k, v in EXPERTS.items()]
+        await edit("🏭 *تخصص*:", kb(rows))
+        return
+
+    if data.startswith("exp_"):
+        ek = data.replace("exp_", "")
+        if ek not in EXPERTS:
+            return
+        t["expert"] = EXPERTS[ek]
+        t["step"] = "MAP_REGION"
+        temp[uid] = t
+        taken = await get_taken_map_regions()
+        rows, row, cnt = [], [], 0
+        for code in REGIONS_19:
+            if code in taken:
+                row.append(InlineKeyboardButton(f"🔒 {code}", callback_data="region_locked"))
+            else:
+                row.append(InlineKeyboardButton(f"🟢 {code}", callback_data=f"mapregion_{code}"))
+            cnt += 1
+            if cnt % 3 == 0:
+                rows.append(row)
+                row = []
+        if row:
+            rows.append(row)
+        await edit("📍 *منطقه جهانی* را انتخاب کن:", kb(rows))
+        return
+
+    if data == "region_locked":
+        await cb.answer("🔒 این منطقه گرفته شده!", show_alert=True)
+        return
+
+    if data.startswith("mapregion_"):
+        code = data.replace("mapregion_", "")
+        taken = await get_taken_map_regions()
+        if code in taken:
+            await cb.answer("🔒 همین الان گرفته شد!", show_alert=True)
+            return
+        t["map_region"] = code
+        t["step"] = "FLAG"
+        temp[uid] = t
+        await edit(f"✅ منطقه جهانی: *{code}*\n\n🖼️ حالا عکس پرچم کشورت رو بفرست:")
+        return
+
     if data.startswith("city_view_"):
         cid = int(data.split("_")[2])
         regs = await get_city_zones(cid)
@@ -632,7 +680,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     if data.startswith("bld_make_"):
-        # BUGFIX: use slice so keys with underscores (iron_mine) work
         bk = data[len("bld_make_"):]
         if bk not in BUILDINGS:
             await cb.answer("ساختمون نامعتبر!", show_alert=True)
@@ -664,7 +711,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await edit("🏙️ یک شهر برای مدیریت نواحی انتخاب کنید:", kb(rows))
         return
 
-    # ----- ADMIN PANEL -----
     if data == "adm_panel" and uid == ADMIN_ID:
         all_c = await get_all_countries()
         pl = await get_pending_all()
@@ -710,7 +756,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await context.bot.send_message(tu, "🎉 کشور شما تایید شد! حالا از /cities استفاده کنید.")
                 await context.bot.send_message(tu, "از /economy برای تنظیم بودجه استفاده کنید.")
             except Exception:
-                logger.exception("Failed to notify user %s", tu)
+                pass
             try:
                 await cb.message.delete()
             except Exception:
@@ -834,7 +880,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await edit("🗑️ حذف شد.", kb([[InlineKeyboardButton("🔙 لیست", callback_data="adm_list_0")]]))
         return
 
-
 async def show_country_list(chat_id, msg_id, context, page, status):
     per_page = 5
     offset = page * per_page
@@ -867,9 +912,6 @@ async def show_country_list(chat_id, msg_id, context, page, status):
         await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
     except Exception:
         pass
-
-
-# ---------- MESSAGE HANDLERS ----------
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -923,7 +965,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception:
             pass
 
-
 async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     t = temp.get(uid)
@@ -942,9 +983,6 @@ async def photo_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb([[InlineKeyboardButton("مشاهده", callback_data="adm_pending")]]),
     )
     await update.message.reply_text("⏳ ارسال شد. منتظر تایید.")
-
-
-# ---------- TURN CYCLE ----------
 
 async def process_turn(force: bool = False) -> bool:
     async with pool.acquire() as conn:
@@ -1046,7 +1084,6 @@ async def process_turn(force: bool = False) -> bool:
             logger.info("Turn advanced to %s/%s", new_year, new_month)
             return True
 
-
 async def _daily_turn_job(context):
     try:
         ran = await process_turn()
@@ -1054,9 +1091,6 @@ async def _daily_turn_job(context):
             logger.info("Daily turn processed.")
     except Exception:
         logger.exception("Daily turn failed.")
-
-
-# ---------- BOOT ----------
 
 async def post_init(app):
     await init_db()
@@ -1080,7 +1114,6 @@ async def post_init(app):
     else:
         logger.warning("JobQueue not available — install python-telegram-bot[job-queue]")
 
-
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_handler(CommandHandler("start", start))
@@ -1090,7 +1123,7 @@ def main():
     app.add_handler(CommandHandler("cities", cities_cmd))
     app.add_handler(CommandHandler("economy", economy_cmd))
     app.add_handler(CommandHandler("zones", zones_cmd))
-    app.add_handler(CommandHandler("build", build_cmd))
+    app.add_handler(CommandHandler("build", zones_cmd))
     app.add_handler(CommandHandler("resources", resources_cmd))
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CommandHandler("force_turn", force_turn_cmd))
@@ -1104,7 +1137,6 @@ def main():
         app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}", drop_pending_updates=True)
     else:
         app.run_polling()
-
 
 if __name__ == "__main__":
     main()
