@@ -2081,4 +2081,51 @@ async def post_init(app):
     await app.bot.delete_webhook(drop_pending_updates=True)
 
     try:
-        ran = await process
+        ran = await process_turn()
+        if ran:
+            logger.info("Catch-up turn executed on startup.")
+    except Exception:
+        logger.exception("Catch-up turn failed.")
+
+    if app.job_queue:
+        app.job_queue.run_daily(
+            _daily_turn_job,
+            time=dt_time(hour=0, minute=5, tzinfo=dt_timezone.utc),
+            name="daily_turn",
+        )
+        logger.info("Daily turn scheduled at 00:05 UTC.")
+    else:
+        logger.warning("JobQueue not available — install python-telegram-bot[job-queue]")
+
+def main():
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("date", date_cmd))
+    app.add_handler(CommandHandler("country", country_cmd))
+    app.add_handler(CommandHandler("cities", cities_cmd))
+    app.add_handler(CommandHandler("economy", economy_cmd))
+    app.add_handler(CommandHandler("tax", tax_cmd))
+    app.add_handler(CommandHandler("military", military_cmd))
+    app.add_handler(CommandHandler("science", science_cmd))
+    app.add_handler(CommandHandler("companies", companies_cmd))
+    app.add_handler(CommandHandler("fire", fire_cmd))
+    app.add_handler(CommandHandler("zones", zones_cmd))
+    app.add_handler(CommandHandler("infra", infra_cmd))
+    app.add_handler(CommandHandler("market", market_cmd))
+    app.add_handler(CommandHandler("resources", resources_cmd))
+    app.add_handler(CommandHandler("admin", admin_cmd))
+    app.add_handler(CommandHandler("force_turn", force_turn_cmd))
+    app.add_handler(CallbackQueryHandler(callback_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+    app.add_handler(MessageHandler(filters.PHOTO, photo_handler))
+
+    rh = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    if rh:
+        port = int(os.environ.get("PORT", 10000))
+        app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}", drop_pending_updates=True)
+    else:
+        app.run_polling()
+
+if __name__ == "__main__":
+    main()
