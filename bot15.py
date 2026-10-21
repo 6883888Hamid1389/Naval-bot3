@@ -123,7 +123,8 @@ def fmt_money(amount):
 
 # --- ارتباط با هوش مصنوعی (Cloudflare) ---
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3-8b-instruct"
+    # اسم مدل رو به نسخه جدید تغییر دادیم
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
         "Content-Type": "application/json"
@@ -154,6 +155,16 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. Yo
     except Exception as e:
         logger.error(f"AI Request Exception: {str(e)}")
         return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
+            res_data = response.json()
+            if res_data.get("success"):
+                return res_data["result"]["response"]
+            else:
+                logger.error(f"Cloudflare AI Error: {res_data}")
+                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
+                
+    except Exception as e:
+        logger.error(f"AI Request Exception: {str(e)}")
+      return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
 
 # --- تحلیل دستور توسط AI و ثبت در دیتابیس ---
 async def analyze_and_apply_order(order_id: int):
