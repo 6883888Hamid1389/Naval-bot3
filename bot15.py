@@ -109,21 +109,7 @@ async def get_country(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         return dict(r) if r else None
-
-async def get_order(order_id):
-    async with pool.acquire() as conn:
-        r = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
-        return dict(r) if r else None
-
-def kb(rows):
-    return InlineKeyboardMarkup(rows)
-
-def fmt_money(amount):
-    return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
-
-# --- ارتباط با هوش مصنوعی (Cloudflare) ---
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
-    # اسم مدل رو به نسخه جدید تغییر دادیم
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
@@ -145,6 +131,16 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. Yo
                 logger.error(f"Cloudflare Error Body: {response.text}")
                 return f'{{"success": false, "reason": "خطای کلودفلر: کد {response.status_code}", "narrative": "پاسخی از هوش مصنوعی دریافت نشد."}}'
             
+            res_data = response.json()
+            if res_data.get("success"):
+                return res_data["result"]["response"]
+            else:
+                logger.error(f"Cloudflare AI Error: {res_data}")
+                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
+                
+    except Exception as e:
+        logger.error(f"AI Request Exception: {str(e)}")
+        return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
             res_data = response.json()
             if res_data.get("success"):
                 return res_data["result"]["response"]
