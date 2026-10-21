@@ -1,6 +1,7 @@
 import os
 import json
 import ast
+import asyncio
 import logging
 import asyncpg
 import httpx
@@ -118,8 +119,9 @@ def kb(rows):
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown. Do NOT write any text outside the JSON.") -> str:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown.") -> str:
+    # استفاده از مدل پایدارتر ۷۰B به جای مدل بازنشسته ۸B
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
         "Content-Type": "application/json"
@@ -129,27 +131,38 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 512 # جلوگیری از طولانی شدن و هنگ کردن
+        "max_tokens": 512
     }
-    try:
-        async with httpx.AsyncClient() as client:
-            # زمان انتظار ۱۲۰ ثانیه
-            response = await client.post(url, headers=headers, json=payload, timeout=120.0)
-            logger.info(f"Cloudflare Status: {response.status_code}")
-            
-            if response.status_code != 200:
-                return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
-            
-            res_data = response.json()
-            
-            if res_data.get("success"):
-                return res_data["result"]["response"]
-            else:
-                return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
+    
+    # سیستم تلاش مجدد (Retry) تا ۳ بار
+    for attempt in range(3):
+        try:
+            async with httpx.AsyncClient() as client:
+                response = await client.post(url, headers=headers, json=payload, timeout=120.0)
+                logger.info(f"Cloudflare Status (Attempt {attempt+1}): {response.status_code}")
                 
-    except Exception as e:
-        logger.error(f"AI Request Exception: {str(e)}")
-        return '{"success": false, "reason": "تایم اوت (کندی سرور)", "narrative": "پردازش طول کشید و لغو شد."}'
+                if response.status_code != 200:
+                    if attempt < 2:
+                        await asyncio.sleep(2) # ۲ ثانیه صبر کن و دوباره تلاش کن
+                        continue
+                    return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
+                
+                res_data = response.json()
+                
+                if res_data.get("success"):
+                    return res_data["result"]["response"]
+                else:
+                    if attempt < 2:
+                        await asyncio.sleep(2)
+                        continue
+                    return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
+                    
+        except Exception as e:
+            logger.error(f"AI Request Exception (Attempt {attempt+1}): {str(e)}")
+            if attempt < 2:
+                await asyncio.sleep(2)
+                continue
+            return '{"success": false, "reason": "تایم اوت", "narrative": "ارتباط برقرار نشد."}'
 
 async def analyze_and_apply_order(order_id: int, context):
     order = await get_order(order_id)
