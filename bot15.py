@@ -1,6 +1,6 @@
 import os
 import json
-import re
+import ast
 import logging
 import asyncpg
 import httpx
@@ -118,7 +118,7 @@ def kb(rows):
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. You must respond with a valid, pure JSON object using double quotes. Do NOT output any markdown formatting like ```json. Do NOT output any text before or after the JSON. Just the raw JSON object starting with { and ending with }.") -> str:
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. You must respond with a valid JSON object. Do NOT output any markdown formatting like ```json. Just the raw JSON object.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
@@ -133,7 +133,6 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Y
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload, timeout=60)
-            logger.info(f"Cloudflare Status: {response.status_code}")
             
             if response.status_code != 200:
                 return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
@@ -172,31 +171,34 @@ async def analyze_and_apply_order(order_id: int, context):
     
     ai_response = await ask_ai(prompt)
     
-    # --- پارسر فوق مقاوم (Regex) برای جلوگیری از هرگونه خطای پارس ---
+    # --- پارسر ضدگلوله با استفاده از ast (برای سینگل کوتیشن و دابل کوتیشن) ---
     try:
-        data = {}
+        clean_response = ai_response.replace("```json", "").replace("```", "").strip()
         
-        # پیدا کردن success (چه True باشه چه true، چه سینگل چه دابل)
-        success_match = re.search(r"['\"]?success['\"]?\s*:\s*(True|true|False|false)", ai_response)
-        data['success'] = success_match.group(1).lower() in ('true', '1') if success_match else False
+        start_idx = clean_response.find('{')
+        end_idx = clean_response.rfind('}')
         
-        # پیدا کردن اعداد
-        for key in ['treasury_change', 'army_change', 'gdp_change']:
-            match = re.search(rf"['\"]?{key}['\"]?\s*:\s*(-?\d+)", ai_response)
-            data[key] = int(match.group(1)) if match else 0
-            
-        # پیدا کردن متن‌ها (تا اولین کوتیشن یا کاما)
-        for key in ['reason', 'narrative']:
-            match = re.search(rf"['\"]?{key}['\"]?\s*:\s*['\"]([^'\"]*)['\"]", ai_response)
-            data[key] = match.group(1) if match else "داده‌ای ثبت نشد."
+        if start_idx != -1 and end_idx != -1:
+            json_str = clean_response[start_idx:end_idx+1]
+            try:
+                # تلاش برای فرمت استاندارد JSON
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                try:
+                    # اگر سینگل کوتیشن بود، با ast می‌خونیم
+                    data = ast.literal_eval(json_str)
+                except:
+                    data = {}
+        else:
+            data = {}
             
     except Exception as e:
-        logger.error(f"Regex Parse Error: {e} | AI Raw Output: {ai_response}")
-        try:
-            await context.bot.send_message(ADMIN_ID, f"⚠️ **خطای پارس در تابع جدید**\n\n`{ai_response}`", parse_mode="Markdown")
-        except:
-            pass
-        data = {"success": False, "reason": "خطای پردازش", "narrative": "دستور اجرا نشد."}
+        logger.error(f"Parse Error: {e} | AI Raw Output: {ai_response}")
+        data = {}
+
+    # اگر دیکشنری خراب بود یا کلید success نداشت، یک خطای پیش‌فرض می‌ذاریم
+    if "success" not in data:
+        data = {"success": False, "reason": "پاسخ نامعتبر از AI", "narrative": "دستور شما نیاز به بررسی دستی دارد."}
 
     async with pool.acquire() as conn:
         if data.get("success"):
