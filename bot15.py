@@ -69,9 +69,6 @@ GOVERNMENTS = {
 
 pool = None
 
-
-# ============ DB ============
-
 async def init_db():
     global pool
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
@@ -107,27 +104,20 @@ async def init_db():
         """)
     logger.info("Database initialized.")
 
-
 async def get_country(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         return dict(r) if r else None
-
 
 async def get_order(order_id):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
         return dict(r) if r else None
 
-
-# ============ Utils ============
-
 def kb(rows):
     return InlineKeyboardMarkup(rows)
 
-
 def fmt_money(units):
-    """units = thousands of dollars. 1 unit = $1000."""
     try:
         dollars = int(units) * 1000
     except (TypeError, ValueError):
@@ -140,9 +130,7 @@ def fmt_money(units):
         return f"${dollars / 1_000:.0f} هزار دلار"
     return f"${dollars:,.0f} دلار"
 
-
 def _safe_parse_json(raw: str) -> dict:
-    """چندلایه پارسر مقاوم در برابر خروجی‌های ناقص AI."""
     if not raw:
         return {}
     start, end = raw.find('{'), raw.rfind('}')
@@ -150,19 +138,16 @@ def _safe_parse_json(raw: str) -> dict:
         return {}
     s = raw[start:end + 1].replace("```json", "").replace("```", "").strip()
 
-    # تلاش ۱: JSON استاندارد
     try:
         return json.loads(s)
     except json.JSONDecodeError:
         pass
 
-    # تلاش ۲: دیکشنری پایتون (سینگل کوت)
     try:
         return ast.literal_eval(s)
     except Exception:
         pass
 
-    # تلاش ۳: JS-style booleans → Python
     try:
         return ast.literal_eval(
             s.replace("true", "True").replace("false", "False").replace("null", "None")
@@ -170,7 +155,6 @@ def _safe_parse_json(raw: str) -> dict:
     except Exception:
         pass
 
-    # تلاش ۴: تعمیر newline خام داخل رشته‌ها
     try:
         fixed = re.sub(r'(?<!\\)\n', r'\\n', s)
         return json.loads(fixed)
@@ -179,11 +163,10 @@ def _safe_parse_json(raw: str) -> dict:
 
     return {}
 
-
-# ============ AI ============
-
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown.") -> str:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
+    # تغییر مدل به ۸B برای سرعت بالاتر و مصرف کمتر سهمیه رایگان
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct-fp8-fast"
+    
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
         "Content-Type": "application/json"
@@ -193,38 +176,47 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "max_tokens": 1024,
+        "max_tokens": 600,
         "temperature": 0.2
     }
 
-    for attempt in range(3):
+    def fallback(reason, narrative):
+        return json.dumps({"success": False, "reason": reason, "narrative": narrative}, ensure_ascii=False)
+
+    for attempt in range(2): # ۲ بار تلاش کافیست
         try:
             async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=headers, json=payload, timeout=120.0)
-                logger.info(f"Cloudflare Status (Attempt {attempt+1}): {response.status_code}")
+                response = await client.post(url, headers=headers, json=payload, timeout=45.0)
+                logger.info(f"CF Status {response.status_code} (attempt {attempt+1})")
 
                 if response.status_code != 200:
-                    if attempt < 2:
+                    logger.error(f"CF Error body: {response.text[:400]}")
+                    if attempt == 0:
                         await asyncio.sleep(2)
                         continue
-                    return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
+                    return fallback(f"خطای سرویس ({response.status_code})", "سرویس هوش مصنوعی در دسترس نیست.")
 
                 res_data = response.json()
                 if res_data.get("success"):
                     return res_data["result"]["response"]
                 else:
-                    if attempt < 2:
+                    if attempt == 0:
                         await asyncio.sleep(2)
                         continue
-                    return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
+                    return fallback("مدل خطا داد", "مدل قادر به پاسخ‌دهی نبود.")
 
-        except Exception as e:
-            logger.error(f"AI Request Exception (Attempt {attempt+1}): {str(e)}")
-            if attempt < 2:
-                await asyncio.sleep(2)
+        except httpx.TimeoutException:
+            logger.error(f"httpx Timeout on attempt {attempt+1}")
+            if attempt == 0:
+                await asyncio.sleep(1)
                 continue
-            return '{"success": false, "reason": "تایم اوت", "narrative": "ارتباط برقرار نشد."}'
-
+            return fallback("پاسخ AI زمان زیادی طول کشید", "سرویس AI پاسخگو نبود.")
+        except Exception as e:
+            logger.error(f"AI Exception: {type(e).__name__}: {e}")
+            if attempt == 0:
+                await asyncio.sleep(1)
+                continue
+            return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
 
 def _build_prompt(country: dict, order_text: str) -> str:
     return f"""You are the economic engine of a text-based strategy game. Output ONLY valid JSON, no markdown fences, no commentary.
@@ -253,8 +245,24 @@ EXACT format:
 {{"success": true, "reason": "...", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "narrative": "..."}}
 """
 
-
 async def analyze_and_apply_order(order_id: int, context):
+    try:
+        return await asyncio.wait_for(_analyze_inner(order_id), timeout=90.0)
+    except asyncio.TimeoutError:
+        logger.error(f"GLOBAL TIMEOUT for order {order_id}")
+        data = {
+            "success": False,
+            "reason": "پردازش بیش از حد طول کشید",
+            "narrative": "ستاد فرماندهی اعلام کرد بررسی این دستور به تعویق افتاد."
+        }
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2",
+                json.dumps(data, ensure_ascii=False), order_id
+            )
+        return data
+
+async def _analyze_inner(order_id: int):
     order = await get_order(order_id)
     if not order:
         return {"success": False, "reason": "سفارش یافت نشد", "narrative": ""}
@@ -263,26 +271,19 @@ async def analyze_and_apply_order(order_id: int, context):
         return {"success": False, "reason": "کشور یافت نشد", "narrative": ""}
 
     prompt = _build_prompt(country, order["order_text"])
+    ai_response = await ask_ai(prompt)
+    logger.info(f"AI RAW for order {order_id}:\n{ai_response}")
 
-    # تلاش دوباره اگر پارس شکست بخوره
-    data = {}
-    for attempt in range(2):
-        ai_response = await ask_ai(prompt)
-        logger.info(f"AI RAW (attempt {attempt+1}) for order {order_id}:\n{ai_response}")
-        data = _safe_parse_json(ai_response)
-        if "success" in data and "narrative" in data:
-            break
-        logger.warning(f"Parse failed on attempt {attempt+1} for order {order_id}")
-        await asyncio.sleep(1)
+    data = _safe_parse_json(ai_response)
 
     if "success" not in data:
         data = {
             "success": False,
-            "reason": "AI پاسخ نامعتبر داد",
+            "reason": "پاسخ نامعتبر از AI",
             "narrative": "ستاد فرماندهی اعلام کرد این دستور به بررسی دستی نیاز دارد."
         }
 
-    # ============ HARD SAFETY LAYER (VETO) ============
+    # لایه امنیتی (وتو)
     if data.get("success"):
         try:
             t_change = int(data.get("treasury_change") or 0)
@@ -306,38 +307,25 @@ async def analyze_and_apply_order(order_id: int, context):
                     "narrative": "فرماندهی ارتش اعلام کرد امکان اجرای این دستور وجود ندارد."
                 }
             else:
-                # آپدیت اتمیک — قید در SQL هم race condition را می‌بندد
                 async with pool.acquire() as conn:
                     row = await conn.fetchrow(
                         "UPDATE countries "
-                        "SET treasury = treasury + $1, "
-                        "    army = army + $2, "
-                        "    gdp = GREATEST(1000, gdp + $3) "
+                        "SET treasury = treasury + $1, army = army + $2, gdp = GREATEST(1000, gdp + $3) "
                         "WHERE user_id = $4 AND treasury + $1 >= 0 AND army + $2 >= 0 "
                         "RETURNING treasury, army, gdp",
                         t_change, a_change, g_change, order["user_id"]
                     )
                     if not row:
-                        data = {
-                            "success": False,
-                            "reason": "اجرای عملیات به دلیل تغییر هم‌زمان ممکن نشد.",
-                            "treasury_change": 0, "army_change": 0, "gdp_change": 0,
-                            "narrative": ""
-                        }
+                        data = {"success": False, "reason": "تغییر هم‌زمان مانع اجرا شد.", "narrative": ""}
 
     async with pool.acquire() as conn:
         await conn.execute(
             "UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2",
             json.dumps(data, ensure_ascii=False), order_id
         )
-
     return data
 
-
-# ============ State (in-memory) ============
-
 temp = {}
-
 
 async def set_commands(app):
     cmds = [
@@ -347,9 +335,6 @@ async def set_commands(app):
         BotCommand("cancel", "لغو عملیات")
     ]
     await app.bot.set_my_commands(cmds)
-
-
-# ============ Handlers ============
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -365,11 +350,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp[uid] = {"step": "NAME"}
     await update.message.reply_text("🏛️ Welcome to rustabad RP\n\nلطفاً **نام کشور** خود را وارد کنید:", parse_mode="Markdown")
 
-
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp.pop(update.effective_user.id, None)
     await update.message.reply_text("❌ عملیات لغو شد.")
-
 
 async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -390,7 +373,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📈 GDP: {fmt_money(c['gdp'])}"
     )
     await update.message.reply_text(text, parse_mode="Markdown")
-
 
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -413,7 +395,6 @@ async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]
     ]
     await update.message.reply_text("دستور شما در کدام دسته‌بندی قرار می‌گیرد؟", reply_markup=kb(rows))
-
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -442,7 +423,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ دستور ویرایش شد. در حال تحلیل با هوش مصنوعی...")
         await analyze_and_send_to_admin(update, context, order_id)
 
-
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cb = update.callback_query
     data = cb.data
@@ -450,7 +430,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = temp.get(uid, {})
     await cb.answer()
 
-    # ---- ثبت‌نام ----
     if data.startswith("gov_"):
         main_gov = data.replace("gov_", "")
         t["gov_main"] = main_gov
@@ -483,7 +462,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         admin_btn = kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]])
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
 
-    # ---- تایید/رد ثبت‌نام ----
     elif data.startswith("adm_ok_"):
         target_uid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -504,7 +482,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             logger.warning(f"Could not notify user {target_uid}: {e}")
 
-    # ---- دسته‌بندی سفارش ----
     elif data.startswith("cat_"):
         category = data.replace("cat_", "")
         order_text = t.get("order_text")
@@ -537,7 +514,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
         await cb.edit_message_text("⏳ دستور شما به ادمین برای بررسی ارسال شد.")
 
-    # ---- ادمین روی سفارش ----
     elif data.startswith("ord_appr_"):
         order_id = int(data.split("_")[2])
         await cb.edit_message_text("⏳ در حال تحلیل توسط هوش مصنوعی...")
@@ -554,7 +530,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", order_id)
         await cb.edit_message_text("❌ دستور رد شد.")
 
-    # ---- انتشار در کانال ----
     elif data.startswith("pub_"):
         order_id = int(data.split("_")[2])
         order = await get_order(order_id)
@@ -568,11 +543,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ai_data = {}
 
         narrative = ai_data.get("narrative") or "اتفاقی افتاد."
-        final_text = f"📢 **بیانیه رسمی**\n\n{narrative}"
+        final_text = f"📢 بیانیه رسمی\n\n{narrative}"
 
         if CHANNEL_ID:
             try:
-                await context.bot.send_message(CHANNEL_ID, final_text, parse_mode="Markdown")
+                await context.bot.send_message(CHANNEL_ID, final_text) 
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE orders SET status = 'published', published_at = NOW() WHERE id = $1", order_id)
                 await cb.edit_message_text("✅ در کانال منتشر شد.")
@@ -584,13 +559,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data == "cancel_pub":
         await cb.edit_message_text("❌ انتشار لغو شد.")
 
-
 async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
 
     status_icon = "✅ موفقیت‌آمیز" if ai_data.get("success") else "❌ ناموفق"
 
-    # خلاصه‌ی تغییرات اقتصادی اگر موفق بود
     changes_line = ""
     if ai_data.get("success"):
         tc = ai_data.get("treasury_change", 0)
@@ -602,12 +575,13 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
             f"📈 GDP: {gc:+,} واحد\n"
         )
 
+    # بدون parse_mode تا ارور Can't parse entities نده
     text = (
-        f"🧠 **نتیجه تحلیل هوش مصنوعی**\n\n"
+        f"🧠 نتیجه تحلیل هوش مصنوعی\n\n"
         f"📌 وضعیت عملیات: {status_icon}\n"
         f"📝 تحلیل: {ai_data.get('reason', 'دلیلی ذکر نشد')}\n"
         f"{changes_line}\n"
-        f"📖 **انتشار برای کانال:**\n"
+        f"📖 انتشار برای کانال:\n"
         f"{ai_data.get('narrative', '')}\n\n"
         f"برای کانال تایید می‌شود؟"
     )
@@ -619,20 +593,20 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
 
     if isinstance(update_or_cb, CallbackQuery):
         try:
-            await update_or_cb.edit_message_text(text, parse_mode="Markdown", reply_markup=btn)
-        except Exception:
-            await update_or_cb.message.reply_text(text, parse_mode="Markdown", reply_markup=btn)
-    else:
-        await update_or_cb.message.reply_text(text, parse_mode="Markdown", reply_markup=btn)
+            await update_or_cb.edit_message_text(text, reply_markup=btn)
+            return
+        except Exception as e:
+            logger.error(f"Edit failed: {type(e).__name__}: {e}")
 
-
-# ============ Bootstrap ============
+    try:
+        await context.bot.send_message(update_or_cb.from_user.id, text, reply_markup=btn)
+    except Exception as e:
+        logger.error(f"Send failed: {type(e).__name__}: {e}")
 
 async def post_init(app):
     await init_db()
     await set_commands(app)
     await app.bot.delete_webhook(drop_pending_updates=True)
-
 
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
@@ -651,7 +625,6 @@ def main():
         app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}")
     else:
         app.run_polling()
-
 
 if __name__ == "__main__":
     main()
