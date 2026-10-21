@@ -117,7 +117,7 @@ def kb(rows):
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. You must respond with a valid, pure JSON object. Do NOT output any markdown formatting like ```json. Do NOT output any text before or after the JSON. Just the raw JSON object starting with { and ending with }.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
@@ -135,60 +135,58 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. Yo
             logger.info(f"Cloudflare Status: {response.status_code}")
             
             if response.status_code != 200:
-                logger.error(f"Cloudflare Error Body: {response.text}")
-                return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی از هوش مصنوعی دریافت نشد."}'
+                return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
             
             res_data = response.json()
             
             if res_data.get("success"):
                 return res_data["result"]["response"]
             else:
-                logger.error(f"Cloudflare AI Error: {res_data}")
                 return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
                 
     except Exception as e:
         logger.error(f"AI Request Exception: {str(e)}")
-        return '{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}'
+        return '{"success": false, "reason": "خطای ارتباط", "narrative": "ارتباط برقرار نشد."}'
 
 async def analyze_and_apply_order(order_id: int):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
     prompt = f"""
+    Analyze this action in a political strategy game.
+    
     Country: {country['name']}
-    Current Treasury: {country['treasury']} units (1 unit = 1000 dollars. So current treasury is {country['treasury'] * 1000} dollars)
+    Current Treasury: {country['treasury']} units (1 unit = 1000 dollars)
     Current Army: {country['army']}
-    Current GDP: {country['gdp']}
+    Player's Action: "{order['order_text']}"
     
-    Player's Order: "{order['order_text']}"
-    Category: {order['category']}
+    Return a JSON object with exactly these keys:
+    - "success": boolean (true or false)
+    - "reason": string (in Persian, why it succeeded or failed)
+    - "treasury_change": integer (e.g., -10000 for 10M dollars spent. 1 unit = 1000 dollars)
+    - "army_change": integer
+    - "gdp_change": integer
+    - "narrative": string (in Persian, a dramatic news report about what happened)
     
-    Analyze this order. Remember: 1 treasury unit equals 1000 dollars. If the player spends 10,000,000 dollars, you must deduct 10,000 from treasury.
-    
-    Respond ONLY with this exact JSON structure in Persian:
-    {{
-        "success": true,
-        "reason": "دلیل موفقیت یا شکست",
-        "treasury_change": -10000,
-        "army_change": 0,
-        "gdp_change": 5000,
-        "narrative": "یک توضیح کوتاه و هیجان‌انگیز به زبان فارسی درباره اتفاقی که افتاد."
-    }}
+    JSON Output:
     """
     
     ai_response = await ask_ai(prompt)
     
     try:
-        start_idx = ai_response.find('{')
-        end_idx = ai_response.rfind('}')
+        clean_response = ai_response.replace("```json", "").replace("```", "").strip()
+        
+        start_idx = clean_response.find('{')
+        end_idx = clean_response.rfind('}')
         
         if start_idx != -1 and end_idx != -1:
-            json_str = ai_response[start_idx:end_idx+1]
+            json_str = clean_response[start_idx:end_idx+1]
             data = json.loads(json_str)
         else:
             data = {}
+            
     except Exception as e:
-        logger.error(f"JSON Parse Error: {e} | AI Output: {ai_response}")
+        logger.error(f"JSON Parse Error: {e} | AI Raw Output: {ai_response}")
         data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
 
     if "success" not in data:
@@ -370,7 +368,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📜 **دستور جدید از {c['name']}**\n\n"
             f"🗂 دسته: {cat_fa}\n"
             f"📝 متن دستور: {order_text}\n\n"
-            f"آیا با تحلیل این دستور موافقید؟"
+            f"آیا با این تحلیل توسط هوش مصنوعی موافقید؟"
         )
         admin_btn = kb([
             [InlineKeyboardButton("✅ تایید و تحلیل", callback_data=f"ord_appr_{order_id}")],
@@ -378,6 +376,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ رد دستور", callback_data=f"ord_rej_{order_id}")]
         ])
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
+        
         await cb.edit_message_text("⏳ دستور شما به ادمین برای بررسی ارسال شد.")
 
     elif data.startswith("ord_appr_"):
