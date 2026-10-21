@@ -1,6 +1,6 @@
 import os
 import json
-import ast
+import re
 import logging
 import asyncpg
 import httpx
@@ -153,7 +153,6 @@ async def analyze_and_apply_order(order_id: int, context):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
-    # پرامپت رو خیلی دقیق کردیم که واحد پول رو اشتباه نکنه
     prompt = f"""
     Analyze this action in a political strategy game.
     
@@ -169,43 +168,35 @@ async def analyze_and_apply_order(order_id: int, context):
     - "army_change": integer
     - "gdp_change": integer
     - "narrative": string (in Persian)
-    
-    JSON Output:
     """
     
     ai_response = await ask_ai(prompt)
     
+    # --- پارسر فوق مقاوم (Regex) برای جلوگیری از هرگونه خطای پارس ---
     try:
-        clean_response = ai_response.replace("```json", "").replace("```", "").strip()
+        data = {}
         
-        start_idx = clean_response.find('{')
-        end_idx = clean_response.rfind('}')
+        # پیدا کردن success (چه True باشه چه true، چه سینگل چه دابل)
+        success_match = re.search(r"['\"]?success['\"]?\s*:\s*(True|true|False|false)", ai_response)
+        data['success'] = success_match.group(1).lower() in ('true', '1') if success_match else False
         
-        if start_idx != -1 and end_idx != -1:
-            json_str = clean_response[start_idx:end_idx+1]
-            try:
-                # اول تلاش می‌کنیم با فرمت استاندارد JSON بخونیم
-                data = json.loads(json_str)
-            except json.JSONDecodeError:
-                # اگه هوش مصنوعی از سینگل کوتیشن استفاده کرده بود، با ast می‌خونیم
-                data = ast.literal_eval(json_str)
-        else:
-            data = {}
+        # پیدا کردن اعداد
+        for key in ['treasury_change', 'army_change', 'gdp_change']:
+            match = re.search(rf"['\"]?{key}['\"]?\s*:\s*(-?\d+)", ai_response)
+            data[key] = int(match.group(1)) if match else 0
+            
+        # پیدا کردن متن‌ها (تا اولین کوتیشن یا کاما)
+        for key in ['reason', 'narrative']:
+            match = re.search(rf"['\"]?{key}['\"]?\s*:\s*['\"]([^'\"]*)['\"]", ai_response)
+            data[key] = match.group(1) if match else "داده‌ای ثبت نشد."
             
     except Exception as e:
-        logger.error(f"Parse Error: {e} | AI Raw Output: {ai_response}")
+        logger.error(f"Regex Parse Error: {e} | AI Raw Output: {ai_response}")
         try:
-            await context.bot.send_message(
-                ADMIN_ID, 
-                f"⚠️ **خطای پارس داده‌های AI**\n\nمتن خام:\n`{ai_response}`", 
-                parse_mode="Markdown"
-            )
+            await context.bot.send_message(ADMIN_ID, f"⚠️ **خطای پارس در تابع جدید**\n\n`{ai_response}`", parse_mode="Markdown")
         except:
             pass
-        data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
-
-    if "success" not in data:
-        data = {"success": False, "reason": "پاسخ نامعتبر از AI", "narrative": "دستور شما نیاز به بررسی دستی دارد."}
+        data = {"success": False, "reason": "خطای پردازش", "narrative": "دستور اجرا نشد."}
 
     async with pool.acquire() as conn:
         if data.get("success"):
