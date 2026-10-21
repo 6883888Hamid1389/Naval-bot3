@@ -124,7 +124,10 @@ def fmt_money(amount):
 # --- ارتباط با هوش مصنوعی (Cloudflare) ---
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3-8b-instruct"
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"}
+    headers = {
+        "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
+        "Content-Type": "application/json"
+    }
     payload = {
         "messages": [
             {"role": "system", "content": system_prompt},
@@ -134,20 +137,29 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. Yo
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload, timeout=60)
+            
+            logger.info(f"Cloudflare Status: {response.status_code}")
+            
+            if response.status_code != 200:
+                logger.error(f"Cloudflare Error Body: {response.text}")
+                return f'{{"success": false, "reason": "خطای کلودفلر: کد {response.status_code}", "narrative": "پاسخی از هوش مصنوعی دریافت نشد."}}'
+            
             res_data = response.json()
             if res_data.get("success"):
                 return res_data["result"]["response"]
-            return '{"success": false, "reason": "خطای API کلودفلر", "narrative": "ارتباط با مرکز فرماندهی برقرار نشد."}'
+            else:
+                logger.error(f"Cloudflare AI Error: {res_data}")
+                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
+                
     except Exception as e:
-        logger.error(f"AI Error: {e}")
-        return '{"success": false, "reason": "خطا در ارتباط", "narrative": "مرکز فرماندهی پاسخ نداد."}'
+        logger.error(f"AI Request Exception: {str(e)}")
+        return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
 
 # --- تحلیل دستور توسط AI و ثبت در دیتابیس ---
 async def analyze_and_apply_order(order_id: int):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
-    # پرامپت برای تحلیل (اجبار به خروجی JSON)
     prompt = f"""
     Country: {country['name']}
     Current Treasury: {country['treasury']} units (1 unit = 1000 dollars. So current treasury is {country['treasury'] * 1000} dollars)
@@ -172,7 +184,6 @@ async def analyze_and_apply_order(order_id: int):
     
     ai_response = await ask_ai(prompt)
     
-    # استخراج دقیق JSON از پاسخ (حذف مارک‌داون‌های اضافی)
     try:
         start_idx = ai_response.find('{')
         end_idx = ai_response.rfind('}')
@@ -189,7 +200,6 @@ async def analyze_and_apply_order(order_id: int):
     if "success" not in data:
         data = {"success": False, "reason": "پاسخ نامعتبر از AI", "narrative": "دستور شما نیاز به بررسی دستی دارد."}
 
-    # آپدیت دیتابیس
     async with pool.acquire() as conn:
         if data.get("success"):
             new_treasury = max(0, country['treasury'] + data.get("treasury_change", 0))
@@ -252,7 +262,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
     await update.message.reply_text(text, parse_mode="Markdown")
 
-# --- ثبت دستور جدید توسط بازیکن ---
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     c = await get_country(uid)
@@ -275,13 +284,11 @@ async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     await update.message.reply_text("دستور شما در کدام دسته‌بندی قرار می‌گیرد؟", reply_markup=kb(rows))
 
-# --- هندلر پیام‌های متنی (برای فرم ثبت‌نام و ویرایش ادمین) ---
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     text = update.message.text.strip()
     t = temp.get(uid, {})
 
-    # --- مراحل ثبت‌نام ---
     if t.get("step") == "NAME":
         t["name"] = text
         t["step"] = "LEADER"
@@ -296,7 +303,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rows = [[InlineKeyboardButton(v["name"], callback_data=f"gov_{k}")] for k, v in GOVERNMENTS.items()]
         await update.message.reply_text("⚙️ نوع نظام حکومتی خود را انتخاب کنید:", reply_markup=kb(rows))
 
-    # --- ویرایش دستور توسط ادمین ---
     elif t.get("step") == "ADMIN_EDIT_ORDER" and uid == ADMIN_ID:
         order_id = t["order_id"]
         async with pool.acquire() as conn:
@@ -305,7 +311,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text("✅ دستور ویرایش شد. در حال تحلیل با هوش مصنوعی...")
         await analyze_and_send_to_admin(update, context, order_id)
 
-# --- پردازش دکمه‌های شیشه‌ای ---
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cb = update.callback_query
     data = cb.data
@@ -313,7 +318,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     t = temp.get(uid, {})
     await cb.answer()
 
-    # --- انتخاب زیرشاخه حکومت در ثبت‌نام ---
     if data.startswith("gov_"):
         main_gov = data.replace("gov_", "")
         t["gov_main"] = main_gov
@@ -329,7 +333,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t["gov_sub"] = sub_gov
         temp.pop(uid, None)
         
-        # ثبت در دیتابیس با وضعیت pending
         async with pool.acquire() as conn:
             await conn.execute(
                 "INSERT INTO countries (user_id, username, name, leader, gov_main, gov_sub, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')",
@@ -338,13 +341,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             
         await cb.edit_message_text("⏳ درخواست ثبت کشور شما ارسال شد. منتظر تایید ادمین باشید.")
         
-        # ارسال به ادمین
         gov_name = GOVERNMENTS[t['gov_main']]['name'] + " - " + GOVERNMENTS[t['gov_main']]['subs'][sub_gov]
         admin_text = f"📥 **درخواست ثبت کشور جدید**\n\n🏛️ {t['name']}\n👤 رهبر: {t['leader']}\n⚙️ حکومت: {gov_name}\n🆔 `{uid}`"
         admin_btn = kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]])
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
 
-    # --- تایید/رد ثبت‌نام توسط ادمین ---
     elif data.startswith("adm_ok_"):
         target_uid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -359,7 +360,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await cb.edit_message_text("❌ درخواست رد شد.")
         await context.bot.send_message(target_uid, "❌ درخواست ثبت کشور شما رد شد.")
 
-    # --- دسته‌بندی دستور توسط بازیکن ---
     elif data.startswith("cat_"):
         category = data.replace("cat_", "")
         order_text = t.get("order_text")
@@ -386,28 +386,26 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ رد دستور", callback_data=f"ord_rej_{order_id}")]
         ])
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
-        await cb.edit_message_text("⏳ دستور شما برای بررسی به فرماندهی ارسال شد.")
+        
+        # متن تغییر یافته در اینجا اعمال شد
+        await cb.edit_message_text("⏳ دستور شما به ادمین برای بررسی ارسال شد.")
 
-    # --- تایید اولیه ادمین (شروع تحلیل AI) ---
     elif data.startswith("ord_appr_"):
         order_id = int(data.split("_")[2])
         await cb.edit_message_text("⏳ در حال تحلیل توسط هوش مصنوعی...")
         await analyze_and_send_to_admin(cb, context, order_id)
 
-    # --- ویرایش دستور توسط ادمین ---
     elif data.startswith("ord_edit_"):
         order_id = int(data.split("_")[2])
         temp[uid] = {"step": "ADMIN_EDIT_ORDER", "order_id": order_id}
         await cb.edit_message_text("✏️ لطفاً متن اصلاح‌شده دستور را ارسال کنید:")
 
-    # --- رد دستور ---
     elif data.startswith("ord_rej_"):
         order_id = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", order_id)
         await cb.edit_message_text("❌ دستور رد شد.")
 
-    # --- انتشار در کانال توسط ادمین ---
     elif data.startswith("pub_"):
         order_id = int(data.split("_")[2])
         order = await get_order(order_id)
@@ -428,7 +426,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with pool.acquire() as conn:
             await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", order_id)
 
-# --- تابع کمکی برای اتصال AI به ادمین ---
 async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id)
     
@@ -456,7 +453,6 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     else:
         await update_or_cb.edit_message_text(text, parse_mode="Markdown", reply_markup=btn)
 
-# --- راه‌اندازی نهایی ---
 async def post_init(app):
     await init_db()
     await set_commands(app)
