@@ -161,11 +161,12 @@ def _safe_parse_json(raw: str) -> dict:
     except Exception:
         pass
 
+    logger.error(f"All JSON parsing layers failed for: {raw}")
     return {}
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown.") -> str:
-    # تغییر مدل به ۸B برای سرعت بالاتر و مصرف کمتر سهمیه رایگان
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct-fp8-fast"
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only.") -> str:
+    # استفاده از مدل استاندارد ۸B و فعال‌سازی حالت JSON
+    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}",
@@ -177,82 +178,67 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
             {"role": "user", "content": prompt}
         ],
         "max_tokens": 600,
-        "temperature": 0.2
+        "temperature": 0.1,
+        "response_format": {"type": "json_object"} # مجبور کردن AI به دادن JSON
     }
 
     def fallback(reason, narrative):
         return json.dumps({"success": False, "reason": reason, "narrative": narrative}, ensure_ascii=False)
 
-    for attempt in range(2): # ۲ بار تلاش کافیست
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(url, headers=headers, json=payload, timeout=45.0)
-                logger.info(f"CF Status {response.status_code} (attempt {attempt+1})")
+    try:
+        async with httpx.AsyncClient() as client:
+            # تایم اوت ۴۰ ثانیه‌ای
+            response = await client.post(url, headers=headers, json=payload, timeout=40.0)
+            logger.info(f"CF Status {response.status_code}")
 
-                if response.status_code != 200:
-                    logger.error(f"CF Error body: {response.text[:400]}")
-                    if attempt == 0:
-                        await asyncio.sleep(2)
-                        continue
-                    return fallback(f"خطای سرویس ({response.status_code})", "سرویس هوش مصنوعی در دسترس نیست.")
+            if response.status_code != 200:
+                logger.error(f"CF Error body: {response.text[:400]}")
+                return fallback("خطای سرویس کلودفلر", "ارتباط با سرور برقرار نشد.")
 
-                res_data = response.json()
-                if res_data.get("success"):
-                    return res_data["result"]["response"]
-                else:
-                    if attempt == 0:
-                        await asyncio.sleep(2)
-                        continue
-                    return fallback("مدل خطا داد", "مدل قادر به پاسخ‌دهی نبود.")
+            res_data = response.json()
+            if res_data.get("success"):
+                return res_data["result"]["response"]
+            else:
+                logger.error(f"CF Model error: {res_data.get('errors')}")
+                return fallback("مدل خطا داد", "پاسخ‌دهی هوش مصنوعی با مشکل مواجه شد.")
 
-        except httpx.TimeoutException:
-            logger.error(f"httpx Timeout on attempt {attempt+1}")
-            if attempt == 0:
-                await asyncio.sleep(1)
-                continue
-            return fallback("پاسخ AI زمان زیادی طول کشید", "سرویس AI پاسخگو نبود.")
-        except Exception as e:
-            logger.error(f"AI Exception: {type(e).__name__}: {e}")
-            if attempt == 0:
-                await asyncio.sleep(1)
-                continue
-            return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
+    except httpx.TimeoutException:
+        logger.error("httpx Timeout")
+        return fallback("تایم اوت", "پاسخ AI زمان زیادی طول کشید.")
+    except Exception as e:
+        logger.error(f"AI Exception: {type(e).__name__}: {e}")
+        return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
 
 def _build_prompt(country: dict, order_text: str) -> str:
-    return f"""You are the economic engine of a text-based strategy game. Output ONLY valid JSON, no markdown fences, no commentary.
+    # پرامپت فوق‌العاده ساده برای اینکه مدل ۸B گیج نشه
+    return f"""Return a JSON object based on this game action.
+Country: {country['name']}
+Treasury: {country['treasury']} units
+Army: {country['army']}
+Player Action: "{order_text}"
 
-COUNTRY (all values in "units"; 1 unit = $1,000):
-- Name: {country['name']}
-- Treasury: {country['treasury']} units
-- GDP: {country['gdp']} units
-- Army: {country['army']} soldiers
-
-PLAYER ORDER: "{order_text}"
-
-UNIT SCALE reference:
-- "$5 million" = 5,000 units
-- "$100 million" = 100,000 units
-- "$50 billion" = 50,000,000 units
-
-HARD RULES:
-1. If total cost > treasury, success MUST be false, and treasury_change / army_change / gdp_change MUST all be 0.
-2. Treasury must never go below 0. Army must never go below 0.
-3. "narrative" must be a SINGLE LINE in Persian, max 300 characters. NO literal newlines, NO quotation marks.
-4. "reason" must be in Persian, max 150 characters.
-5. Output must be strictly valid JSON (double quotes, no trailing commas).
-
-EXACT format:
-{{"success": true, "reason": "...", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "narrative": "..."}}
+Rules:
+1. If cost > treasury, set success to false.
+2. 1 unit = $1000. So $5M is 5000 units.
+3. Output format MUST be EXACTLY:
+{{
+  "success": true or false,
+  "reason": "Persian reason here",
+  "treasury_change": integer,
+  "army_change": integer,
+  "gdp_change": integer,
+  "narrative": "Persian text here"
+}}
 """
 
 async def analyze_and_apply_order(order_id: int, context):
     try:
-        return await asyncio.wait_for(_analyze_inner(order_id), timeout=90.0)
+        return await asyncio.wait_for(_analyze_inner(order_id), timeout=60.0)
     except asyncio.TimeoutError:
         logger.error(f"GLOBAL TIMEOUT for order {order_id}")
         data = {
             "success": False,
-            "reason": "پردازش بیش از حد طول کشید",
+            "reason": "پردازش طول کشید",
             "narrative": "ستاد فرماندهی اعلام کرد بررسی این دستور به تعویق افتاد."
         }
         async with pool.acquire() as conn:
@@ -276,11 +262,14 @@ async def _analyze_inner(order_id: int):
 
     data = _safe_parse_json(ai_response)
 
-    if "success" not in data:
+    # اگر AI خراب کرد، این بلاک جلوی کرش رو می‌گیره
+    if "success" not in data or "narrative" not in data:
+        logger.warning(f"Invalid JSON from AI, using fallback. Raw: {ai_response}")
         data = {
             "success": False,
-            "reason": "پاسخ نامعتبر از AI",
-            "narrative": "ستاد فرماندهی اعلام کرد این دستور به بررسی دستی نیاز دارد."
+            "reason": "پاسخ هوش مصنوعی نامشخص بود",
+            "narrative": "فرماندهی اعلام کرد: دستور شما ثبت شد اما نیاز به بررسی دستی ادمین دارد.",
+            "treasury_change": 0, "army_change": 0, "gdp_change": 0
         }
 
     # لایه امنیتی (وتو)
@@ -290,7 +279,7 @@ async def _analyze_inner(order_id: int):
             a_change = int(data.get("army_change") or 0)
             g_change = int(data.get("gdp_change") or 0)
         except (TypeError, ValueError):
-            data = {"success": False, "reason": "خروجی عددی AI نامعتبر بود", "narrative": ""}
+            data = {"success": False, "reason": "خروجی عددی AI نامعتبر بود", "narrative": "خطا در پردازش اعداد.", "treasury_change": 0, "army_change": 0, "gdp_change": 0}
         else:
             if country["treasury"] + t_change < 0:
                 data = {
@@ -575,7 +564,6 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
             f"📈 GDP: {gc:+,} واحد\n"
         )
 
-    # بدون parse_mode تا ارور Can't parse entities نده
     text = (
         f"🧠 نتیجه تحلیل هوش مصنوعی\n\n"
         f"📌 وضعیت عملیات: {status_icon}\n"
