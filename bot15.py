@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 import logging
 import asyncpg
 import httpx
@@ -117,7 +118,7 @@ def kb(rows):
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. You must respond with a valid, pure JSON object. Do NOT output any markdown formatting like ```json. Do NOT output any text before or after the JSON. Just the raw JSON object starting with { and ending with }.") -> str:
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. You must respond with a valid, pure JSON object using double quotes. Do NOT output any markdown formatting like ```json. Do NOT output any text before or after the JSON. Just the raw JSON object starting with { and ending with }.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
@@ -152,18 +153,19 @@ async def analyze_and_apply_order(order_id: int, context):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
+    # پرامپت رو خیلی دقیق کردیم که واحد پول رو اشتباه نکنه
     prompt = f"""
     Analyze this action in a political strategy game.
     
     Country: {country['name']}
-    Current Treasury: {country['treasury']} units (1 unit = 1000 dollars)
+    Current Treasury: {country['treasury']} units (IMPORTANT: 1 unit = 1000 dollars)
     Current Army: {country['army']}
     Player's Action: "{order['order_text']}"
     
     Return a JSON object with exactly these keys:
     - "success": boolean (true or false)
     - "reason": string (in Persian)
-    - "treasury_change": integer
+    - "treasury_change": integer (Calculate in UNITS. If action costs 10 million dollars, return -10000)
     - "army_change": integer
     - "gdp_change": integer
     - "narrative": string (in Persian)
@@ -181,22 +183,25 @@ async def analyze_and_apply_order(order_id: int, context):
         
         if start_idx != -1 and end_idx != -1:
             json_str = clean_response[start_idx:end_idx+1]
-            data = json.loads(json_str)
+            try:
+                # اول تلاش می‌کنیم با فرمت استاندارد JSON بخونیم
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                # اگه هوش مصنوعی از سینگل کوتیشن استفاده کرده بود، با ast می‌خونیم
+                data = ast.literal_eval(json_str)
         else:
             data = {}
             
     except Exception as e:
-        logger.error(f"JSON Parse Error: {e} | AI Raw Output: {ai_response}")
-        
+        logger.error(f"Parse Error: {e} | AI Raw Output: {ai_response}")
         try:
             await context.bot.send_message(
                 ADMIN_ID, 
-                f"⚠️ **خطای پارس JSON هوش مصنوعی**\n\nمتن خامی که AI فرستاده این بوده:\n\n`{ai_response}`", 
+                f"⚠️ **خطای پارس داده‌های AI**\n\nمتن خام:\n`{ai_response}`", 
                 parse_mode="Markdown"
             )
         except:
             pass
-            
         data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
 
     if "success" not in data:
