@@ -12,11 +12,10 @@ logger = logging.getLogger(__name__)
 TOKEN = os.environ.get("BOT_TOKEN", "")
 ADMIN_ID = 8849773822
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
-CHANNEL_ID = os.environ.get("CHANNEL_ID", "") # آیدی کانال عمومی
+CHANNEL_ID = os.environ.get("CHANNEL_ID", "")
 CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
 CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
 
-# --- ساختار عمیق حکومت‌ها ---
 GOVERNMENTS = {
     "communist": {
         "name": "☭ کمونیستی",
@@ -71,7 +70,6 @@ async def init_db():
     global pool
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
     async with pool.acquire() as conn:
-        # جدول کشورها
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS countries (
                 user_id BIGINT PRIMARY KEY,
@@ -87,13 +85,12 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        # جدول دستورات (قلب سیستم)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
                 user_id BIGINT,
                 order_text TEXT,
-                category TEXT, -- economic, political, military
+                category TEXT,
                 status TEXT DEFAULT 'pending', 
                 admin_note TEXT,
                 ai_analysis_raw TEXT,
@@ -104,11 +101,22 @@ async def init_db():
         """)
     logger.info("Database initialized.")
 
-# --- توابع کمکی ---
 async def get_country(uid):
     async with pool.acquire() as conn:
         r = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         return dict(r) if r else None
+
+async def get_order(order_id):
+    async with pool.acquire() as conn:
+        r = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
+        return dict(r) if r else None
+
+def kb(rows):
+    return InlineKeyboardMarkup(rows)
+
+def fmt_money(amount):
+    return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
+
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
@@ -124,45 +132,24 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. Yo
     try:
         async with httpx.AsyncClient() as client:
             response = await client.post(url, headers=headers, json=payload, timeout=60)
-            
             logger.info(f"Cloudflare Status: {response.status_code}")
             
             if response.status_code != 200:
                 logger.error(f"Cloudflare Error Body: {response.text}")
-                return f'{{"success": false, "reason": "خطای کلودفلر: کد {response.status_code}", "narrative": "پاسخی از هوش مصنوعی دریافت نشد."}}'
+                return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی از هوش مصنوعی دریافت نشد."}'
             
             res_data = response.json()
+            
             if res_data.get("success"):
                 return res_data["result"]["response"]
             else:
                 logger.error(f"Cloudflare AI Error: {res_data}")
-                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
+                return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
                 
     except Exception as e:
         logger.error(f"AI Request Exception: {str(e)}")
-        return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
-            res_data = response.json()
-            if res_data.get("success"):
-                return res_data["result"]["response"]
-            else:
-                logger.error(f"Cloudflare AI Error: {res_data}")
-                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
-                
-    except Exception as e:
-        logger.error(f"AI Request Exception: {str(e)}")
-        return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
-            res_data = response.json()
-            if res_data.get("success"):
-                return res_data["result"]["response"]
-            else:
-                logger.error(f"Cloudflare AI Error: {res_data}")
-                return f'{{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}}'
-                
-    except Exception as e:
-        logger.error(f"AI Request Exception: {str(e)}")
-      return f'{{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}}'
+        return '{"success": false, "reason": "خطای داخلی سیستم", "narrative": "ارتباط با کلودفلر برقرار نشد."}'
 
-# --- تحلیل دستور توسط AI و ثبت در دیتابیس ---
 async def analyze_and_apply_order(order_id: int):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
@@ -180,11 +167,11 @@ async def analyze_and_apply_order(order_id: int):
     
     Respond ONLY with this exact JSON structure in Persian:
     {{
-        "success": true/false,
+        "success": true,
         "reason": "دلیل موفقیت یا شکست",
-        "treasury_change": integer (negative for cost, positive for gain),
-        "army_change": integer,
-        "gdp_change": integer,
+        "treasury_change": -10000,
+        "army_change": 0,
+        "gdp_change": 5000,
         "narrative": "یک توضیح کوتاه و هیجان‌انگیز به زبان فارسی درباره اتفاقی که افتاد."
     }}
     """
@@ -221,15 +208,13 @@ async def analyze_and_apply_order(order_id: int):
     
     return data
 
-
-# --- وضعیت موقت برای فرم ثبت‌نام ---
 temp = {}
 
 async def set_commands(app):
     cmds = [
         BotCommand("start", "ثبت‌نام و شروع بازی"),
         BotCommand("country", "مشاهده اطلاعات کشور"),
-        BotCommand("order", "ثبت دستور جدید (اقتصادی/سیاسی/نظامی)"),
+        BotCommand("order", "ثبت دستور جدید"),
         BotCommand("cancel", "لغو عملیات")
     ]
     await app.bot.set_my_commands(cmds)
@@ -385,7 +370,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📜 **دستور جدید از {c['name']}**\n\n"
             f"🗂 دسته: {cat_fa}\n"
             f"📝 متن دستور: {order_text}\n\n"
-            f"آیا با این تحلیل توسط هوش مصنوعی موافقید؟"
+            f"آیا با تحلیل این دستور موافقید؟"
         )
         admin_btn = kb([
             [InlineKeyboardButton("✅ تایید و تحلیل", callback_data=f"ord_appr_{order_id}")],
@@ -393,8 +378,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             [InlineKeyboardButton("❌ رد دستور", callback_data=f"ord_rej_{order_id}")]
         ])
         await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
-        
-        # متن تغییر یافته در اینجا اعمال شد
         await cb.edit_message_text("⏳ دستور شما به ادمین برای بررسی ارسال شد.")
 
     elif data.startswith("ord_appr_"):
