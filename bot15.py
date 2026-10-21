@@ -137,10 +137,10 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI for
             res_data = response.json()
             if res_data.get("success"):
                 return res_data["result"]["response"]
-            return "⚠️ خطا در تحلیل AI."
+            return "⚠️ خطا در ارسال خروجی AI."
     except Exception as e:
         logger.error(f"AI Error: {e}")
-        return "⚠️ ارتباط با مرکز فرماندهی قطع شد."
+        return "⚠️ ارتباط  قطع شد."
 
 # --- تحلیل دستور توسط AI و ثبت در دیتابیس ---
 async def analyze_and_apply_order(order_id: int):
@@ -192,3 +192,282 @@ async def analyze_and_apply_order(order_id: int):
                            json.dumps(data, ensure_ascii=False), order_id)
     
     return data
+
+
+# --- وضعیت موقت برای فرم ثبت‌نام ---
+temp = {}
+
+async def set_commands(app):
+    cmds = [
+        BotCommand("start", "ثبت‌نام و شروع بازی"),
+        BotCommand("country", "مشاهده اطلاعات کشور"),
+        BotCommand("order", "ثبت دستور جدید (اقتصادی/سیاسی/نظامی)"),
+        BotCommand("cancel", "لغو عملیات")
+    ]
+    await app.bot.set_my_commands(cmds)
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    c = await get_country(uid)
+    
+    if c:
+        if c["status"] == "active":
+            await update.message.reply_text(f"✅ کشور {c['name']} فعال است. برای ثبت دستور از /order استفاده کنید.")
+        elif c["status"] == "pending":
+            await update.message.reply_text("⏳ ثبت‌نام شما در انتظار تایید ادمین است.")
+        return
+
+    temp[uid] = {"step": "NAME"}
+    await update.message.reply_text("🏛️ به سیستم ناوال خوش آمدید.\nلطفاً **نام کشور** خود را وارد کنید:")
+
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    temp.pop(update.effective_user.id, None)
+    await update.message.reply_text("❌ عملیات لغو شد.")
+
+async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    c = await get_country(uid)
+    if not c or c["status"] != "active":
+        await update.message.reply_text("⚠️ ابتدا باید ثبت‌نام کنید و تایید بگیرید. /start")
+        return
+        
+    text = (
+        f"🏛️ *کشور: {c['name']}*\n"
+        f"👤 رهبر: {c['leader']}\n"
+        f"⚙️ حکومت: {GOVERNMENTS.get(c['gov_main'], {}).get('name', '')} - {GOVERNMENTS.get(c['gov_main'], {}).get('subs', {}).get(c['gov_sub'], '')}\n\n"
+        f"💰 خزانه: {fmt_money(c['treasury'])}\n"
+        f"🎖 ارتش: {c['army']:,} نفر\n"
+        f"📈 GDP: {fmt_money(c['gdp'])}"
+    )
+    await update.message.reply_text(text, parse_mode="Markdown")
+
+# --- ثبت دستور جدید توسط بازیکن ---
+async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    c = await get_country(uid)
+    
+    if not c or c["status"] != "active":
+        await update.message.reply_text("⚠️ شما مجاز به ثبت دستور نیستید.")
+        return
+        
+    if not context.args:
+        await update.message.reply_text("⚠️ دستور خود را بعد از کامند بنویسید.\nمثال: `/order سرمایه‌گذاری ۱۰ میلیون دلاری در بخش نفت`")
+        return
+        
+    order_text = " ".join(context.args)
+    temp[uid] = {"order_text": order_text, "step": "ORDER_CATEGORY"}
+    
+    rows = [
+        [InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic")],
+        [InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")],
+        [InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]
+    ]
+    await update.message.reply_text("دستور شما در کدام دسته‌بندی قرار می‌گیرد؟", reply_markup=kb(rows))
+
+# --- هندلر پیام‌های متنی (برای فرم ثبت‌نام و ویرایش ادمین) ---
+async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    text = update.message.text.strip()
+    t = temp.get(uid, {})
+
+    # --- مراحل ثبت‌نام ---
+    if t.get("step") == "NAME":
+        t["name"] = text
+        t["step"] = "LEADER"
+        temp[uid] = t
+        await update.message.reply_text("👤 نام رهبر کشور را وارد کنید:")
+        
+    elif t.get("step") == "LEADER":
+        t["leader"] = text
+        t["step"] = "GOV_MAIN"
+        temp[uid] = t
+        
+        rows = [[InlineKeyboardButton(v["name"], callback_data=f"gov_{k}")] for k, v in GOVERNMENTS.items()]
+        await update.message.reply_text("⚙️ نوع نظام حکومتی خود را انتخاب کنید:", reply_markup=kb(rows))
+
+    # --- ویرایش دستور توسط ادمین ---
+    elif t.get("step") == "ADMIN_EDIT_ORDER" and uid == ADMIN_ID:
+        order_id = t["order_id"]
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET order_text = $1 WHERE id = $2", text, order_id)
+        temp.pop(uid, None)
+        await update.message.reply_text("✅ دستور ویرایش شد. در حال تحلیل با هوش مصنوعی...")
+        await analyze_and_send_to_admin(update, context, order_id)
+
+# --- پردازش دکمه‌های شیشه‌ای ---
+async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    cb = update.callback_query
+    data = cb.data
+    uid = cb.from_user.id
+    t = temp.get(uid, {})
+    await cb.answer()
+
+    # --- انتخاب زیرشاخه حکومت در ثبت‌نام ---
+    if data.startswith("gov_"):
+        main_gov = data.replace("gov_", "")
+        t["gov_main"] = main_gov
+        t["step"] = "GOV_SUB"
+        temp[uid] = t
+        
+        subs = GOVERNMENTS[main_gov]["subs"]
+        rows = [[InlineKeyboardButton(v, callback_data=f"subgov_{k}")] for k, v in subs.items()]
+        await cb.edit_message_text("زیرشاخه حکومت را انتخاب کنید:", reply_markup=kb(rows))
+        
+    elif data.startswith("subgov_"):
+        sub_gov = data.replace("subgov_", "")
+        t["gov_sub"] = sub_gov
+        temp.pop(uid, None)
+        
+        # ثبت در دیتابیس با وضعیت pending
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "INSERT INTO countries (user_id, username, name, leader, gov_main, gov_sub, status) VALUES ($1, $2, $3, $4, $5, $6, 'pending')",
+                uid, cb.from_user.username, t["name"], t["leader"], t["gov_main"], sub_gov
+            )
+            
+        await cb.edit_message_text("⏳ درخواست ثبت کشور شما ارسال شد. منتظر تایید ادمین باشید.")
+        
+        # ارسال به ادمین
+        gov_name = GOVERNMENTS[t['gov_main']]['name'] + " - " + GOVERNMENTS[t['gov_main']]['subs'][sub_gov]
+        admin_text = f"📥 **درخواست ثبت کشور جدید**\n\n🏛️ {t['name']}\n👤 رهبر: {t['leader']}\n⚙️ حکومت: {gov_name}\n🆔 `{uid}`"
+        admin_btn = kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]])
+        await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
+
+    # --- تایید/رد ثبت‌نام توسط ادمین ---
+    elif data.startswith("adm_ok_"):
+        target_uid = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target_uid)
+        await cb.edit_message_text("✅ کشور تایید شد.")
+        await context.bot.send_message(target_uid, "🎉 کشور شما تایید شد! از این پس می‌توانید با /order دستور ثبت کنید.")
+
+    elif data.startswith("adm_rej_"):
+        target_uid = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            await conn.execute("DELETE FROM countries WHERE user_id = $1", target_uid)
+        await cb.edit_message_text("❌ درخواست رد شد.")
+        await context.bot.send_message(target_uid, "❌ درخواست ثبت کشور شما رد شد.")
+
+    # --- دسته‌بندی دستور توسط بازیکن ---
+    elif data.startswith("cat_"):
+        category = data.replace("cat_", "")
+        order_text = t.get("order_text")
+        temp.pop(uid, None)
+        
+        async with pool.acquire() as conn:
+            order_id = await conn.fetchval(
+                "INSERT INTO orders (user_id, order_text, category) VALUES ($1, $2, $3) RETURNING id",
+                uid, order_text, category
+            )
+            
+        c = await get_country(uid)
+        cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "military": "نظامی"}.get(category, category)
+        
+        admin_text = (
+            f"📜 **دستور جدید از {c['name']}**\n\n"
+            f"🗂 دسته: {cat_fa}\n"
+            f"📝 متن دستور: {order_text}\n\n"
+            f"آیا با این تحلیل  توسط هوش مصنوعی موافقید؟"
+        )
+        admin_btn = kb([
+            [InlineKeyboardButton("✅ تایید و تحلیل", callback_data=f"ord_appr_{order_id}")],
+            [InlineKeyboardButton("✏️ ویرایش دستور", callback_data=f"ord_edit_{order_id}")],
+            [InlineKeyboardButton("❌ رد دستور", callback_data=f"ord_rej_{order_id}")]
+        ])
+        await context.bot.send_message(ADMIN_ID, admin_text, parse_mode="Markdown", reply_markup=admin_btn)
+        await cb.edit_message_text("⏳ دستور شما برای بررسی به فرماندهی ارسال شد.")
+
+    # --- تایید اولیه ادمین (شروع تحلیل AI) ---
+    elif data.startswith("ord_appr_"):
+        order_id = int(data.split("_")[2])
+        await cb.edit_message_text("⏳ در حال تحلیل توسط هوش مصنوعی...")
+        await analyze_and_send_to_admin(cb, context, order_id)
+
+    # --- ویرایش دستور توسط ادمین ---
+    elif data.startswith("ord_edit_"):
+        order_id = int(data.split("_")[2])
+        temp[uid] = {"step": "ADMIN_EDIT_ORDER", "order_id": order_id}
+        await cb.edit_message_text("✏️ لطفاً متن اصلاح‌شده دستور را ارسال کنید:")
+
+    # --- رد دستور ---
+    elif data.startswith("ord_rej_"):
+        order_id = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", order_id)
+        await cb.edit_message_text("❌ دستور رد شد.")
+
+    # --- انتشار در کانال توسط ادمین ---
+    elif data.startswith("pub_"):
+        order_id = int(data.split("_")[2])
+        order = await get_order(order_id)
+        ai_data = json.loads(order["ai_analysis_raw"])
+        narrative = ai_data.get("narrative", "اتفاقی افتاد.")
+        
+        final_text = f"📢 **بیانیه رسمی**\n\n{narrative}"
+        
+        if CHANNEL_ID:
+            try:
+                await context.bot.send_message(CHANNEL_ID, final_text, parse_mode="Markdown")
+                await cb.edit_message_text("✅ در کانال منتشر شد.")
+            except Exception as e:
+                await cb.edit_message_text(f"❌ خطا در ارسال به کانال: {e}")
+        else:
+            await cb.edit_message_text("⚠️ آیدی کانال تنظیم نشده است.")
+            
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", order_id)
+
+# --- تابع کمکی برای اتصال AI به ادمین ---
+async def analyze_and_send_to_admin(update_or_cb, context, order_id):
+    ai_data = await analyze_and_apply_order(order_id)
+    
+    if ai_data.get("success"):
+        status_icon = "✅ موفقیت‌آمیز"
+    else:
+        status_icon = "❌ ناموفق"
+        
+    text = (
+        f"🧠 **نتیجه تحلیل هوش مصنوعی**\n\n"
+        f"📌 وضعیت عملیات: {status_icon}\n"
+        f"📝 تحلیل: {ai_data.get('reason', 'دلیلی ذکر نشد')}\n\n"
+        f"📖 **انتشار برای کانال:**\n"
+        f"{ai_data.get('narrative', '')}\n\n"
+        f" برای کانال تایید می‌شود؟"
+    )
+    
+    btn = kb([
+        [InlineKeyboardButton("📢 انتشار در کانال", callback_data=f"pub_{order_id}")],
+        [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]
+    ])
+    
+    if hasattr(update_or_cb, "message"):
+        await update_or_cb.message.reply_text(text, parse_mode="Markdown", reply_markup=btn)
+    else:
+        await update_or_cb.edit_message_text(text, parse_mode="Markdown", reply_markup=btn)
+
+# --- راه‌اندازی نهایی ---
+async def post_init(app):
+    await init_db()
+    await set_commands(app)
+    await app.bot.delete_webhook(drop_pending_updates=True)
+
+def main():
+    app = Application.builder().token(TOKEN).post_init(post_init).build()
+    
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CommandHandler("cancel", cancel))
+    app.add_handler(CommandHandler("country", country_cmd))
+    app.add_handler(CommandHandler("order", order_cmd))
+    
+    app.add_handler(CallbackQueryHandler(callback_handler))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
+
+    rh = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    if rh:
+        port = int(os.environ.get("PORT", 10000))
+        app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}")
+    else:
+        app.run_polling()
+
+if __name__ == "__main__":
+    main()
