@@ -148,7 +148,7 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Y
         logger.error(f"AI Request Exception: {str(e)}")
         return '{"success": false, "reason": "خطای ارتباط", "narrative": "ارتباط برقرار نشد."}'
 
-async def analyze_and_apply_order(order_id: int):
+async def analyze_and_apply_order(order_id: int, context):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
@@ -162,11 +162,11 @@ async def analyze_and_apply_order(order_id: int):
     
     Return a JSON object with exactly these keys:
     - "success": boolean (true or false)
-    - "reason": string (in Persian, why it succeeded or failed)
-    - "treasury_change": integer (e.g., -10000 for 10M dollars spent. 1 unit = 1000 dollars)
+    - "reason": string (in Persian)
+    - "treasury_change": integer
     - "army_change": integer
     - "gdp_change": integer
-    - "narrative": string (in Persian, a dramatic news report about what happened)
+    - "narrative": string (in Persian)
     
     JSON Output:
     """
@@ -187,6 +187,16 @@ async def analyze_and_apply_order(order_id: int):
             
     except Exception as e:
         logger.error(f"JSON Parse Error: {e} | AI Raw Output: {ai_response}")
+        
+        try:
+            await context.bot.send_message(
+                ADMIN_ID, 
+                f"⚠️ **خطای پارس JSON هوش مصنوعی**\n\nمتن خامی که AI فرستاده این بوده:\n\n`{ai_response}`", 
+                parse_mode="Markdown"
+            )
+        except:
+            pass
+            
         data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
 
     if "success" not in data:
@@ -416,7 +426,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", order_id)
 
 async def analyze_and_send_to_admin(update_or_cb, context, order_id):
-    ai_data = await analyze_and_apply_order(order_id)
+    ai_data = await analyze_and_apply_order(order_id, context)
     
     if ai_data.get("success"):
         status_icon = "✅ موفقیت‌آمیز"
