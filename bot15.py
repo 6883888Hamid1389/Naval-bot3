@@ -122,7 +122,7 @@ def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
 # --- ارتباط با هوش مصنوعی (Cloudflare) ---
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI for a geopolitical strategy game.") -> str:
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI. You must respond ONLY with a valid JSON object. Do not include any markdown formatting like ```json or any conversational text.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3-8b-instruct"
     headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}"}
     payload = {
@@ -133,14 +133,14 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master AI for
     }
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload, timeout=40)
+            response = await client.post(url, headers=headers, json=payload, timeout=60)
             res_data = response.json()
             if res_data.get("success"):
                 return res_data["result"]["response"]
-            return "⚠️ خطا در ارسال خروجی AI."
+            return '{"success": false, "reason": "خطای API کلودفلر", "narrative": "ارتباط با مرکز فرماندهی برقرار نشد."}'
     except Exception as e:
         logger.error(f"AI Error: {e}")
-        return "⚠️ ارتباط  قطع شد."
+        return '{"success": false, "reason": "خطا در ارتباط", "narrative": "مرکز فرماندهی پاسخ نداد."}'
 
 # --- تحلیل دستور توسط AI و ثبت در دیتابیس ---
 async def analyze_and_apply_order(order_id: int):
@@ -150,14 +150,16 @@ async def analyze_and_apply_order(order_id: int):
     # پرامپت برای تحلیل (اجبار به خروجی JSON)
     prompt = f"""
     Country: {country['name']}
-    Current Treasury: {country['treasury']}
+    Current Treasury: {country['treasury']} units (1 unit = 1000 dollars. So current treasury is {country['treasury'] * 1000} dollars)
     Current Army: {country['army']}
     Current GDP: {country['gdp']}
     
     Player's Order: "{order['order_text']}"
     Category: {order['category']}
     
-    Analyze this order and respond ONLY with a JSON object in Persian (Farsi) format:
+    Analyze this order. Remember: 1 treasury unit equals 1000 dollars. If the player spends 10,000,000 dollars, you must deduct 10,000 from treasury.
+    
+    Respond ONLY with this exact JSON structure in Persian:
     {{
         "success": true/false,
         "reason": "دلیل موفقیت یا شکست",
@@ -170,13 +172,22 @@ async def analyze_and_apply_order(order_id: int):
     
     ai_response = await ask_ai(prompt)
     
-    # استخراج JSON از پاسخ
+    # استخراج دقیق JSON از پاسخ (حذف مارک‌داون‌های اضافی)
     try:
-        import re
-        json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
-        data = json.loads(json_match.group(0)) if json_match else {}
-    except:
-        data = {"success": False, "reason": "خطای پردازش", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
+        start_idx = ai_response.find('{')
+        end_idx = ai_response.rfind('}')
+        
+        if start_idx != -1 and end_idx != -1:
+            json_str = ai_response[start_idx:end_idx+1]
+            data = json.loads(json_str)
+        else:
+            data = {}
+    except Exception as e:
+        logger.error(f"JSON Parse Error: {e} | AI Output: {ai_response}")
+        data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
+
+    if "success" not in data:
+        data = {"success": False, "reason": "پاسخ نامعتبر از AI", "narrative": "دستور شما نیاز به بررسی دستی دارد."}
 
     # آپدیت دیتابیس
     async with pool.acquire() as conn:
@@ -218,7 +229,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     temp[uid] = {"step": "NAME"}
-    await update.message.reply_text("🏛️ به سیستم ناوال خوش آمدید.\nلطفاً **نام کشور** خود را وارد کنید:")
+    await update.message.reply_text("🏛️ Welcome to rustabad RP\n\nلطفاً **نام کشور** خود را وارد کنید:", parse_mode="Markdown")
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     temp.pop(update.effective_user.id, None)
@@ -367,7 +378,7 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📜 **دستور جدید از {c['name']}**\n\n"
             f"🗂 دسته: {cat_fa}\n"
             f"📝 متن دستور: {order_text}\n\n"
-            f"آیا با این تحلیل  توسط هوش مصنوعی موافقید؟"
+            f"آیا با این تحلیل توسط هوش مصنوعی موافقید؟"
         )
         admin_btn = kb([
             [InlineKeyboardButton("✅ تایید و تحلیل", callback_data=f"ord_appr_{order_id}")],
@@ -471,4 +482,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
