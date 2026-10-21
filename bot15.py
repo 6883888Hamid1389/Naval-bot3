@@ -1,5 +1,6 @@
 import os
 import json
+import ast
 import logging
 import asyncpg
 import httpx
@@ -117,7 +118,7 @@ def kb(rows):
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API.") -> str:
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown. Do NOT write any text outside the JSON.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.1-8b-instruct"
     headers = {
         "Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", 
@@ -128,11 +129,12 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API.")
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
         ],
-        "response_format": { "type": "json_object" } # فعال‌سازی حالت JSON خالص
+        "max_tokens": 512 # جلوگیری از طولانی شدن و هنگ کردن
     }
     try:
         async with httpx.AsyncClient() as client:
-            response = await client.post(url, headers=headers, json=payload, timeout=60)
+            # زمان انتظار ۱۲۰ ثانیه
+            response = await client.post(url, headers=headers, json=payload, timeout=120.0)
             logger.info(f"Cloudflare Status: {response.status_code}")
             
             if response.status_code != 200:
@@ -147,39 +149,40 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API.")
                 
     except Exception as e:
         logger.error(f"AI Request Exception: {str(e)}")
-        return '{"success": false, "reason": "خطای ارتباط", "narrative": "ارتباط برقرار نشد."}'
+        return '{"success": false, "reason": "تایم اوت (کندی سرور)", "narrative": "پردازش طول کشید و لغو شد."}'
 
 async def analyze_and_apply_order(order_id: int, context):
     order = await get_order(order_id)
     country = await get_country(order["user_id"])
     
     prompt = f"""
-    Analyze this action in a political strategy game.
+    Country: {country['name']} | Treasury: {country['treasury']} units (1 unit = $1000) | Army: {country['army']}
+    Player Action: "{order['order_text']}"
     
-    Country: {country['name']}
-    Current Treasury: {country['treasury']} units (IMPORTANT: 1 unit = 1000 dollars)
-    Current Army: {country['army']}
-    Player's Action: "{order['order_text']}"
-    
-    Return a JSON object with exactly these keys:
-    - "success": boolean
-    - "reason": string (in Persian)
-    - "treasury_change": integer (in UNITS, e.g., -10000 for 10M dollars)
-    - "army_change": integer
-    - "gdp_change": integer
-    - "narrative": string (in Persian)
+    Return JSON with keys:
+    "success": boolean, "reason": string (Persian), 
+    "treasury_change": integer (in units), "army_change": integer, 
+    "gdp_change": integer, "narrative": string (Persian).
     """
     
     ai_response = await ask_ai(prompt)
     
-    # حالا که JSON Mode فعاله، پارس کردن خیلی ساده‌ست
+    # پارسر مقاوم با ast (برای خوندن هر دو حالت JSON و دیکشنری پایتون)
     try:
-        data = json.loads(ai_response)
-    except json.JSONDecodeError:
-        logger.error(f"JSON Parse Error | AI Raw Output: {ai_response}")
+        start_idx = ai_response.find('{')
+        end_idx = ai_response.rfind('}')
+        if start_idx != -1 and end_idx != -1:
+            json_str = ai_response[start_idx:end_idx+1]
+            try:
+                data = json.loads(json_str)
+            except json.JSONDecodeError:
+                data = ast.literal_eval(json_str)
+        else:
+            data = {}
+    except Exception as e:
+        logger.error(f"Parse Error: {e} | AI Raw Output: {ai_response}")
         data = {"success": False, "reason": "خطای پردازش داده‌های AI", "narrative": "فرماندهی نتوانست دستور را اجرا کند."}
 
-    # چک کردن اینکه کلید success حتماً وجود داشته باشه
     if "success" not in data:
         data = {"success": False, "reason": "پاسخ نامعتبر از AI", "narrative": "دستور شما نیاز به بررسی دستی دارد."}
 
