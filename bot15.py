@@ -298,7 +298,7 @@ EXACT JSON FORMAT:
 }}
 """
 
-    async def apply_battle_changes(context, user_id, country_name, data):
+async def apply_battle_changes(context, user_id, country_name, data):
     if not data.get("success"): 
         return
     
