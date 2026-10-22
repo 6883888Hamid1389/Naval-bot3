@@ -1,6 +1,5 @@
 import os
 import json
-import ast
 import asyncio
 import logging
 import asyncpg
@@ -114,20 +113,6 @@ async def init_db():
             )
         """)
         await conn.execute("""
-            CREATE TABLE IF NOT EXISTS orders (
-                id SERIAL PRIMARY KEY,
-                user_id BIGINT,
-                order_text TEXT,
-                category TEXT,
-                status TEXT DEFAULT 'pending', 
-                admin_note TEXT,
-                ai_analysis_raw TEXT,
-                final_text TEXT,
-                created_at TIMESTAMP DEFAULT NOW(),
-                published_at TIMESTAMP DEFAULT NULL
-            )
-        """)
-        await conn.execute("""
             CREATE TABLE IF NOT EXISTS cities (
                 id SERIAL PRIMARY KEY, 
                 user_id BIGINT, 
@@ -161,18 +146,14 @@ async def get_country(uid):
         r = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         return dict(r) if r else None
 
-async def get_order(order_id):
-    async with pool.acquire() as conn:
-        r = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
-        return dict(r) if r else None
-
 def kb(rows):
     return InlineKeyboardMarkup(rows)
 
 def fmt_money(amount):
     return f"{amount:,.0f} دلار" if amount < 1000000 else f"{amount/1000000:.1f} میلیون دلار"
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only. Do NOT wrap in markdown.") -> str:
+# ---------- AI SETUP (For War) ----------
+async def ask_ai(prompt: str, system_prompt: str = "You are a game master API.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
     payload = {"messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}], "max_tokens": 512}
@@ -181,112 +162,29 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.post(url, headers=headers, json=payload, timeout=120.0)
-                if response.status_code != 200:
-                    if attempt < 2:
-                        await asyncio.sleep(2)
-                        continue
-                    return '{"success": false, "reason": "خطای کلودفلر", "narrative": "پاسخی دریافت نشد."}'
-                
-                res_data = response.json()
-                if res_data.get("success"):
-                    return res_data["result"]["response"]
-                else:
-                    if attempt < 2:
-                        await asyncio.sleep(2)
-                        continue
-                    return '{"success": false, "reason": "خطای مدل", "narrative": "مدل نتوانست پاسخ دهد."}'
-        except Exception as e:
-            if attempt < 2:
+                if response.status_code == 200:
+                    res_data = response.json()
+                    if res_data.get("success"):
+                        return res_data["result"]["response"]
                 await asyncio.sleep(2)
-                continue
-            return '{"success": false, "reason": "تایم اوت", "narrative": "ارتباط برقرار نشد."}'
-
-async def analyze_and_apply_order(order_id: int, context):
-    order = await get_order(order_id)
-    country = await get_country(order["user_id"])
-    
-    enemies_data = []
-    async with pool.acquire() as conn:
-        enemies = await conn.fetch("SELECT name, army, treasury FROM countries WHERE user_id != $1 AND status = 'active'", country['user_id'])
-        for e in enemies:
-            enemies_data.append(f"Country: {e['name']} | Army: {e['army']} | Treasury: {e['treasury']}")
+        except Exception:
+            await asyncio.sleep(2)
             
-    enemies_text = "\n".join(enemies_data) if enemies_data else "No other countries exist yet."
+    return ""
 
-    prompt = f"""
-    Country: {country['name']} | Treasury: {country['treasury']} units (1 unit = $1000) | Army: {country['army']}
-    Player Action: "{order['order_text']}"
-    Category: {order['category']}
-    
-    List of other countries:
-    {enemies_text}
-    
-    CRITICAL RULES:
-    1. If military attack, compare armies. Winner takes 20% treasury and kills 20% army.
-    2. If action requires more money than Treasury, "success": false.
-    3. Calculate treasury_change in UNITS (10M dollars = -10000).
-    
-    Return strict JSON with keys:
-    "success": boolean, "reason": string (Persian), 
-    "treasury_change": integer, "army_change": integer, "gdp_change": integer, 
-    "narrative": string (Persian),
-    "target_country": string (or null), "target_treasury_change": integer, "target_army_change": integer
-    """
-    
-    ai_response = await ask_ai(prompt)
-    
-    try:
-        start_idx = ai_response.find('{')
-        end_idx = ai_response.rfind('}')
-        if start_idx != -1 and end_idx != -1:
-            json_str = ai_response[start_idx:end_idx+1]
-            try:
-                data = json.loads(json_str)
-            except json.JSONDecodeError:
-                data = ast.literal_eval(json_str)
-        else:
-            data = {}
-    except Exception as e:
-        data = {"success": False, "reason": "خطای پردازش", "narrative": "دستور اجرا نشد."}
-
-    if "success" not in data:
-        data = {"success": False, "reason": "پاسخ نامعتبر", "narrative": "دستور نیاز به بررسی دستی دارد."}
-
-    async with pool.acquire() as conn:
-        if data.get("success"):
-            new_treasury = max(0, country['treasury'] + data.get("treasury_change", 0))
-            new_army = max(0, country['army'] + data.get("army_change", 0))
-            new_gdp = max(1000, country['gdp'] + data.get("gdp_change", 0))
-            
-            await conn.execute("UPDATE countries SET treasury=$1, army=$2, gdp=$3 WHERE user_id=$4", new_treasury, new_army, new_gdp, order["user_id"])
-            
-            target_name = data.get("target_country")
-            if target_name:
-                target_country = await conn.fetchrow("SELECT * FROM countries WHERE name = $1", target_name)
-                if target_country:
-                    new_t_target_treasury = max(0, target_country['treasury'] + data.get("target_treasury_change", 0))
-                    new_t_target_army = max(0, target_country['army'] + data.get("target_army_change", 0))
-                    await conn.execute("UPDATE countries SET treasury=$1, army=$2 WHERE user_id=$3", new_t_target_treasury, new_t_target_army, target_country['user_id'])
-                    try:
-                        await context.bot.send_message(target_country['user_id'], f"🚨 **هشدار حمله!**\n\nکشور {country['name']} به شما حمله کرد.\n📜 رویداد: {data.get('narrative')}", parse_mode="Markdown")
-                    except: pass
-            
-        await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
-    return data
-
-temp = {}
+# ---------- COMMANDS ----------
 
 async def set_commands(app):
     cmds = [
         BotCommand("start", "ثبت‌نام و شروع بازی"),
         BotCommand("country", "مشاهده اطلاعات کشور"),
-        BotCommand("order", "ثبت دستور جدید (نظامی/سیاسی)"),
         BotCommand("cities", "مدیریت شهرها"),
         BotCommand("economy", "مدیریت اقتصادی و مالیات"),
         BotCommand("regions", "مدیریت مناطق"),
         BotCommand("infra", "مدیریت صنایع"),
         BotCommand("mines", "مدیریت معادن و پالایشگاه‌ها"),
-        BotCommand("prospect", "سیستم استخراج لجندری"),
+        BotCommand("prospect", "سیستم استخراج"),
+        BotCommand("war", "اعلام جنگ و حمله"),
         BotCommand("admin", "پنل مدیریت (ادمین)"),
         BotCommand("turn", "پردازش درآمد نوبت (ادمین)"),
         BotCommand("cancel", "لغو عملیات")
@@ -332,26 +230,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 نرخ مالیات: {c.get('tax_rate', 10)}٪"
     )
     await context.bot.send_message(uid, text, parse_mode="Markdown")
-
-async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    c = await get_country(uid)
-    
-    if not c or c["status"] != "active":
-        await context.bot.send_message(uid, "⚠️ شما مجاز به ثبت دستور نیستید.")
-        return
-        
-    if not context.args:
-        await context.bot.send_message(uid, "⚠️ دستور خود را بعد از کامند بنویسید.\nمثال: `/order حمله به کشور روم`")
-        return
-        
-    order_text = " ".join(context.args)
-    temp[uid] = {"order_text": order_text, "step": "ORDER_CATEGORY"}
-    
-    rows = [[InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic")], [InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")], [InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]]
-    await context.bot.send_message(uid, "دستور شما در کدام دسته‌بندی قرار می‌گیرد؟", reply_markup=kb(rows))
-
-# ---------- MENUS ----------
 
 async def cities_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -443,11 +321,29 @@ async def prospect_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     c = await get_country(uid)
     if not c or c["status"] != "active": return
     
-    text = "⛏ *سیستم استخراج لجندری*\n\nهزینه: ۱.۵ میلیون دلار\nشانس موفقیت کاهش می‌یابد.\n\nیک گزینه را انتخاب کنید:"
+    text = "⛏ *سیستم استخراج*\n\nهزینه: ۱.۵ میلیون دلار\nشانس موفقیت کاهش می‌یابد.\n\nیک گزینه را انتخاب کنید:"
     rows = [[InlineKeyboardButton("🛢 استخراج نفت", callback_data="prospect_oil")], [InlineKeyboardButton("⛏ استخراج معدن", callback_data="prospect_mine")]]
     await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=kb(rows))
 
-# ---------- ADMIN & TURN ----------
+async def war_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    c = await get_country(uid)
+    if not c or c["status"] != "active": return
+
+    async with pool.acquire() as conn:
+        enemies = await conn.fetch("SELECT user_id, name, army FROM countries WHERE user_id != $1 AND status = 'active'", uid)
+        
+    if not enemies:
+        await context.bot.send_message(uid, "⚠️ در حال حاضر هیچ کشور دیگری در بازی وجود ندارد.")
+        return
+
+    text = "⚔️ *وزارت دفاع - اتاق جنگ*\n\nکشور مورد نظر برای حمله را انتخاب کنید:\n\n"
+    rows = []
+    for enemy in enemies:
+        text += f"🔹 {enemy['name']} (ارتش: {enemy['army']:,})\n"
+        rows.append([InlineKeyboardButton(f"حمله به {enemy['name']}", callback_data=f"war_target_{enemy['user_id']}")])
+        
+    await context.bot.send_message(uid, text, parse_mode="Markdown", reply_markup=kb(rows))
 
 async def turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
@@ -458,9 +354,10 @@ async def turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if row['total_income'] > 0:
                 await conn.execute("UPDATE countries SET treasury = treasury + $1 WHERE user_id = $2", row['total_income'], row['user_id'])
                 country = await get_country(row['user_id'])
-                text += f"✅ {country['name']}: +{fmt_money(row['total_income'])}\n"
+                if country: text += f"✅ {country['name']}: +{fmt_money(row['total_income'])}\n"
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
+# --- ADMIN PANEL ---
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
     await admin_panel(update.effective_user.id, None, context)
@@ -494,6 +391,8 @@ async def admin_panel(chat_id, msg_id, context, page=0):
 
 # ---------- HANDLERS ----------
 
+temp = {}
+
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     text = update.message.text.strip()
@@ -508,14 +407,6 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         rows = [[InlineKeyboardButton(v["name"], callback_data=f"gov_{k}")] for k, v in GOVERNMENTS.items()]
         await context.bot.send_message(uid, "⚙️ نوع نظام حکومتی خود را انتخاب کنید:", reply_markup=kb(rows))
 
-    elif t.get("step") == "ADMIN_EDIT_ORDER" and uid == ADMIN_ID:
-        order_id = t["order_id"]
-        async with pool.acquire() as conn:
-            await conn.execute("UPDATE orders SET order_text = $1 WHERE id = $2", text, order_id)
-        temp.pop(uid, None)
-        await context.bot.send_message(uid, "✅ دستور ویرایش شد. در حال تحلیل...")
-        await analyze_and_send_to_admin(uid, context, order_id)
-        
     elif t.get("step") == "CITY_NAME_NEW":
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET treasury = treasury - 5000 WHERE user_id = $1", uid)
@@ -559,6 +450,39 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with pool.acquire() as conn: await conn.execute("DELETE FROM countries WHERE user_id = $1", target_uid)
         await cb.edit_message_text("❌ رد شد.")
         await context.bot.send_message(target_uid, "❌ درخواست شما رد شد.")
+
+    # --- War Mechanics (Without AI Prompt for now) ---
+    elif data.startswith("war_target_"):
+        target_uid = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            enemy = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", target_uid)
+            
+        if not enemy:
+            await cb.answer("❌ این کشور وجود ندارد.", show_alert=True)
+            return
+            
+        await cb.edit_message_text(f"⚔️ **اعلام جنگ!**\n\nشما به کشور {enemy['name']} حمله کردید.\nدر حال تحلیل نتیجه نبرد...")
+        
+        # TODO: Put your AI Prompt here in the future. For now, simple python logic.
+        if c['army'] > enemy['army']:
+            # Attacker wins
+            loot_treasury = int(enemy['treasury'] * 0.2)
+            killed_army = int(enemy['army'] * 0.2)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE countries SET treasury = treasury + $1 WHERE user_id = $2", loot_treasury, uid)
+                await conn.execute("UPDATE countries SET treasury = treasury - $1, army = army - $2 WHERE user_id = $3", loot_treasury, killed_army, target_uid)
+            await context.bot.send_message(uid, f"🏆 **پیروزی!**\n\nشما در حمله به {enemy['name']} پیروز شدید.\n💰 غرامت: {fmt_money(loot_treasury)}\n🩸 تلفات دشمن: {killed_army:,} سرباز")
+            try: await context.bot.send_message(target_uid, f"🚨 **شکست در دفاع!**\n\nکشور {c['name']} به شما حمله کرد و پیروز شد.\n💰 خزانه از دست رفته: {fmt_money(loot_treasury)}\n🩸 تلفات: {killed_army:,} سرباز")
+            except: pass
+        else:
+            # Defender wins
+            lost_army = int(c['army'] * 0.2)
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE countries SET army = army - $1 WHERE user_id = $2", lost_army, uid)
+                await conn.execute("UPDATE countries SET treasury = treasury + $1 WHERE user_id = $2", int(c['treasury']*0.1), target_uid)
+            await context.bot.send_message(uid, f"❌ **شکست!**\n\nحمله شما به {enemy['name']} دفع شد.\n🩸 تلفات شما: {lost_army:,} سرباز")
+            try: await context.bot.send_message(target_uid, f"🛡️ **دفاع موفق!**\n\nشما حمله {c['name']} را دفع کردید.")
+            except: pass
 
     # --- Admin Panel Actions ---
     elif data.startswith("adm_page_"):
@@ -658,22 +582,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await cb.edit_message_text("⏳ تیم‌ها اعزام شدند. نتیجه تا ۱۵ دقیقه دیگر...")
         asyncio.create_task(resolve_prospect(context, uid, p_type, uid))
 
-    elif data.startswith("ord_appr_"):
-        order_id = int(data.split("_")[2])
-        await cb.edit_message_text("⏳ در حال تحلیل...")
-        await analyze_and_send_to_admin(uid, context, order_id)
-
-    elif data.startswith("cat_"):
-        category = data.replace("cat_", "")
-        order_text = t.get("order_text")
-        temp.pop(uid, None)
-        async with pool.acquire() as conn:
-            order_id = await conn.fetchval("INSERT INTO orders (user_id, order_text, category) VALUES ($1, $2, $3) RETURNING id", uid, order_text, category)
-        cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "military": "نظامی"}.get(category, category)
-        admin_btn = kb([[InlineKeyboardButton("✅ تایید", callback_data=f"ord_appr_{order_id}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{order_id}")]])
-        await context.bot.send_message(ADMIN_ID, f"📜 **دستور جدید از {c['name']}**\n🗂 {cat_fa}\n📝 {order_text}", parse_mode="Markdown", reply_markup=admin_btn)
-        await cb.edit_message_text("⏳ دستور شما ارسال شد.")
-
 async def resolve_prospect(context, uid, p_type, chat_id):
     delay = random.randint(300, 900)
     await asyncio.sleep(delay)
@@ -700,13 +608,6 @@ async def resolve_prospect(context, uid, p_type, chat_id):
     try: await context.bot.send_message(chat_id, msg, parse_mode="Markdown")
     except: pass
 
-async def analyze_and_send_to_admin(target_chat_id, context, order_id):
-    ai_data = await analyze_and_apply_order(order_id, context)
-    status_icon = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
-    text = f"🧠 **نتیجه تحلیل**\n\n📌 {status_icon}\n📝 {ai_data.get('reason', 'دلیل نامشخص')}\n\n📖 **انتشار:**\n{ai_data.get('narrative', '')}\n\nتایید می‌شود؟"
-    btn = kb([[InlineKeyboardButton("📢 انتشار در کانال", callback_data=f"pub_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
-    await context.bot.send_message(target_chat_id, text, parse_mode="Markdown", reply_markup=btn)
-
 async def post_init(app):
     await init_db()
     await set_commands(app)
@@ -718,13 +619,13 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(CommandHandler("country", country_cmd))
-    app.add_handler(CommandHandler("order", order_cmd))
     app.add_handler(CommandHandler("cities", cities_cmd))
     app.add_handler(CommandHandler("economy", economy_cmd))
     app.add_handler(CommandHandler("regions", regions_cmd))
     app.add_handler(CommandHandler("infra", infra_cmd))
     app.add_handler(CommandHandler("mines", mines_cmd))
     app.add_handler(CommandHandler("prospect", prospect_cmd))
+    app.add_handler(CommandHandler("war", war_cmd))
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CommandHandler("turn", turn_cmd))
     
