@@ -70,30 +70,40 @@ MILITARY_DB = {
     "عربستان": {"نیروی هوایی": "F-5E: 70 | F-5F: 20 | F-5B: 20", "نیروی زمینی": "M47 | M41 | AML-60/90", "توپخانه و خمپاره‌انداز": "M101 105mm: 200 | M109 155mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "قایق‌های گشتی ساحلی", "پدافند هوایی": "MIM-23 Hawk | توپ ۳۵mm", "سلاح سبک": "FN FAL | G3"}
 }
 
+FACTORY_DB = {
+    "آمریکا": {"F-15": "سنت لوئیس (میزوری)", "F-16": "فورت ورث (تگزاس)", "M1": "لیما (اوهایو)", "M60": "دیترویت (میشیگان)", "SSN": "گراتون (کنتیکت)"},
+    "شوروی": {"MiG-23": "مسکو (کارخانه ۳۰)", "Su-17": "کامسومولسک", "T-72": "نیژنی تاگیل", "T-64": "خارکف", "SSBN": "سوردوینسک"},
+    "ایران": {"F-14": "اصفهان (مونتاژ)", "M60": "تهران (مونتاژ)"},
+    "بریتانیا": {"Chieftain": "لیدز", "Tornado": "والتون"},
+    "فرانسه": {"Mirage": "بوردو"},
+    "اسرائیل": {"Kfir": "لود", "Merkava": "تل هشومر"},
+    "آلمان غربی": {"Leopard": "مونیخ"}
+}
+
 COUNTRY_DB = {
     "ایران": {"gdp_init": 90400000000, "mil_budget_init": 4000000000, "army_init": 520000, "tanks_init": 1735, "jets_init": 450, "refineries_init": 1175000, "cities": "تهران، اصفهان، مشهد، تبریز، شیراز، اهواز، کرمانشاه، قم، آبادان", "mines": {"oil_well": {"name": "میدان نفتی مارون و اهواز", "output_res": "oil", "amount": 3000000}, "copper_mine": {"name": "معدن مس سرچشمه", "output_res": "copper", "amount": 40000}, "iron_mine": {"name": "معدن سنگ آهن بافق", "output_res": "iron", "amount": 60000}}, "factories": {"abadan_refinery": {"name": "پالایشگاه آبادان", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"}, "isfahan_steel": {"name": "ذوب آهن اصفهان", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}}},
-    "آمریکا": {"gdp_init": 2627333000000, "mil_budget_init": 548272000000, "army_init": 2013233, "tanks_init": 7835, "jets_init": 3000, "refineries_init": 17050000, "cities": "نیویورک، کالیفرنیا، تگزاس، فلوریدا، آلاسکا، ایلینوی، پنسیلوانیا، اوهایو، میشیگان", "mines": {"oil_well": {"name": "میدان نفتی تگزاس شرقی و آلاسکا (پرودو بی)", "output_res": "oil", "amount": 9000000}, "iron_mine": {"name": "معدن آهن میشیگان", "output_res": "iron", "amount": 80000}, "coal_mine": {"name": "حوضه زغال سنگ آپالاش", "output_res": "coal", "amount": 300000}}, "factories": {"baytown_refinery": {"name": "پالایشگاه اکسون بیتون (تگزاس)", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "bethlehem_steel": {"name": "فولاد بتلهم (پنسیلوانیا)", "income": 400000, "cost": 800000, "consumes": "iron", "produces": "steel"}}},
-    "شوروی": {"gdp_init": 1300000000000, "mil_budget_init": 165000000000, "army_init": 3658000, "tanks_init": 50000, "jets_init": 8479, "refineries_init": 10000000, "cities": "مسکو، لنینگراد، کی‌یف، مینسک، تفلیس، باکو، تاشکند، آلماتی", "mines": {"oil_well": {"name": "میدان نفتی تیومن (سیبری غربی)", "output_res": "oil", "amount": 11900000}, "iron_mine": {"name": "معدن آهن آنومالی کورسک", "output_res": "iron", "amount": 250000}, "uranium_mine": {"name": "معدن اورانیوم قزاقستان", "output_res": "uranium", "amount": 50000}}, "factories": {"omsk_refinery": {"name": "پالایشگاه اومسک", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "magnitogorsk": {"name": "مجتمع فولاد مگنیتوگورسک", "income": 400000, "cost": 700000, "consumes": "iron", "produces": "steel"}}},
-    "چین": {"gdp_init": 263698000000, "mil_budget_init": 40000000000, "army_init": 5120000, "tanks_init": 10000, "jets_init": 5000, "refineries_init": 2000000, "cities": "پکن، شانگهای، تیانجین، چونگ‌کینگ", "mines": {"coal_mine": {"name": "معدن زغال سنگ شانشی", "output_res": "coal", "amount": 250000}, "iron_mine": {"name": "معدن آهن آنشان", "output_res": "iron", "amount": 90000}}, "factories": {"anshan_steel": {"name": "کارخانه فولاد آنشان", "income": 180000, "cost": 400000, "consumes": "iron", "produces": "steel"}}},
-    "عراق": {"gdp_init": 118000000000, "mil_budget_init": 11350000000, "army_init": 222000, "tanks_init": 1900, "jets_init": 339, "refineries_init": 450000, "cities": "بغداد، بصره، موصل، کرکوک، اربیل", "mines": {"oil_well": {"name": "میدان نفتی کرکوک و رومَیله", "output_res": "oil", "amount": 3500000}}, "factories": {"baiji_refinery": {"name": "پالایشگاه بیجی", "income": 200000, "cost": 400000, "consumes": "oil", "produces": "chemicals"}}},
-    "اسرائیل": {"gdp_init": 23000000000, "mil_budget_init": 13269000000, "army_init": 172000, "tanks_init": 3050, "jets_init": 576, "refineries_init": 218000, "cities": "اورشلیم، تل‌آویو، حیفا، بئرشبع", "mines": {"copper_mine": {"name": "معدن مس تیمنا", "output_res": "copper", "amount": 10000}}, "factories": {"haifa_refinery": {"name": "پالایشگاه حیفا", "income": 150000, "cost": 300000, "consumes": "oil", "produces": "chemicals"}}},
-    "مصر": {"gdp_init": 19000000000, "mil_budget_init": 1165000000, "army_init": 445000, "tanks_init": 1600, "jets_init": 568, "refineries_init": 180000, "cities": "قاهره، اسکندریه، جیزه، پورت سعید، سوئز", "mines": {"oil_well": {"name": "میدان نفتی خلیج سوئز", "output_res": "oil", "amount": 527000}}, "factories": {"suez_refinery": {"name": "پالایشگاه سوئز", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
-    "سوریه": {"gdp_init": 12300000000, "mil_budget_init": 2400000000, "army_init": 230000, "tanks_init": 2600, "jets_init": 262, "refineries_init": 116000, "cities": "دمشق، حلب، حمص، حماة", "mines": {"oil_well": {"name": "میدان نفتی کرچوک", "output_res": "oil", "amount": 180000}}, "factories": {"homs_refinery": {"name": "پالایشگاه حمص", "income": 100000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}}},
-    "بریتانیا": {"gdp_init": 181000000000, "mil_budget_init": 18000000000, "army_init": 215000, "tanks_init": 640, "jets_init": 1796, "refineries_init": 1000000, "cities": "لندن، بیرمنگام، گلاسکو، لیورپول", "mines": {"coal_mine": {"name": "معدن زغال سنگ یورکشایر", "output_res": "coal", "amount": 122000000}, "oil_well": {"name": "میدان نفتی فورتیس (دریای شمال)", "output_res": "oil", "amount": 1000000}}, "factories": {"pembroke_refinery": {"name": "پالایشگاه پمبروک", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"}, "port_talbot": {"name": "کارخانه فولاد پورت تالبوت", "income": 200000, "cost": 450000, "consumes": "coal", "produces": "steel"}}},
-    "فرانسه": {"gdp_init": 537000000000, "mil_budget_init": 18000000000, "army_init": 484722, "tanks_init": 1360, "jets_init": 477, "refineries_init": 1500000, "cities": "پاریس، مارسی، لیون، تولوز", "mines": {"iron_mine": {"name": "معدن آهن لورن", "output_res": "iron", "amount": 30000}}, "factories": {"le_havre_refinery": {"name": "پالایشگاه لو هاور", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}}},
-    "آلمان غربی": {"gdp_init": 881000000000, "mil_budget_init": 64008000000, "army_init": 495000, "tanks_init": 5000, "jets_init": 577, "refineries_init": 1500000, "cities": "دوسلدورف، کلن، مونیخ، اشتوتگارت", "mines": {"coal_mine": {"name": "حوضه زغال سنگ رور", "output_res": "coal", "amount": 200000000}}, "factories": {"rheinland_refinery": {"name": "پالایشگاه راینلند (واسلینگ)", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}, "thyssen_steel": {"name": "فولاد تیسن (دویسبورگ)", "income": 300000, "cost": 650000, "consumes": "coal", "produces": "steel"}}},
-    "آلمان شرقی": {"gdp_init": 170000000000, "mil_budget_init": 4500000000, "army_init": 173100, "tanks_init": 3140, "jets_init": 335, "refineries_init": 0, "cities": "برلین شرقی، روستوک، شورین، ماگدبورگ", "mines": {"coal_mine": {"name": "معدن لیگنیت (زغال قهوه‌ای)", "output_res": "coal", "amount": 250000000}}, "factories": {"leuna_chem": {"name": "کارخانه شیمیایی لویونا", "income": 150000, "cost": 300000, "consumes": "coal", "produces": "chemicals"}}},
-    "ژاپن": {"gdp_init": 1055012000000, "mil_budget_init": 21225000000, "army_init": 250000, "tanks_init": 740, "jets_init": 227, "refineries_init": 5000000, "cities": "توکیو، اوساکا، کاناگاوا، آیچی", "mines": {"coal_mine": {"name": "معدن زغال سنگ هوکایدو", "output_res": "coal", "amount": 20000}}, "factories": {"yokkaichi_refinery": {"name": "پالایشگاه یوکای‌ایچی", "income": 400000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}}},
-    "هند": {"gdp_init": 152062000000, "mil_budget_init": 11190000000, "army_init": 1000000, "tanks_init": 2790, "jets_init": 625, "refineries_init": 500000, "cities": "دهلی نو، بمبئی، کلکته، چنای", "mines": {"iron_mine": {"name": "معدن آهن بیهار", "output_res": "iron", "amount": 60000}}, "factories": {"bhilai_steel": {"name": "کارخانه فولاد بیلای", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}}},
-    "پاکستان": {"gdp_init": 25798000000, "mil_budget_init": 1979000000, "army_init": 400000, "tanks_init": 1000, "jets_init": 247, "refineries_init": 100000, "cities": "اسلام‌آباد، کراچی، لاهور", "mines": {"iron_mine": {"name": "معدن آهن کلاباغ", "output_res": "iron", "amount": 20000}}, "factories": {"karachi_refinery": {"name": "پالایشگاه کراچی", "income": 100000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
-    "ترکیه": {"gdp_init": 126394000000, "mil_budget_init": 4733000000, "army_init": 500000, "tanks_init": 3000, "jets_init": 300, "refineries_init": 400000, "cities": "آنکارا، استانبول، ازمیر", "mines": {"chromium_mine": {"name": "معدن کروم گولنار", "output_res": "chromium", "amount": 40000}}, "factories": {"izmit_refinery": {"name": "پالایشگاه ایزمیت (توپراش)", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
-    "برزیل": {"gdp_init": 186976000000, "mil_budget_init": 6811000000, "army_init": 257000, "tanks_init": 350, "jets_init": 205, "refineries_init": 1000000, "cities": "برازیلیا، سائوپائولو، ریودوژانیرو", "mines": {"iron_mine": {"name": "معدن آهن کاراخاس", "output_res": "iron", "amount": 80000}}, "factories": {"volta_redonda": {"name": "فولاد ولتا ردوندا", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}}},
-    "آرژانتین": {"gdp_init": 73916000000, "mil_budget_init": 14098000000, "army_init": 133500, "tanks_init": 350, "jets_init": 132, "refineries_init": 600000, "cities": "بوئنوس آیرس، کوردوبا", "mines": {"copper_mine": {"name": "معدن مس ال تنیته", "output_res": "copper", "amount": 20000}}, "factories": {"la_plata_refinery": {"name": "پالایشگاه لا پلاتا", "income": 100000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
-    "کره جنوبی": {"gdp_init": 66947000000, "mil_budget_init": 8819000000, "army_init": 600000, "tanks_init": 350, "jets_init": 520, "refineries_init": 600000, "cities": "سئول، بوسان، اینچئون", "mines": {"tungsten_mine": {"name": "معدن تنگستن سانگ‌دونگ", "output_res": "tungsten", "amount": 15000}}, "factories": {"pohang_steel": {"name": "کارخانه فولاد پوهانگ (پوسکو)", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}}},
-    "کره شمالی": {"gdp_init": 9490000000, "mil_budget_init": 2000000000, "army_init": 600000, "tanks_init": 2300, "jets_init": 565, "refineries_init": 50000, "cities": "پیونگ‌یانگ، هامهونگ", "mines": {"coal_mine": {"name": "معدن زغال سنگ آنجو", "output_res": "coal", "amount": 50000}}, "factories": {"kimchaek_steel": {"name": "مجتمع فولاد کیم‌چک", "income": 100000, "cost": 200000, "consumes": "coal", "produces": "steel"}}},
-    "ویتنام": {"gdp_init": 7140000000, "mil_budget_init": 1000000000, "army_init": 615000, "tanks_init": 2000, "jets_init": 300, "refineries_init": 0, "cities": "هانوی، هوشی‌مین", "mines": {"coal_mine": {"name": "معدن زغال سنگ هونگ گای", "output_res": "coal", "amount": 30000}}, "factories": {"thai_nguyen": {"name": "کارخانه فولاد تای نگوین", "income": 80000, "cost": 200000, "consumes": "coal", "produces": "steel"}}},
-    "کوبا": {"gdp_init": 19584000000, "mil_budget_init": 1500000000, "army_init": 150000, "tanks_init": 800, "jets_init": 168, "refineries_init": 100000, "cities": "هاوانا، سانتیاگو", "mines": {"cobalt_mine": {"name": "معدن کوبالت موآ", "output_res": "cobalt", "amount": 15000}}, "factories": {"nico_lopez_refinery": {"name": "پالایشگاه نیکو لوپز (هاوانا)", "income": 80000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}}},
-    "عربستان": {"gdp_init": 94600000000, "mil_budget_init": 10500000000, "army_init": 51700, "tanks_init": 550, "jets_init": 90, "refineries_init": 834900, "cities": "ریاض، جده، مکه، مدینه", "mines": {"oil_well": {"name": "میدان نفتی غوار و سفانیه", "output_res": "oil", "amount": 10000000}}, "factories": {"ras_tanura": {"name": "پالایشگاه راس تنوره", "income": 300000, "cost": 600000, "consumes": "oil", "produces": "chemicals"}}}
+    "آمریکا": {"gdp_init": 2627333000000, "mil_budget_init": 548272000000, "army_init": 2013233, "tanks_init": 7835, "jets_init": 3000, "refineries_init": 17050000, "cities": "نیویورک، کالیفرنیا، تگزاس، فلوریدا، آلاسکا، ایلینوی", "mines": {"oil_well": {"name": "میدان تگزاس و پرودو بی", "output_res": "oil", "amount": 9000000}, "iron_mine": {"name": "آهن میشیگان", "output_res": "iron", "amount": 80000}, "coal_mine": {"name": "زغال آپالاش", "output_res": "coal", "amount": 300000}}, "factories": {"baytown_refinery": {"name": "پالایشگاه اکسون بیتون", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "bethlehem_steel": {"name": "فولاد بتلهم", "income": 400000, "cost": 800000, "consumes": "iron", "produces": "steel"}}},
+    "شوروی": {"gdp_init": 1300000000000, "mil_budget_init": 165000000000, "army_init": 3658000, "tanks_init": 50000, "jets_init": 8479, "refineries_init": 10000000, "cities": "مسکو، لنینگراد، کی‌یف، مینسک، تفلیس، باکو", "mines": {"oil_well": {"name": "میدان تیومن", "output_res": "oil", "amount": 11900000}, "iron_mine": {"name": "آهن کورسک", "output_res": "iron", "amount": 250000}, "uranium_mine": {"name": "اورانیوم قزاقستان", "output_res": "uranium", "amount": 50000}}, "factories": {"omsk_refinery": {"name": "پالایشگاه اومسک", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "magnitogorsk": {"name": "فولاد مگنیتوگورسک", "income": 400000, "cost": 700000, "consumes": "iron", "produces": "steel"}}},
+    "چین": {"gdp_init": 263698000000, "mil_budget_init": 40000000000, "army_init": 5120000, "tanks_init": 10000, "jets_init": 5000, "refineries_init": 2000000, "cities": "پکن، شانگهای، تیانجین", "mines": {"coal_mine": {"name": "زغال شانشی", "output_res": "coal", "amount": 250000}, "iron_mine": {"name": "آهن آنشان", "output_res": "iron", "amount": 90000}}, "factories": {"anshan_steel": {"name": "فولاد آنشان", "income": 180000, "cost": 400000, "consumes": "iron", "produces": "steel"}}},
+    "عراق": {"gdp_init": 118000000000, "mil_budget_init": 11350000000, "army_init": 222000, "tanks_init": 1900, "jets_init": 339, "refineries_init": 450000, "cities": "بغداد، بصره، موصل، کرکوک", "mines": {"oil_well": {"name": "میدان کرکوک", "output_res": "oil", "amount": 3500000}}, "factories": {"baiji_refinery": {"name": "پالایشگاه بیجی", "income": 200000, "cost": 400000, "consumes": "oil", "produces": "chemicals"}}},
+    "اسرائیل": {"gdp_init": 23000000000, "mil_budget_init": 13269000000, "army_init": 172000, "tanks_init": 3050, "jets_init": 576, "refineries_init": 218000, "cities": "اورشلیم، تل‌آویو، حیفا", "mines": {"copper_mine": {"name": "مس تیمنا", "output_res": "copper", "amount": 10000}}, "factories": {"haifa_refinery": {"name": "پالایشگاه حیفا", "income": 150000, "cost": 300000, "consumes": "oil", "produces": "chemicals"}}},
+    "مصر": {"gdp_init": 19000000000, "mil_budget_init": 1165000000, "army_init": 445000, "tanks_init": 1600, "jets_init": 568, "refineries_init": 180000, "cities": "قاهره، اسکندریه، سوئز", "mines": {"oil_well": {"name": "نفت خلیج سوئز", "output_res": "oil", "amount": 527000}}, "factories": {"suez_refinery": {"name": "پالایشگاه سوئز", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
+    "سوریه": {"gdp_init": 12300000000, "mil_budget_init": 2400000000, "army_init": 230000, "tanks_init": 2600, "jets_init": 262, "refineries_init": 116000, "cities": "دمشق، حلب، حمص", "mines": {"oil_well": {"name": "نفت کرچوک", "output_res": "oil", "amount": 180000}}, "factories": {"homs_refinery": {"name": "پالایشگاه حمص", "income": 100000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}}},
+    "بریتانیا": {"gdp_init": 181000000000, "mil_budget_init": 18000000000, "army_init": 215000, "tanks_init": 640, "jets_init": 1796, "refineries_init": 1000000, "cities": "لندن، بیرمنگام، گلاسکو", "mines": {"coal_mine": {"name": "زغال یورکشایر", "output_res": "coal", "amount": 122000000}, "oil_well": {"name": "نفت فورتیس", "output_res": "oil", "amount": 1000000}}, "factories": {"pembroke_refinery": {"name": "پالایشگاه پمبروک", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"}, "port_talbot": {"name": "فولاد پورت تالبوت", "income": 200000, "cost": 450000, "consumes": "coal", "produces": "steel"}}},
+    "فرانسه": {"gdp_init": 537000000000, "mil_budget_init": 18000000000, "army_init": 484722, "tanks_init": 1360, "jets_init": 477, "refineries_init": 1500000, "cities": "پاریس، مارسی، لیون", "mines": {"iron_mine": {"name": "آهن لورن", "output_res": "iron", "amount": 30000}}, "factories": {"le_havre_refinery": {"name": "پالایشگاه لو هاور", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}}},
+    "آلمان غربی": {"gdp_init": 881000000000, "mil_budget_init": 64008000000, "army_init": 495000, "tanks_init": 5000, "jets_init": 577, "refineries_init": 1500000, "cities": "دوسلدورف، کلن، مونیخ", "mines": {"coal_mine": {"name": "زغال رور", "output_res": "coal", "amount": 200000000}}, "factories": {"rheinland_refinery": {"name": "پالایشگاه راینلند", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}, "thyssen_steel": {"name": "فولاد تیسن", "income": 300000, "cost": 650000, "consumes": "coal", "produces": "steel"}}},
+    "آلمان شرقی": {"gdp_init": 170000000000, "mil_budget_init": 4500000000, "army_init": 173100, "tanks_init": 3140, "jets_init": 335, "refineries_init": 0, "cities": "برلین شرقی، روستوک، لایپزیگ", "mines": {"coal_mine": {"name": "لیگنیت", "output_res": "coal", "amount": 250000000}}, "factories": {"leuna_chem": {"name": "شیمیایی لویونا", "income": 150000, "cost": 300000, "consumes": "coal", "produces": "chemicals"}}},
+    "ژاپن": {"gdp_init": 1055012000000, "mil_budget_init": 21225000000, "army_init": 250000, "tanks_init": 740, "jets_init": 227, "refineries_init": 5000000, "cities": "توکیو، اوساکا، ناگویا", "mines": {"coal_mine": {"name": "زغال هوکایدو", "output_res": "coal", "amount": 20000}}, "factories": {"yokkaichi_refinery": {"name": "پالایشگاه یوکای‌ایچی", "income": 400000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}}},
+    "هند": {"gdp_init": 152062000000, "mil_budget_init": 11190000000, "army_init": 1000000, "tanks_init": 2790, "jets_init": 625, "refineries_init": 500000, "cities": "دهلی نو، بمبئی، کلکته", "mines": {"iron_mine": {"name": "آهن بیهار", "output_res": "iron", "amount": 60000}}, "factories": {"bhilai_steel": {"name": "فولاد بیلای", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}}},
+    "پاکستان": {"gdp_init": 25798000000, "mil_budget_init": 1979000000, "army_init": 400000, "tanks_init": 1000, "jets_init": 247, "refineries_init": 100000, "cities": "اسلام‌آباد، کراچی، لاهور", "mines": {"iron_mine": {"name": "آهن کلاباغ", "output_res": "iron", "amount": 20000}}, "factories": {"karachi_refinery": {"name": "پالایشگاه کراچی", "income": 100000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
+    "ترکیه": {"gdp_init": 126394000000, "mil_budget_init": 4733000000, "army_init": 500000, "tanks_init": 3000, "jets_init": 300, "refineries_init": 400000, "cities": "آنکارا، استانبول، ازمیر", "mines": {"chromium_mine": {"name": "کروم گولنار", "output_res": "chromium", "amount": 40000}}, "factories": {"izmit_refinery": {"name": "پالایشگاه ایزمیت", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
+    "برزیل": {"gdp_init": 186976000000, "mil_budget_init": 6811000000, "army_init": 257000, "tanks_init": 350, "jets_init": 205, "refineries_init": 1000000, "cities": "برازیلیا، سائوپائولو، ریو", "mines": {"iron_mine": {"name": "آهن کاراخاس", "output_res": "iron", "amount": 80000}}, "factories": {"volta_redonda": {"name": "فولاد ولتا ردوندا", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}}},
+    "آرژانتین": {"gdp_init": 73916000000, "mil_budget_init": 14098000000, "army_init": 133500, "tanks_init": 350, "jets_init": 132, "refineries_init": 600000, "cities": "بوئنوس آیرس، کوردوبا", "mines": {"copper_mine": {"name": "مس ال تنیته", "output_res": "copper", "amount": 20000}}, "factories": {"la_plata_refinery": {"name": "پالایشگاه لا پلاتا", "income": 100000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}}},
+    "کره جنوبی": {"gdp_init": 66947000000, "mil_budget_init": 8819000000, "army_init": 600000, "tanks_init": 350, "jets_init": 520, "refineries_init": 600000, "cities": "سئول، بوسان، اینچئون", "mines": {"tungsten_mine": {"name": "تنگستن سانگ‌دونگ", "output_res": "tungsten", "amount": 15000}}, "factories": {"pohang_steel": {"name": "فولاد پوهانگ", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}}},
+    "کره شمالی": {"gdp_init": 9490000000, "mil_budget_init": 2000000000, "army_init": 600000, "tanks_init": 2300, "jets_init": 565, "refineries_init": 50000, "cities": "پیونگ‌یانگ، هامهونگ", "mines": {"coal_mine": {"name": "زغال آنجو", "output_res": "coal", "amount": 50000}}, "factories": {"kimchaek_steel": {"name": "فولاد کیم‌چک", "income": 100000, "cost": 200000, "consumes": "coal", "produces": "steel"}}},
+    "ویتنام": {"gdp_init": 7140000000, "mil_budget_init": 1000000000, "army_init": 615000, "tanks_init": 2000, "jets_init": 300, "refineries_init": 0, "cities": "هانوی، هوشی‌مین", "mines": {"coal_mine": {"name": "زغال هونگ گای", "output_res": "coal", "amount": 30000}}, "factories": {"thai_nguyen": {"name": "فولاد تای نگوین", "income": 80000, "cost": 200000, "consumes": "coal", "produces": "steel"}}},
+    "کوبا": {"gdp_init": 19584000000, "mil_budget_init": 1500000000, "army_init": 150000, "tanks_init": 800, "jets_init": 168, "refineries_init": 100000, "cities": "هاوانا، سانتیاگو", "mines": {"cobalt_mine": {"name": "کوبالت موآ", "output_res": "cobalt", "amount": 15000}}, "factories": {"nico_lopez_refinery": {"name": "پالایشگاه نیکو لوپز", "income": 80000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}}},
+    "عربستان": {"gdp_init": 94600000000, "mil_budget_init": 10500000000, "army_init": 51700, "tanks_init": 550, "jets_init": 90, "refineries_init": 834900, "cities": "ریاض، جده، مکه", "mines": {"oil_well": {"name": "میدان غوار", "output_res": "oil", "amount": 10000000}}, "factories": {"ras_tanura": {"name": "پالایشگاه راس تنوره", "income": 300000, "cost": 600000, "consumes": "oil", "produces": "chemicals"}}}
 }
 
 ALLOWED_COUNTRIES = list(COUNTRY_DB.keys())
@@ -110,7 +120,7 @@ async def init_db():
                 gdp BIGINT DEFAULT 500000000, mil_budget BIGINT DEFAULT 35000000, 
                 jets INT DEFAULT 0, tanks INT DEFAULT 0, refineries INT DEFAULT 0, army INT DEFAULT 100000, 
                 satisfaction INT DEFAULT 50, tax_rate INT DEFAULT 10, 
-                nukes INT DEFAULT 0, alliance TEXT DEFAULT 'none', reputation INT DEFAULT 50, 
+                alliance TEXT DEFAULT 'none', reputation INT DEFAULT 50, 
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
@@ -153,7 +163,6 @@ async def init_db():
             ("orders", "player_approved", "BOOLEAN DEFAULT FALSE"),
             ("orders", "leader_approved", "BOOLEAN DEFAULT FALSE"),
             ("orders", "final_narrative", "TEXT"),
-            ("countries", "nukes", "INT DEFAULT 0"),
             ("countries", "alliance", "TEXT DEFAULT 'none'"),
             ("countries", "reputation", "INT DEFAULT 50"),
         ]
@@ -163,15 +172,11 @@ async def init_db():
             except:
                 pass
 
-        # اختصاص سلاح هسته‌ای و اتحادهای تاریخی ۱۹۷۹
-        await conn.execute("UPDATE countries SET nukes = 7000, alliance = 'ناتو' WHERE name = 'آمریکا' AND nukes = 0")
-        await conn.execute("UPDATE countries SET nukes = 6500, alliance = 'ورشو' WHERE name = 'شوروی' AND nukes = 0")
-        await conn.execute("UPDATE countries SET nukes = 200, alliance = 'ناتو' WHERE name = 'بریتانیا' AND nukes = 0")
-        await conn.execute("UPDATE countries SET nukes = 200, alliance = 'ناتو' WHERE name = 'فرانسه' AND nukes = 0")
-        await conn.execute("UPDATE countries SET alliance = 'ناتو' WHERE name IN ('آلمان غربی', 'ترکیه') AND alliance = 'none'")
-        await conn.execute("UPDATE countries SET alliance = 'ورشو' WHERE name = 'آلمان شرقی' AND alliance = 'none'")
+        # اختصاص اتحادهای تاریخی ۱۹۷۹
+        await conn.execute("UPDATE countries SET alliance = 'ناتو' WHERE name IN ('آمریکا', 'بریتانیا', 'فرانسه', 'آلمان غربی', 'ترکیه') AND alliance = 'none'")
+        await conn.execute("UPDATE countries SET alliance = 'ورشو' WHERE name IN ('شوروی', 'آلمان شرقی') AND alliance = 'none'")
 
-    logger.info("Database initialized with Historical Facilities and Nukes.")
+    logger.info("Database initialized with Factories and Real Facilities.")
 
 async def get_enemy_deployments_str(player_country):
     async with pool.acquire() as conn:
@@ -267,12 +272,18 @@ ENEMY DEPLOYMENTS GLOBALLY:
 PLAYER ORDER: "{order_text}"
 CATEGORY: {category}
 
-CRITICAL GEOPOLITICAL REALITY (YOU MUST ENFORCE THIS):
-- This game is set in 1979. You must act according to historical and political realities.
-- If the order is historically impossible (e.g., Israel signing a pact with Nasrallah, USA allying with USSR), REJECT IT. Set "success" to false, and explain in Persian.
+CRITICAL GEOPOLITICAL REALITY:
+- This game is set in 1979. If the order is historically impossible (e.g., Israel making a pact with Nasrallah), REJECT IT. Set "success" to false, and explain in Persian.
 
-CRITICAL:
-- Extract the "target_country" from the text if this is a diplomatic order. Must be EXACTLY one of: {', '.join(ALLOWED_COUNTRIES)}. If not, "None".
+CRITICAL MILITARY RULES (DEPLOYMENT):
+- If the order is to DEPLOY forces to a region (e.g., "deploy 15 MiG-23 to Alaska"):
+  - Extract the EXACT number into "deployed_quantity" (e.g., 15).
+  - Extract the model into "deployed_asset" (e.g., "MiG-23").
+  - Set "region" to the target area.
+  - **IMPORTANT:** Deploying forces DOES NOT consume or reduce the country's total jets/tanks. Set "jets_change" and "tanks_change" to 0. (The system deducts losses ONLY if a battle occurs).
+
+CRITICAL DIPLOMACY:
+- Extract "target_country" from the text if diplomatic. Must be EXACTLY one of: {', '.join(ALLOWED_COUNTRIES)}. If not, "None".
 - Determine "order_intent": "attack", "patrol", "deploy", "economic", "political", "diplomacy".
 - Determine "action_type": "deploy", "attack", "economic", "political", "diplomacy".
 
@@ -287,8 +298,8 @@ EXACT JSON FORMAT:
   "action_type": "deploy/attack/economic/political/diplomacy",
   "target_country": "USA or None",
   "region": "Alaska or None",
-  "deployed_asset": "F-15 or None",
-  "deployed_quantity": 10,
+  "deployed_asset": "MiG-23 or None",
+  "deployed_quantity": 15,
   "deployment_cost": 5000000,
   "battle_occurred": false,
   "enemy_country": "None",
@@ -414,7 +425,6 @@ Output JSON only:
         await conn.execute("UPDATE encounters SET battle_narrative = $1 WHERE id = $2", narrative, enc_id)
         await conn.execute("UPDATE orders SET final_narrative = $1 WHERE id = $2", narrative, enc['order_id'])
         
-        # Article 5 (NATO/Warsaw Pact)
         det_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detector_id'])
         ed_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detected_id'])
         
@@ -467,6 +477,12 @@ async def _analyze_inner(order_id: int, context):
         try:
             g_change, m_change, j_change = int(data.get("gdp_change") or 0), int(data.get("mil_budget_change") or 0), int(data.get("jets_change") or 0)
             t_change, r_change, s_change = int(data.get("tanks_change") or 0), int(data.get("refineries_change") or 0), int(data.get("satisfaction_change") or 0)
+            
+            # ✨ قانون جدید: موقع استقرار، موجودی کل ارتش کم نمیشه
+            if action_type in ["deploy", "attack"]:
+                j_change = 0
+                t_change = 0
+                
         except:
             data = {"success": False, "reason": "خطای عددی", "narrative_short": "", "narrative_long": "", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": order_intent, "region": region}
         else:
@@ -511,7 +527,7 @@ async def analyze_and_apply_order(order_id: int, context):
         return data
 
 async def set_commands(app):
-    await app.bot.set_my_commands([BotCommand("start", "ثبت‌نام"), BotCommand("country", "اطلاعات کشور"), BotCommand("military", "آرشیو نظامی"), BotCommand("economy", "انبار منابع"), BotCommand("factory", "مدیریت کارخانه‌ها"), BotCommand("mines", "معادن"), BotCommand("order", "ثبت دستور جدید"), BotCommand("nuke", "شلیک هسته‌ای"), BotCommand("admin", "پنل ادمین"), BotCommand("turn", "پردازش نوبت (ادمین)")])
+    await app.bot.set_my_commands([BotCommand("start", "ثبت‌نام"), BotCommand("country", "اطلاعات کشور"), BotCommand("military", "آرشیو نظامی"), BotCommand("economy", "انبار منابع"), BotCommand("factory", "مدیریت کارخانه‌ها"), BotCommand("mines", "معادن"), BotCommand("order", "ثبت دستور جدید"), BotCommand("admin", "پنل ادمین"), BotCommand("turn", "پردازش نوبت (ادمین)")])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -527,7 +543,7 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
     if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
     data = COUNTRY_DB.get(c['name'])
-    text = f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n🏙️ *شهرها:* {data['cities'] if data else 'نامشخص'}\n\n📈 GDP: {fmt_money(c['gdp'])}\n🛡 بودجه نظامی: {fmt_money(c['mil_budget'])}\n✈️ جنگنده‌ها: {c['jets']:,}\n🚜 تانک‌ها: {c.get('tanks', 0):,}\n☢️ کلاهک هسته‌ای: {c.get('nukes', 0):,}\n🤝 اتحاد: {c.get('alliance', 'none')}\n🏭 ظرفیت پالایش: {c['refineries']:,}\n🎖 ارتش: {c['army']:,}\n❤️ رضایت: {c.get('satisfaction', 50)}%"
+    text = f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n🏙️ *شهرها:* {data['cities'] if data else 'نامشخص'}\n\n📈 GDP: {fmt_money(c['gdp'])}\n🛡 بودجه نظامی: {fmt_money(c['mil_budget'])}\n✈️ جنگنده‌ها: {c['jets']:,}\n🚜 تانک‌ها: {c.get('tanks', 0):,}\n🤝 اتحاد: {c.get('alliance', 'none')}\n🏭 ظرفیت پالایش: {c['refineries']:,}\n🎖 ارتش: {c['army']:,}\n❤️ رضایت: {c.get('satisfaction', 50)}%"
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
 async def military_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -563,8 +579,12 @@ async def factory_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     counts = {r['sector_type']: r['count'] for r in infras}
     data = COUNTRY_DB.get(c['name'])
     if not data: return
+    
+    real_factories = FACTORY_DB.get(c['name'], {})
+    fac_str = "\n".join([f"🏭 {model}: {loc}" for model, loc in real_factories.items()]) if real_factories else "خط تولید اختصاصی در دسترس نیست."
+    
     rows = [[InlineKeyboardButton(f"🏭 {f['name']} | {fmt_money(f['cost'])}", callback_data=f"fact_build_{k}")] for k, f in data['factories'].items() if counts.get(k, 0) < 5]
-    await context.bot.send_message(update.effective_user.id, f"🏭 *کارخانه‌ها {c['name']}*\n\nبرای ساخت کلیک کنید:", parse_mode="Markdown", reply_markup=kb(rows))
+    await context.bot.send_message(update.effective_user.id, f"🏭 *کارخانه‌های {c['name']}*\n\n**خطوط تولید واقعی ۱۹۷۹:**\n{fac_str}\n\nبرای ساخت کارخانه جدید کلیک کنید:", parse_mode="Markdown", reply_markup=kb(rows))
 
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -572,18 +592,6 @@ async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
     temp[uid] = {"step": "ORDER_CATEGORY"}
     await update.message.reply_text("دسته‌بندی دستور خود را انتخاب کنید:", reply_markup=kb([[InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic"), InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")], [InlineKeyboardButton("🤝 دیپلماسی", callback_data="cat_diplomacy"), InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]]))
-
-async def nuke_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    uid = update.effective_user.id
-    async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید.")
-    if c.get("nukes", 0) <= 0: return await update.message.reply_text("☢️ شما هیچ کلاهک هسته‌ای در اختیار ندارید!")
-    if not context.args: return await update.message.reply_text("⚠️ استفاده: `/nuke نام_کشور`")
-    target_country = " ".join(context.args)
-    if target_country == c["name"]: return await update.message.reply_text("❌ نمی‌توانید کشور خودتان را نابود کنید!")
-    async with pool.acquire() as conn: target_data = await conn.fetchrow("SELECT * FROM countries WHERE name = $1 AND status = 'active'", target_country)
-    if not target_data: return await update.message.reply_text("❌ کشور هدف وجود ندارد.")
-    await update.message.reply_text(f"⚠️ **هشدار هسته‌ای!**\nآیا از شلیک کلاهک به **{target_country}** مطمئنید؟", reply_markup=kb([[InlineKeyboardButton("☢️ بله، شلیک کن", callback_data=f"nuke_confirm_{uid}_{target_country}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]]))
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
@@ -599,7 +607,7 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with pool.acquire() as conn:
             if await conn.fetchval("SELECT 1 FROM countries WHERE name = $1 AND status != 'rejected'", text): return await context.bot.send_message(uid, "❌ قبلاً انتخاب شده.")
             data = COUNTRY_DB[text]
-            await conn.execute("INSERT INTO countries (user_id, username, name, status, gdp, mil_budget, jets, tanks, refineries, army, nukes, alliance) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9, $10, $11)", uid, update.effective_user.username or "بدون", text, data['gdp_init'], data['mil_budget_init'], data['jets_init'], data['tanks_init'], data['refineries_init'], data['army_init'], 7000 if text == 'آمریکا' else (6500 if text == 'شوروی' else (200 if text in ['بریتانیا', 'فرانسه'] else 0)), 'ناتو' if text in ['آمریکا', 'بریتانیا', 'فرانسه', 'آلمان غربی', 'ترکیه'] else ('ورشو' if text in ['شوروی', 'آلمان شرقی'] else 'none'))
+            await conn.execute("INSERT INTO countries (user_id, username, name, status, gdp, mil_budget, jets, tanks, refineries, army) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9)", uid, update.effective_user.username or "بدون", text, data['gdp_init'], data['mil_budget_init'], data['jets_init'], data['tanks_init'], data['refineries_init'], data['army_init'])
         temp.pop(uid, None)
         await context.bot.send_message(uid, "⏳ در انتظار تایید ادمین.")
         await context.bot.send_message(ADMIN_ID, f"📥 **درخواست جدید**\n🌍 {text}\n🆔 `{uid}`", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]]))
@@ -713,26 +721,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except: pass
         await cb.edit_message_text("✅ تایید نهایی انجام شد.")
 
-    elif data.startswith("nuke_confirm_"):
-        parts = data.split("_"); attacker_id, target_country = int(parts[2]), parts[3]
-        if uid != attacker_id: return await cb.answer("این دکمه برای شما نیست!", show_alert=True)
-        await cb.edit_message_text("☢️ **شلیک انجام شد! در حال پردازش فاجعه...**")
-        async with pool.acquire() as conn:
-            attacker = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-            target = await conn.fetchrow("SELECT * FROM countries WHERE name = $1", target_country)
-            await conn.execute("UPDATE countries SET nukes = nukes - 1, reputation = GREATEST(0, reputation - 50) WHERE user_id = $1", uid)
-            new_gdp = max(1000, int(target['gdp'] * 0.3)); new_army = int(target['army'] * 0.2)
-            await conn.execute("UPDATE countries SET gdp = $1, army = $2, satisfaction = 0 WHERE name = $3", new_gdp, new_army, target_country)
-        try: await context.bot.send_message(target['user_id'], f"☢️ **فاجعه اتمی!**\n\nکشور **{attacker['name']}** به خاک شما کلاهک هسته‌ای شلیک کرد. زیرساخت‌ها نابود شدند، GDP شما ۷۰٪ سقوط کرد و ارتش شما متلاشی شد.\nمردم به خیابان‌ها ریخته‌اند و رضایت عمومی صفر شده است.\nآیا دستور آتش متقابل صادر می‌کنید؟ (برای تلافی از `/nuke {attacker['name']}` استفاده کنید)")
-        except: pass
-        final_text = f"☢️ **فاجعه جهانی**\n\n**{attacker['name']}** با شلیک کلاهک هسته‌ای، شهرهای **{target_country}** را با خاک یکسان کرد. جهان در شوک فرورفته است."
-        if GROUP_ID and TOPIC_ID:
-            try: await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown")
-            except: pass
-        elif CHANNEL_ID:
-            try: await context.bot.send_message(int(CHANNEL_ID.strip()), final_text, parse_mode="Markdown")
-            except: pass
-
     elif data.startswith("enc_yes_"):
         await cb.edit_message_text("✅ نبرد آغاز شد."); await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
     elif data.startswith("enc_no_"):
@@ -833,7 +821,6 @@ def main():
     app.add_handler(CommandHandler("mines", mines_cmd))
     app.add_handler(CommandHandler("factory", factory_cmd))
     app.add_handler(CommandHandler("order", order_cmd))
-    app.add_handler(CommandHandler("nuke", nuke_cmd))
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
@@ -841,12 +828,7 @@ def main():
     rh = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     if rh:
         port = int(os.environ.get("PORT", 10000))
-        app.run_webhook(
-            listen="0.0.0.0", 
-            port=port, 
-            url_path=TOKEN, 
-            webhook_url=f"https://{rh}/{TOKEN}"
-        )
+        app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}")
     else: 
         app.run_polling()
 
