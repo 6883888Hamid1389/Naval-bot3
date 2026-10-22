@@ -89,7 +89,7 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        # آپدیت ایمن برای اضافه کردن ستون رضایت اگه از قبل جدول وجود داشته
+        # اضافه کردن ستون رضایت در صورت وجود نداشتن (آپدیت ایمن)
         try:
             await conn.execute("ALTER TABLE countries ADD COLUMN satisfaction INT DEFAULT 50")
             logger.info("Added satisfaction column to countries table.")
@@ -161,7 +161,7 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
     payload = {
         "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
         "max_tokens": 1500,
-        "temperature": 0.4
+        "temperature": 0.7 # افزایش خلاقیت برای نوشتن متن‌های حماسی
     }
 
     def fallback(reason, narrative):
@@ -206,35 +206,43 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
             return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
 
 def _build_prompt(country: dict, order_text: str, category: str) -> str:
+    if category == "political":
+        narrative_rule = "The narrative MUST be a highly dramatic, grandiloquent (گنده‌گوزی) political speech or declaration to the world. It should sound arrogant, epic, and theatrical, like a dictator addressing a massive crowd."
+    elif category == "military":
+        narrative_rule = "The narrative MUST be an epic war report. Describe the marching armies, the thunder of boots, or the devastating failure on the battlefield with dramatic tension."
+    else:
+        narrative_rule = "The narrative MUST be a dramatic economic news report. If successful, describe the golden age and prosperity. If failed, describe the despair of the people and the empty national treasury."
+
     return f"""You are the Epic Game Master and narrator of a grand strategy roleplaying game.
-Your task is to analyze the player's order, calculate the impact, and write a cinematic, epic narrative (in Persian) describing the outcome.
+Your task is to analyze the player's order, calculate the impact, and write a cinematic narrative (in Persian).
 
 COUNTRY INFO:
 - Name: {country['name']}
 - Treasury: {country['treasury']} units (1 unit = $1,000)
 - GDP: {country['gdp']} units
 - Army: {country['army']} soldiers
-- Satisfaction: {country.get('satisfaction', 50)}%
 
 ORDER CATEGORY: {category}
 PLAYER ORDER: "{order_text}"
 
-INSTRUCTIONS:
-1. Calculate economic/military costs logically. If cost > treasury, success MUST be false.
-2. If the category is 'political', the "narrative" MUST be an EPIC, grandiloquent (گنده‌گوزی), and highly dramatic declaration/speech to the world. It should sound like a historical address by a dictator/leader (e.g., boasting about power, threatening enemies, declaring a new era).
-3. Update "satisfaction_change" (integer, usually -10 to +10). A successful epic speech increases satisfaction, a failed one decreases it. For non-political orders, it can be 0.
-4. Write the "narrative" as a cinematic Persian news report. DO NOT use literal newlines or markdown inside the JSON string.
-5. Output strictly valid JSON.
+STRICT RULES (YOU WILL BE TERMINATED IF YOU BREAK THESE):
+1. CALCULATION: 1 unit = $1,000. Example: $5,000,000 costs 5,000 units.
+2. LOGIC: If cost > treasury, success MUST be false. All changes MUST be 0.
+3. NARRATIVE STYLE: {narrative_rule}
+4. FAILURE NARRATIVE: If success is false, the narrative MUST explicitly describe the failure, the lack of funds, or the rejection by the government/people. Do NOT write contradictory sentences (e.g., never say "rejected due to sufficient funds").
+5. LANGUAGE: Use ONLY Persian (Farsi) alphabet. Do NOT use English, Chinese, Arabic, or any other characters.
+6. FORMATTING: NO literal newlines (\\n) inside the narrative string. NO quotation marks inside the string.
+7. OUTPUT: Valid JSON only.
 
 EXACT JSON FORMAT:
 {{
   "success": true or false,
-  "reason": "Persian explanation here (max 150 chars)",
-  "treasury_change": integer (in units),
+  "reason": "A strict, logical Persian explanation of WHY it succeeded or failed (max 100 chars).",
+  "treasury_change": integer,
   "army_change": integer,
-  "gdp_change": integer (in units),
-  "satisfaction_change": integer,
-  "narrative": "Persian epic narrative here (max 800 chars)"
+  "gdp_change": integer,
+  "satisfaction_change": integer (between -10 and +10),
+  "narrative": "The epic, cinematic Persian text (max 800 chars)."
 }}
 """
 
@@ -254,7 +262,9 @@ async def _analyze_inner(order_id: int):
     if not country: return {"success": False, "reason": "کشور یافت نشد", "narrative": ""}
 
     prompt = _build_prompt(country, order["order_text"], order["category"])
-    ai_response = await ask_ai(prompt)
+    sys_prompt = "You are a strict JSON-only API. You speak only Persian in your responses. Never use foreign characters. Never break JSON format. Do not include markdown fences like ```json."
+    
+    ai_response = await ask_ai(prompt, system_prompt=sys_prompt)
     logger.info(f"AI RAW for order {order_id}:\n{ai_response}")
 
     data = _safe_parse_json(ai_response)
@@ -276,9 +286,8 @@ async def _analyze_inner(order_id: int):
             elif country["army"] + a_change < 0:
                 data = {"success": False, "reason": "نیرو کم است", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": "فرماندهی ارتش مخالفت کرد."}
             else:
-                # محاسبه رضایت جدید (بین 0 تا 100)
                 new_satisfaction = country.get("satisfaction", 50) + s_change
-                new_satisfaction = max(0, min(100, new_satisfaction)) # کلمپ کردن
+                new_satisfaction = max(0, min(100, new_satisfaction))
                 data["satisfaction_change"] = new_satisfaction - country.get("satisfaction", 50)
                 
                 async with pool.acquire() as conn:
@@ -300,7 +309,7 @@ async def set_commands(app):
         BotCommand("start", "ثبت‌نام"), 
         BotCommand("country", "اطلاعات کشور"), 
         BotCommand("order", "دستور جدید"), 
-        BotCommand("next_turn", "پایان نوبت و درآمد (ادمین)"),
+        BotCommand("next_turn", "پایان نوبت (ادمین)"),
         BotCommand("cancel", "لغو")
     ])
 
@@ -326,8 +335,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await update.message.reply_text("⚠️ ابتدا ثبت‌نام کنید. /start")
     gmn = GOVERNMENTS.get(c["gov_main"], {}).get("name", "")
     gsn = GOVERNMENTS.get(c["gov_main"], {}).get("subs", {}).get(c["gov_sub"], "")
-    
-    # نمایش رضایت عمومی به صورت نوار درصدی
     sat = c.get("satisfaction", 50)
     
     await update.message.reply_text(
@@ -445,18 +452,14 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif data.startswith("pub_"):
         oid = int(data.split("_")[2])
-        logger.info(f"User clicked PUBLISH for order {oid}")
         await cb.answer("در حال ارسال...")
-        
         order = await get_order(oid)
         try:
             ai_data = json.loads(order["ai_analysis_raw"] or "{}")
         except Exception:
             ai_data = {}
-            
         narrative = ai_data.get('narrative', 'اتفاقی افتاد.')
         final_text = f"📢 بیانیه رسمی\n\n{narrative}"
-        
         if CHANNEL_ID:
             try:
                 await context.bot.send_message(CHANNEL_ID, final_text)
@@ -465,12 +468,22 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await cb.edit_message_text("✅ با موفقیت در کانال منتشر شد.")
             except Exception as e:
                 logger.error(f"Channel publish error: {e}")
-                try:
-                    await cb.edit_message_text(f"❌ خطا در ارسال به کانال!\nدلیل تلگرام: {e}\n\n(چک کن آیدی کانال درست باشه و ربات توی کانال ادمین با دسترسی ارسال پیام باشه)")
-                except:
-                    await context.bot.send_message(ADMIN_ID, f"❌ خطا در ارسال به کانال!\nدلیل: {e}")
+                await cb.edit_message_text(f"❌ خطا در ارسال به کانال!\nدلیل تلگرام: {e}\n\n(چک کن ربات ادمین باشه و دسترسی ارسال پیام داشته باشه)")
         else:
             await cb.edit_message_text("⚠️ آیدی کانال (CHANNEL_ID) تنظیم نشده است.")
+            
+    elif data == "pub_economy_report":
+        await cb.answer("در حال ارسال...")
+        report_text = cb.message.text
+        if CHANNEL_ID:
+            try:
+                await context.bot.send_message(CHANNEL_ID, report_text)
+                await cb.edit_message_text(report_text + "\n\n✅ در کانال منتشر شد.")
+            except Exception as e:
+                logger.error(f"Channel publish error: {e}")
+                await cb.edit_message_text(report_text + f"\n\n❌ خطا در ارسال: {e}")
+        else:
+            await cb.edit_message_text(report_text + "\n\n⚠️ آیدی کانال تنظیم نشده.")
             
     elif data == "cancel_pub": 
         await cb.edit_message_text("❌ لغو شد.")
@@ -478,7 +491,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
-    
     ch = ""
     if ai_data.get("success"):
         ch = f"\n💰 خزانه: {ai_data.get('treasury_change',0):+,} | 🎖 ارتش: {ai_data.get('army_change',0):+,} | 📈 GDP: {ai_data.get('gdp_change',0):+,} | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n"
@@ -492,10 +504,8 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
             return
         except: 
             pass
-            
     await context.bot.send_message(update_or_cb.from_user.id, txt, reply_markup=btn)
 
-# سیستم اقتصاد نوبت‌محور
 def _build_economy_prompt(country: dict) -> str:
     return f"""You are the Economic Engine of a grand strategy game.
 Calculate the income and growth for the next turn for this country.
