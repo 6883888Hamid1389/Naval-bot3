@@ -85,9 +85,17 @@ async def init_db():
                 treasury BIGINT DEFAULT 100000,
                 gdp BIGINT DEFAULT 500000,
                 army INT DEFAULT 10000,
+                satisfaction INT DEFAULT 50,
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
+        # آپدیت ایمن برای اضافه کردن ستون رضایت اگه از قبل جدول وجود داشته
+        try:
+            await conn.execute("ALTER TABLE countries ADD COLUMN satisfaction INT DEFAULT 50")
+            logger.info("Added satisfaction column to countries table.")
+        except asyncpg.exceptions.DuplicateColumnError:
+            pass
+            
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS orders (
                 id SERIAL PRIMARY KEY,
@@ -197,24 +205,26 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
                 continue
             return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
 
-def _build_prompt(country: dict, order_text: str) -> str:
+def _build_prompt(country: dict, order_text: str, category: str) -> str:
     return f"""You are the Epic Game Master and narrator of a grand strategy roleplaying game.
-Your task is to analyze the player's order, calculate the economic/military impact, and write a cinematic, epic narrative (in Persian) describing the outcome.
+Your task is to analyze the player's order, calculate the impact, and write a cinematic, epic narrative (in Persian) describing the outcome.
 
 COUNTRY INFO:
 - Name: {country['name']}
 - Treasury: {country['treasury']} units (1 unit = $1,000)
 - GDP: {country['gdp']} units
 - Army: {country['army']} soldiers
+- Satisfaction: {country.get('satisfaction', 50)}%
 
+ORDER CATEGORY: {category}
 PLAYER ORDER: "{order_text}"
 
 INSTRUCTIONS:
-1. Calculate costs and benefits logically. (e.g., $50,000,000 investment requires 50,000 units).
-2. If the cost exceeds the treasury, success MUST be false, and all changes MUST be 0.
-3. Write the "narrative" field as an EPIC, cinematic, and dramatic news report in Persian. Describe the public reaction, the grandeur (or failure) of the operation, and the atmosphere. Make it feel like a historical event. DO NOT use literal newlines or markdown formatting inside the JSON string.
-4. "reason" should be a brief, logical Persian explanation of the success/failure.
-5. Output strictly valid JSON, no markdown fences, no commentary.
+1. Calculate economic/military costs logically. If cost > treasury, success MUST be false.
+2. If the category is 'political', the "narrative" MUST be an EPIC, grandiloquent (گنده‌گوزی), and highly dramatic declaration/speech to the world. It should sound like a historical address by a dictator/leader (e.g., boasting about power, threatening enemies, declaring a new era).
+3. Update "satisfaction_change" (integer, usually -10 to +10). A successful epic speech increases satisfaction, a failed one decreases it. For non-political orders, it can be 0.
+4. Write the "narrative" as a cinematic Persian news report. DO NOT use literal newlines or markdown inside the JSON string.
+5. Output strictly valid JSON.
 
 EXACT JSON FORMAT:
 {{
@@ -223,6 +233,7 @@ EXACT JSON FORMAT:
   "treasury_change": integer (in units),
   "army_change": integer,
   "gdp_change": integer (in units),
+  "satisfaction_change": integer,
   "narrative": "Persian epic narrative here (max 800 chars)"
 }}
 """
@@ -242,32 +253,41 @@ async def _analyze_inner(order_id: int):
     country = await get_country(order["user_id"])
     if not country: return {"success": False, "reason": "کشور یافت نشد", "narrative": ""}
 
-    prompt = _build_prompt(country, order["order_text"])
+    prompt = _build_prompt(country, order["order_text"], order["category"])
     ai_response = await ask_ai(prompt)
     logger.info(f"AI RAW for order {order_id}:\n{ai_response}")
 
     data = _safe_parse_json(ai_response)
 
     if "success" not in data or "narrative" not in data:
-        data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative": "دستور ثبت شد اما نیاز به بررسی دستی دارد.", "treasury_change": 0, "army_change": 0, "gdp_change": 0}
+        data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative": "دستور ثبت شد اما نیاز به بررسی دستی دارد.", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0}
 
     if data.get("success"):
         try:
             t_change = int(data.get("treasury_change") or 0)
             a_change = int(data.get("army_change") or 0)
             g_change = int(data.get("gdp_change") or 0)
+            s_change = int(data.get("satisfaction_change") or 0)
         except (TypeError, ValueError):
-            data = {"success": False, "reason": "خطای عددی", "narrative": "", "treasury_change": 0, "army_change": 0, "gdp_change": 0}
+            data = {"success": False, "reason": "خطای عددی", "narrative": "", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0}
         else:
             if country["treasury"] + t_change < 0:
-                data = {"success": False, "reason": f"کمبود بودجه: {abs(t_change):,} > {country['treasury']:,}", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "narrative": f"دولت {country['name']} اعلام کرد بودجه کافی نیست."}
+                data = {"success": False, "reason": f"کمبود بودجه: {abs(t_change):,} > {country['treasury']:,}", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": f"دولت {country['name']} اعلام کرد بودجه کافی نیست."}
             elif country["army"] + a_change < 0:
-                data = {"success": False, "reason": "نیرو کم است", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "narrative": "فرماندهی ارتش مخالفت کرد."}
+                data = {"success": False, "reason": "نیرو کم است", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": "فرماندهی ارتش مخالفت کرد."}
             else:
+                # محاسبه رضایت جدید (بین 0 تا 100)
+                new_satisfaction = country.get("satisfaction", 50) + s_change
+                new_satisfaction = max(0, min(100, new_satisfaction)) # کلمپ کردن
+                data["satisfaction_change"] = new_satisfaction - country.get("satisfaction", 50)
+                
                 async with pool.acquire() as conn:
-                    row = await conn.fetchrow("UPDATE countries SET treasury = treasury + $1, army = army + $2, gdp = GREATEST(1000, gdp + $3) WHERE user_id = $4 AND treasury + $1 >= 0 AND army + $2 >= 0 RETURNING treasury", t_change, a_change, g_change, order["user_id"])
+                    row = await conn.fetchrow(
+                        "UPDATE countries SET treasury = treasury + $1, army = army + $2, gdp = GREATEST(1000, gdp + $3), satisfaction = $4 WHERE user_id = $5 AND treasury + $1 >= 0 AND army + $2 >= 0 RETURNING treasury", 
+                        t_change, a_change, g_change, new_satisfaction, order["user_id"]
+                    )
                     if not row:
-                        data = {"success": False, "reason": "تغییر هم‌زمان", "narrative": ""}
+                        data = {"success": False, "reason": "تغییر هم‌زمان", "narrative": "", "satisfaction_change": 0}
 
     async with pool.acquire() as conn:
         await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
@@ -276,7 +296,13 @@ async def _analyze_inner(order_id: int):
 temp = {}
 
 async def set_commands(app):
-    await app.bot.set_my_commands([BotCommand("start", "ثبت‌نام"), BotCommand("country", "اطلاعات کشور"), BotCommand("order", "دستور جدید"), BotCommand("cancel", "لغو")])
+    await app.bot.set_my_commands([
+        BotCommand("start", "ثبت‌نام"), 
+        BotCommand("country", "اطلاعات کشور"), 
+        BotCommand("order", "دستور جدید"), 
+        BotCommand("next_turn", "پایان نوبت و درآمد (ادمین)"),
+        BotCommand("cancel", "لغو")
+    ])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -300,7 +326,20 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return await update.message.reply_text("⚠️ ابتدا ثبت‌نام کنید. /start")
     gmn = GOVERNMENTS.get(c["gov_main"], {}).get("name", "")
     gsn = GOVERNMENTS.get(c["gov_main"], {}).get("subs", {}).get(c["gov_sub"], "")
-    await update.message.reply_text(f"🏛️ *کشور: {c['name']}*\n👤 رهبر: {c['leader']}\n⚙️ حکومت: {gmn} - {gsn}\n\n💰 خزانه: {fmt_money(c['treasury'])}\n🎖 ارتش: {c['army']:,} نفر\n📈 GDP: {fmt_money(c['gdp'])}", parse_mode="Markdown")
+    
+    # نمایش رضایت عمومی به صورت نوار درصدی
+    sat = c.get("satisfaction", 50)
+    
+    await update.message.reply_text(
+        f"🏛️ *کشور: {c['name']}*\n"
+        f"👤 رهبر: {c['leader']}\n"
+        f"⚙️ حکومت: {gmn} - {gsn}\n\n"
+        f"💰 خزانه: {fmt_money(c['treasury'])}\n"
+        f"🎖 ارتش: {c['army']:,} نفر\n"
+        f"📈 GDP: {fmt_money(c['gdp'])}\n"
+        f"❤️ رضایت عمومی: {sat}%", 
+        parse_mode="Markdown"
+    )
 
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
@@ -406,6 +445,9 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     elif data.startswith("pub_"):
         oid = int(data.split("_")[2])
+        logger.info(f"User clicked PUBLISH for order {oid}")
+        await cb.answer("در حال ارسال...")
+        
         order = await get_order(oid)
         try:
             ai_data = json.loads(order["ai_analysis_raw"] or "{}")
@@ -416,17 +458,19 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         final_text = f"📢 بیانیه رسمی\n\n{narrative}"
         
         if CHANNEL_ID:
-            logger.info(f"Attempting to publish to channel: {CHANNEL_ID}")
             try:
                 await context.bot.send_message(CHANNEL_ID, final_text)
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE orders SET status = 'published', published_at = NOW() WHERE id = $1", oid)
-                await cb.edit_message_text("✅ در کانال منتشر شد.")
+                await cb.edit_message_text("✅ با موفقیت در کانال منتشر شد.")
             except Exception as e:
                 logger.error(f"Channel publish error: {e}")
-                await cb.edit_message_text(f"❌ خطا در ارسال به کانال!\nدلیل: {e}")
+                try:
+                    await cb.edit_message_text(f"❌ خطا در ارسال به کانال!\nدلیل تلگرام: {e}\n\n(چک کن آیدی کانال درست باشه و ربات توی کانال ادمین با دسترسی ارسال پیام باشه)")
+                except:
+                    await context.bot.send_message(ADMIN_ID, f"❌ خطا در ارسال به کانال!\nدلیل: {e}")
         else:
-            await cb.edit_message_text("⚠️ آیدی کانال (CHANNEL_ID) در تنظیمات رندر وارد نشده است.")
+            await cb.edit_message_text("⚠️ آیدی کانال (CHANNEL_ID) تنظیم نشده است.")
             
     elif data == "cancel_pub": 
         await cb.edit_message_text("❌ لغو شد.")
@@ -434,9 +478,10 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
+    
     ch = ""
     if ai_data.get("success"):
-        ch = f"\n💰 خزانه: {ai_data.get('treasury_change',0):+,} | 🎖 ارتش: {ai_data.get('army_change',0):+,} | 📈 GDP: {ai_data.get('gdp_change',0):+,}\n"
+        ch = f"\n💰 خزانه: {ai_data.get('treasury_change',0):+,} | 🎖 ارتش: {ai_data.get('army_change',0):+,} | 📈 GDP: {ai_data.get('gdp_change',0):+,} | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n"
         
     txt = f"🧠 نتیجه تحلیل (70B)\n\n📌 وضعیت: {st}\n📝 تحلیل: {ai_data.get('reason', '')}\n{ch}\n📖 پیش‌نمایش انتشار:\n{ai_data.get('narrative', '')}\n\nتایید می‌کنید؟"
     btn = kb([[InlineKeyboardButton("📢 انتشار", callback_data=f"pub_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
@@ -449,6 +494,82 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
             pass
             
     await context.bot.send_message(update_or_cb.from_user.id, txt, reply_markup=btn)
+
+# سیستم اقتصاد نوبت‌محور
+def _build_economy_prompt(country: dict) -> str:
+    return f"""You are the Economic Engine of a grand strategy game.
+Calculate the income and growth for the next turn for this country.
+
+COUNTRY INFO:
+- Name: {country['name']}
+- Treasury: {country['treasury']} units (1 unit = $1,000)
+- GDP: {country['gdp']} units
+- Army: {country['army']} soldiers
+
+INSTRUCTIONS:
+1. Treasury usually grows by 5% to 15% of the current GDP per turn (due to taxes, trade, etc.).
+2. GDP can grow by 2% to 5% per turn.
+3. Write a short, epic "narrative" in Persian (max 300 chars) about the country's economic prosperity and the new budget. NO literal newlines.
+4. Output strictly valid JSON.
+
+EXACT JSON FORMAT:
+{{
+  "treasury_change": integer (in units),
+  "gdp_change": integer (in units),
+  "narrative": "Persian economic news here"
+}}
+"""
+
+async def next_turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    if uid != ADMIN_ID:
+        return await update.message.reply_text("⚠️ فقط ادمین می‌تواند نوبت را رد کند.")
+    
+    msg = await update.message.reply_text("⏳ در حال محاسبه اقتصاد جهانی و درآمد کشورها... (ممکن است کمی طول بکشد)")
+    
+    async with pool.acquire() as conn:
+        countries = await conn.fetch("SELECT * FROM countries WHERE status = 'active'")
+    
+    if not countries:
+        return await msg.edit_text("⚠️ هیچ کشور فعالی وجود ندارد.")
+    
+    report_lines = []
+    
+    for row in countries:
+        country = dict(row)
+        prompt = _build_economy_prompt(country)
+        ai_res = await ask_ai(prompt, system_prompt="You are an economic API. Output JSON only.")
+        data = _safe_parse_json(ai_res)
+        
+        try:
+            t_change = int(data.get("treasury_change", 0))
+            g_change = int(data.get("gdp_change", 0))
+            narrative = data.get("narrative", "اقتصاد روند عادی خود را طی کرد.")
+        except:
+            t_change, g_change, narrative = 0, 0, "خطا در محاسبات اقتصادی."
+            
+        max_income = int(country['gdp'] * 0.2)
+        if t_change > max_income: t_change = max_income
+        if t_change < 0: t_change = 0
+        
+        max_gdp_growth = int(country['gdp'] * 0.1)
+        if g_change > max_gdp_growth: g_change = max_gdp_growth
+        
+        async with pool.acquire() as conn:
+            await conn.execute(
+                "UPDATE countries SET treasury = treasury + $1, gdp = gdp + $2 WHERE user_id = $3",
+                t_change, g_change, country["user_id"]
+            )
+            
+        report_lines.append(f"🏛️ {country['name']}:\n💰 +{t_change:,} واحد | 📈 +{g_change:,} واحد\n📰 {narrative}\n")
+    
+    final_report = "📊 **گزارش پایان نوبت و درآمد کشورها**\n\n" + "\n".join(report_lines)
+    btn = kb([[InlineKeyboardButton("📢 انتشار گزارش در کانال", callback_data="pub_economy_report")]])
+    
+    if len(final_report) > 4000:
+        await msg.edit_text("✅ اقتصاد آپدیت شد، اما متن گزارش طولانی است. لاگ‌ها را چک کنید.")
+    else:
+        await msg.edit_text(final_report, reply_markup=btn)
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(f"Update {update} caused error {context.error}")
@@ -466,6 +587,7 @@ def main():
     app.add_handler(CommandHandler("cancel", cancel))
     app.add_handler(CommandHandler("country", country_cmd))
     app.add_handler(CommandHandler("order", order_cmd))
+    app.add_handler(CommandHandler("next_turn", next_turn_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     
