@@ -28,268 +28,168 @@ RESOURCES = {
     "gold": "🏵 طلا", "lead": "🔘 سرب", "zinc": "⚪ روی", "phosphate": "🧪 فسفات", "sulfur": "🟡 گوگرد"
 }
 
-# --- دیتابیس کامل و دقیق ۲۳ کشور (آمار ۱۹۷۹) ---
+# --- دیتابیس کامل و دقیق (آمار ۱۹۷۹ با تمام جزئیات نظامی) ---
 COUNTRY_DB = {
     "ایران": {
-        "gdp_init": 90400000000, "mil_budget_init": 4000000000, "army_init": 520000, "tanks_init": 1754, "jets_init": 450, "refineries_init": 1175000,
-        "cities": "تهران، اصفهان، مشهد، تبریز، شیراز، اهواز، کرمانشاه، قم، آبادان، رشت، خراسان، فارس، آذربایجان شرقی، آذربایجان غربی، خوزستان، گیلان، مازندران، کرمان، یزد، مرکزی، همدان، لرستان، سیستان و بلوچستان، هرمزگان، بوشهر، زنجان، قزوین، سمنان، کهگیلویه و بویراحمد، چهارمحال و بختیاری، ایلام، اردبیل، کردستان",
-        "mines": {
-            "oil_well": {"name": "چاه‌های نفت خوزستان", "output_res": "oil", "amount": 3000000},
-            "copper_mine": {"name": "معدن مس سرچشمه", "output_res": "copper", "amount": 40000},
-            "iron_mine": {"name": "معدن سنگ آهن بافق", "output_res": "iron", "amount": 60000}
-        },
-        "factories": {
-            "abadan_refinery": {"name": "پالایشگاه آبادان", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"}, 
-            "isfahan_steel": {"name": "ذوب آهن اصفهان", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}
-        }
+        "gdp_init": 90400000000, "mil_budget_init": 4000000000, "army_init": 520000, "tanks_init": 1735, "jets_init": 450, "refineries_init": 1175000,
+        "cities": "تهران، اصفهان، مشهد، تبریز، شیراز، اهواز، کرمانشاه، قم، آبادان، رشت، خراسان، فارس، آذربایجان شرقی، آذربایجان غربی، خوزستان، گیلان، مازندران، کرمان، یزد، مرکزی، همدان، لرستان، سیستان و بلوچستان، هرمزگان، بوشهر، زنجان، قزوین، سمنان، ایلام، اردبیل، کردستان",
+        "mines": {"oil_well": {"name": "چاه‌های نفت خوزستان", "output_res": "oil", "amount": 3000000}, "copper_mine": {"name": "مس سرچشمه", "output_res": "copper", "amount": 40000}, "iron_mine": {"name": "سنگ آهن بافق", "output_res": "iron", "amount": 60000}},
+        "factories": {"abadan_refinery": {"name": "پالایشگاه آبادان", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"}, "isfahan_steel": {"name": "ذوب آهن اصفهان", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}},
+        "military_str": "نیروی زمینی: چیفتن 894، M60 460، M47 400 | نیروی هوایی: F-14 77، F-4 190، F-5 166 | پدافند: هاوک | سلاح سبک: G3"
     },
     "آمریکا": {
-        "gdp_init": 2627333000000, "mil_budget_init": 548272000000, "army_init": 2000000, "tanks_init": 7835, "jets_init": 3000, "refineries_init": 17050000,
-        "cities": "نیویورک، کالیفرنیا، تگزاس، فلوریدا، ایلینوی، پنسیلوانیا، اوهایو، میشیگان، جورجیا، کارولینای شمالی، ویرجینیا، واشنگتن، ماساچوست",
-        "mines": {
-            "oil_well": {"name": "نفت تگزاس و آلاسکا", "output_res": "oil", "amount": 9000000},
-            "iron_mine": {"name": "معدن آهن میشیگان", "output_res": "iron", "amount": 80000},
-            "coal_mine": {"name": "زغال سنگ آپالاش", "output_res": "coal", "amount": 300000}
-        },
-        "factories": {
-            "texas_refinery": {"name": "پالایشگاه تگزاس", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"},
-            "us_steel": {"name": "فولاد آمریکا", "income": 400000, "cost": 800000, "consumes": "iron", "produces": "steel"},
-            "lockheed_jet": {"name": "جت لاکهید", "income": 500000, "cost": 1000000, "consumes": "titanium", "produces": "jet_engine"}
-        }
+        "gdp_init": 2627333000000, "mil_budget_init": 548272000000, "army_init": 2013233, "tanks_init": 7835, "jets_init": 3000, "refineries_init": 17050000,
+        "cities": "نیویورک، کالیفرنیا، تگزاس، فلوریدا، ایلینوی، پنسیلوانیا، اوهایو، میشیگان، جورجیا، کارولینای شمالی، ویرجینیا، واشنگتن",
+        "mines": {"oil_well": {"name": "نفت تگزاس", "output_res": "oil", "amount": 9000000}, "iron_mine": {"name": "آهن میشیگان", "output_res": "iron", "amount": 80000}, "coal_mine": {"name": "زغال آپالاش", "output_res": "coal", "amount": 300000}},
+        "factories": {"texas_refinery": {"name": "پالایشگاه تگزاس", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "us_steel": {"name": "فولاد آمریکا", "income": 400000, "cost": 800000, "consumes": "iron", "produces": "steel"}},
+        "military_str": "تانک: M60A3 2560، M48A5 2067 | هواپیما: F-15, F-16, F-4, A-10, B-52 346 | ناوگان: 13 ناو هواپیمابر، 28 رزمناو، 97 ناوشکن | سلاح سبک: M16A1, M1911A1"
     },
     "شوروی": {
-        "gdp_init": 1300000000000, "mil_budget_init": 165000000000, "army_init": 3658000, "tanks_init": 45000, "jets_init": 5350, "refineries_init": 10000000,
-        "cities": "مسکو، لنینگراد، کی‌یف، مینسک، تفلیس، باکو، تاشکند، آلماتی، خارکف، نووسیبیرسک",
-        "mines": {
-            "oil_well": {"name": "نفت سیبری و باکو", "output_res": "oil", "amount": 11900000},
-            "iron_mine": {"name": "آهن کورسک", "output_res": "iron", "amount": 250000},
-            "coal_mine": {"name": "زغال سنگ کوزنتسک", "output_res": "coal", "amount": 300000},
-            "uranium_mine": {"name": "اورانیوم قزاقستان", "output_res": "uranium", "amount": 50000}
-        },
-        "factories": {
-            "siberia_refinery": {"name": "پالایشگاه سیبری", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, 
-            "magnitogorsk": {"name": "فولاد مگنیتوگورسک", "income": 500000, "cost": 800000, "consumes": "iron", "produces": "steel"}, 
-            "ural_tank": {"name": "زره اورال", "income": 400000, "cost": 700000, "consumes": "steel", "produces": "tank_armor"}
-        }
+        "gdp_init": 1300000000000, "mil_budget_init": 165000000000, "army_init": 3658000, "tanks_init": 50000, "jets_init": 8479, "refineries_init": 10000000,
+        "cities": "مسکو، لنینگراد، کی‌یف، مینسک، تفلیس، باکو، تاشکند، آلماتی",
+        "mines": {"oil_well": {"name": "نفت سیبری", "output_res": "oil", "amount": 11900000}, "iron_mine": {"name": "آهن کورسک", "output_res": "iron", "amount": 250000}, "uranium_mine": {"name": "اورانیوم قزاقستان", "output_res": "uranium", "amount": 50000}},
+        "factories": {"siberia_refinery": {"name": "پالایشگاه سیبری", "income": 600000, "cost": 1200000, "consumes": "oil", "produces": "chemicals"}, "ural_tank": {"name": "زره اورال", "income": 400000, "cost": 700000, "consumes": "steel", "produces": "tank_armor"}},
+        "military_str": "تانک: T-64/T-72/T-80 بیش از 20,000 | هواپیما: MiG-23/27, Su-17/24, Tu-95 | ناوگان: 180 زیردریایی هسته‌ای، 64 SSBN | سلاح سبک: AK-74, AKM"
     },
-    "عراق": {
-        "gdp_init": 118000000000, "mil_budget_init": 11350000000, "army_init": 222000, "tanks_init": 1740, "jets_init": 330, "refineries_init": 450000,
-        "cities": "بغداد، بصره، موصل، کرکوک، اربیل، نجف، کربلا، سامرا، رمادی",
-        "mines": {
-            "oil_well": {"name": "نفت کرکوک و رومَیله", "output_res": "oil", "amount": 3500000},
-            "phosphate_mine": {"name": "فسفات عکاشات", "output_res": "phosphate", "amount": 50000}
-        },
-        "factories": {
-            "baiji_refinery": {"name": "پالایشگاه بیجی", "income": 200000, "cost": 400000, "consumes": "oil", "produces": "chemicals"}, 
-            "iraq_military": {"name": "صنایع نظامی", "income": 120000, "cost": 350000, "consumes": "steel", "produces": "ammo"}
-        }
+    "اسرائیل": {
+        "gdp_init": 23000000000, "mil_budget_init": 13269000000, "army_init": 172000, "tanks_init": 3050, "jets_init": 576, "refineries_init": 218000,
+        "cities": "اورشلیم، تل‌آویو، حیفا، بئرشبع، نتانیا",
+        "mines": {"copper_mine": {"name": "مس تیمنا", "output_res": "copper", "amount": 10000}},
+        "factories": {"haifa_refinery": {"name": "پالایشگاه حیفا", "income": 150000, "cost": 300000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: Centurion 1000، M60 810، Merkava 40 | هواپیما: F-15 24، F-4 90، A-4 270 | پدافند: Chaparral, Vulcan | سلاح سبک: Galil, Uzi, M16A1"
+    },
+    "مصر": {
+        "gdp_init": 19000000000, "mil_budget_init": 1165000000, "army_init": 445000, "tanks_init": 1600, "jets_init": 568, "refineries_init": 180000,
+        "cities": "قاهره، اسکندریه، جیزه، پورت سعید، سوئز",
+        "mines": {"oil_well": {"name": "نفت سوئز", "output_res": "oil", "amount": 527000}},
+        "factories": {"suez_refinery": {"name": "پالایشگاه سوئز", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: T-54/55 850، T-62 750، M60A3 60 | هواپیما: MiG-21 250، F-4E 16، Tu-16 25 | پدافند: SA-2, SA-3, SA-6 | سلاح سبک: AK-47"
     },
     "آلمان شرقی": {
-        "gdp_init": 170000000000, "mil_budget_init": 4500000000, "army_init": 173100, "tanks_init": 3140, "jets_init": 320, "refineries_init": 0,
-        "cities": "برلین شرقی، روستوک، شورین، ماگدبورگ، پوتسدام، هاله، لایپزیگ، درسدن",
-        "mines": {
-            "coal_mine": {"name": "لیگنیت", "output_res": "coal", "amount": 250000000},
-            "uranium_mine": {"name": "اورانیوم ویسمات", "output_res": "uranium", "amount": 30000}
-        },
-        "factories": {
-            "eg_chem": {"name": "شیمیایی لویونا", "income": 150000, "cost": 300000, "consumes": "coal", "produces": "chemicals"}
-        }
+        "gdp_init": 170000000000, "mil_budget_init": 4500000000, "army_init": 173100, "tanks_init": 3140, "jets_init": 335, "refineries_init": 0,
+        "cities": "برلین شرقی، روستوک، شورین، ماگدبورگ، لایپزیگ",
+        "mines": {"coal_mine": {"name": "لیگنیت", "output_res": "coal", "amount": 250000000}},
+        "factories": {"eg_chem": {"name": "شیمیایی", "income": 150000, "cost": 300000, "consumes": "coal", "produces": "chemicals"}},
+        "military_str": "تانک: T-54/55 2500، T-72 549، T-34 600 | هواپیما: MiG-21 300، Su-7 80 | پدافند: SA-4/6/7 | سلاح سبک: AK-47/74"
+    },
+    "آلمان غربی": {
+        "gdp_init": 881000000000, "mil_budget_init": 64008000000, "army_init": 495000, "tanks_init": 5000, "jets_init": 577, "refineries_init": 1500000,
+        "cities": "دوسلدورف، کلن، مونیخ، اشتوتگارت، هانوفر",
+        "mines": {"coal_mine": {"name": "زغال رور", "output_res": "coal", "amount": 200000000}},
+        "factories": {"ruhr_refinery": {"name": "پالایشگاه رور", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: Leopard 1 2400، Leopard 2 (جدید)، M48 650 | هواپیما: F-4 175، RF-4E 88، F-104 144 | سلاح سبک: G3, MP5"
+    },
+    "چین": {
+        "gdp_init": 263698000000, "mil_budget_init": 40000000000, "army_init": 5120000, "tanks_init": 10000, "jets_init": 5000, "refineries_init": 2000000,
+        "cities": "پکن، شانگهای، تیانجین، چونگ‌کینگ",
+        "mines": {"coal_mine": {"name": "زغال شانشی", "output_res": "coal", "amount": 250000}, "iron_mine": {"name": "آهن آنشان", "output_res": "iron", "amount": 90000}},
+        "factories": {"cn_steel": {"name": "فولاد آنشان", "income": 180000, "cost": 400000, "consumes": "iron", "produces": "steel"}},
+        "military_str": "تانک: 59式، 69式، T-34 (9000-10000) | هواپیما: 歼-5 1400، 歼-6 1000، 歼-7 75 | سلاح سبک: 56式 (AK-47 clone)"
+    },
+    "ژاپن": {
+        "gdp_init": 1055012000000, "mil_budget_init": 21225000000, "army_init": 250000, "tanks_init": 740, "jets_init": 227, "refineries_init": 5000000,
+        "cities": "توکیو، اوساکا، کاناگاوا، آیچی، هوکایدو",
+        "mines": {"coal_mine": {"name": "زغال هوکایدو", "output_res": "coal", "amount": 20000}},
+        "factories": {"jp_electronics": {"name": "الکترونیک", "income": 400000, "cost": 700000, "consumes": "copper", "produces": "electronics"}},
+        "military_str": "تانک: Type 74 (740) | هواپیما: F-4EJ 150، F-1 77، F-104J | ناوگان: 60 ناوشکن، 16 زیردریایی | سلاح سبک: Howa Type 64"
+    },
+    "فرانسه": {
+        "gdp_init": 537000000000, "mil_budget_init": 18000000000, "army_init": 484722, "tanks_init": 1360, "jets_init": 477, "refineries_init": 1500000,
+        "cities": "پاریس، مارسی، لیون، تولوز، لیل",
+        "mines": {"iron_mine": {"name": "آهن لورن", "output_res": "iron", "amount": 30000}},
+        "factories": {"dassault_jet": {"name": "داسو", "income": 350000, "cost": 700000, "consumes": "titanium", "produces": "jet_engine"}},
+        "military_str": "تانک: AMX-30 (1360) | هواپیما: Mirage F1 90، Jaguar 174، Mirage IV | ناوگان: 2 ناو هواپیمابر، 4 SSBN | سلاح سبک: FAMAS, MAS 49/56"
+    },
+    "بریتانیا": {
+        "gdp_init": 181000000000, "mil_budget_init": 18000000000, "army_init": 215000, "tanks_init": 640, "jets_init": 1796, "refineries_init": 1000000,
+        "cities": "لندن، بیرمنگام، گلاسکو، لیورپول، ادینبرو",
+        "mines": {"coal_mine": {"name": "زغال یورکشایر", "output_res": "coal", "amount": 122000000}},
+        "factories": {"vickers_tank": {"name": "ویکرز", "income": 200000, "cost": 450000, "consumes": "steel", "produces": "tank_armor"}},
+        "military_str": "تانک: Chieftain (640) | هواپیما: Vulcan, Buccaneer, Jaguar, Phantom | ناوگان: 139 ناوشکن، 30 زیردریایی | سلاح سبک: L1A1 SLR, Sterling"
+    },
+    "عراق": {
+        "gdp_init": 118000000000, "mil_budget_init": 11350000000, "army_init": 222000, "tanks_init": 1900, "jets_init": 339, "refineries_init": 450000,
+        "cities": "بغداد، بصره، موصل، کرکوک، اربیل",
+        "mines": {"oil_well": {"name": "نفت کرکوک", "output_res": "oil", "amount": 3500000}},
+        "factories": {"baiji_refinery": {"name": "پالایشگاه بیجی", "income": 200000, "cost": 400000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: T-54/55/62 (1700)، T-72 (100) | هواپیما: MiG-21 206، 歼-7 40، Mirage F1 12، Tu-22 32 | سلاح سبک: AK-47, Tabuk"
     },
     "سوریه": {
         "gdp_init": 12300000000, "mil_budget_init": 2400000000, "army_init": 230000, "tanks_init": 2600, "jets_init": 262, "refineries_init": 116000,
-        "cities": "دمشق، حلب، حمص، حماة، لاذقیه، طرطوس، ادلب، رقه",
-        "mines": {
-            "oil_well": {"name": "نفت سوریه", "output_res": "oil", "amount": 180000}
-        },
-        "factories": {
-            "homs_refinery": {"name": "پالایشگاه حمص", "income": 100000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}
-        }
-    },
-    "مصر": {
-        "gdp_init": 19000000000, "mil_budget_init": 1165000000, "army_init": 445000, "tanks_init": 1600, "jets_init": 380, "refineries_init": 180000,
-        "cities": "قاهره، اسکندریه، جیزه، پورت سعید، سوئز، منصوره، طنطا",
-        "mines": {
-            "oil_well": {"name": "نفت خلیج سوئز", "output_res": "oil", "amount": 527000},
-            "phosphate_mine": {"name": "فسفات ابو طرطور", "output_res": "phosphate", "amount": 40000}
-        },
-        "factories": {
-            "suez_refinery": {"name": "پالایشگاه سوئز", "income": 120000, "cost": 250000, "consumes": "oil", "produces": "chemicals"}
-        }
-    },
-    "اسرائیل": {
-        "gdp_init": 23000000000, "mil_budget_init": 13269000000, "army_init": 172000, "tanks_init": 3010, "jets_init": 400, "refineries_init": 218000,
-        "cities": "اورشلیم، تل‌آویو، حیفا، بئرشبع، نتانیا، اشدود",
-        "mines": {
-            "copper_mine": {"name": "مس تیمنا", "output_res": "copper", "amount": 10000}
-        },
-        "factories": {
-            "haifa_refinery": {"name": "پالایشگاه حیفا", "income": 150000, "cost": 300000, "consumes": "oil", "produces": "chemicals"},
-            "imi_ammo": {"name": "صنایع نظامی", "income": 200000, "cost": 400000, "consumes": "chemicals", "produces": "ammo"}
-        }
+        "cities": "دمشق، حلب، حمص، حماة، لاذقیه",
+        "mines": {"oil_well": {"name": "نفت سوریه", "output_res": "oil", "amount": 180000}},
+        "factories": {"homs_refinery": {"name": "پالایشگاه حمص", "income": 100000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: T-55 1500، T-62 800، T-72 65 | هواپیما: MiG-21 200، MiG-23 50، MiG-25 12 | سلاح سبک: AK-47"
     },
     "عربستان": {
         "gdp_init": 94600000000, "mil_budget_init": 10500000000, "army_init": 51700, "tanks_init": 550, "jets_init": 90, "refineries_init": 834900,
-        "cities": "ریاض، جده، مکه، مدینه، طائف، دمام، تبوک",
-        "mines": {
-            "oil_well": {"name": "غوار و سفانیه", "output_res": "oil", "amount": 10000000},
-            "gold_mine": {"name": "مهد الذهب", "output_res": "gold", "amount": 5000}
-        },
-        "factories": {
-            "ras_tanura": {"name": "راس تنوره", "income": 300000, "cost": 600000, "consumes": "oil", "produces": "chemicals"}
-        }
-    },
-    "فرانسه": {
-        "gdp_init": 537000000000, "mil_budget_init": 18000000000, "army_init": 503000, "tanks_init": 1200, "jets_init": 210, "refineries_init": 1500000,
-        "cities": "پاریس، مارسی، لیون، تولوز، لیل، نانت، استراسبورگ، بوردو",
-        "mines": {
-            "iron_mine": {"name": "آهن لورن", "output_res": "iron", "amount": 30000},
-            "uranium_mine": {"name": "اورانیوم لیموزین", "output_res": "uranium", "amount": 10000}
-        },
-        "factories": {
-            "fr_refinery": {"name": "پالایشگاه نرماندی", "income": 300000, "cost": 600000, "consumes": "oil", "produces": "chemicals"},
-            "dassault_jet": {"name": "داسو", "income": 350000, "cost": 700000, "consumes": "titanium", "produces": "jet_engine"}
-        }
-    },
-    "بریتانیا": {
-        "gdp_init": 181000000000, "mil_budget_init": 18000000000, "army_init": 315000, "tanks_init": 640, "jets_init": 126, "refineries_init": 1000000,
-        "cities": "لندن، بیرمنگام، گلاسکو، لیورپول، ادینبرو، منچستر، لیدز، شفیلد، بریستول، کاردیف، بلفاست",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ یورکشایر", "output_res": "coal", "amount": 122000000},
-            "oil_well": {"name": "نفت دریای شمال", "output_res": "oil", "amount": 1000000}
-        },
-        "factories": {
-            "pembroke_refinery": {"name": "پالایشگاه پمبروک", "income": 250000, "cost": 500000, "consumes": "oil", "produces": "chemicals"},
-            "vickers_tank": {"name": "ویکرز (چیفتن)", "income": 200000, "cost": 450000, "consumes": "steel", "produces": "tank_armor"}
-        }
-    },
-    "آلمان غربی": {
-        "gdp_init": 881000000000, "mil_budget_init": 64008000000, "army_init": 495000, "tanks_init": 3087, "jets_init": 375, "refineries_init": 1500000,
-        "cities": "دوسلدورف، کلن، مونیخ، اشتوتگارت، هانوفر، فرانکفورت، هامبورگ، برمن",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ رور", "output_res": "coal", "amount": 200000000},
-            "iron_mine": {"name": "آهن زالزگیتر", "output_res": "iron", "amount": 40000}
-        },
-        "factories": {
-            "ruhr_refinery": {"name": "پالایشگاه رور", "income": 350000, "cost": 700000, "consumes": "oil", "produces": "chemicals"},
-            "krauss_mffei": {"name": "لئوپارد", "income": 300000, "cost": 650000, "consumes": "steel", "produces": "tank_armor"}
-        }
-    },
-    "چین": {
-        "gdp_init": 263698000000, "mil_budget_init": 40000000000, "army_init": 4000000, "tanks_init": 10000, "jets_init": 5000, "refineries_init": 2000000,
-        "cities": "پکن، شانگهای، تیانجین، چونگ‌کینگ، گوانگ‌دونگ، سیچوان، هوبی، شاندونگ",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ شانشی", "output_res": "coal", "amount": 250000},
-            "iron_mine": {"name": "آهن آنشان", "output_res": "iron", "amount": 90000},
-            "rare_earth_mine": {"name": "خاکی کمیاب", "output_res": "rare_earth", "amount": 30000}
-        },
-        "factories": {
-            "cn_steel": {"name": "فولاد آنشان", "income": 180000, "cost": 400000, "consumes": "iron", "produces": "steel"}
-        }
-    },
-    "ژاپن": {
-        "gdp_init": 1055012000000, "mil_budget_init": 21225000000, "army_init": 150000, "tanks_init": 740, "jets_init": 447, "refineries_init": 5000000,
-        "cities": "توکیو، اوساکا، کاناگاوا، آیچی، هوکایدو، فوکوئوکا، کیوتو، هیوگو",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ هوکایدو", "output_res": "coal", "amount": 20000},
-            "copper_mine": {"name": "مس", "output_res": "copper", "amount": 15000}
-        },
-        "factories": {
-            "jp_electronics": {"name": "الکترونیک", "income": 400000, "cost": 700000, "consumes": "copper", "produces": "electronics"},
-            "jp_steel": {"name": "فولاد", "income": 300000, "cost": 500000, "consumes": "coal", "produces": "steel"}
-        }
+        "cities": "ریاض، جده، مکه، مدینه، دمام",
+        "mines": {"oil_well": {"name": "غوار", "output_res": "oil", "amount": 10000000}},
+        "factories": {"ras_tanura": {"name": "راس تنوره", "income": 300000, "cost": 600000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: M47, M41, AML-60/90 | هواپیما: F-5E 50 | سلاح سبک: FN FAL, G3"
     },
     "هند": {
         "gdp_init": 152062000000, "mil_budget_init": 11190000000, "army_init": 1000000, "tanks_init": 2790, "jets_init": 625, "refineries_init": 500000,
-        "cities": "دهلی نو، بمبئی، کلکته، چنای، بنگلور، احمدآباد، جایپور، لاکنو",
-        "mines": {
-            "iron_mine": {"name": "آهن", "output_res": "iron", "amount": 60000}, 
-            "coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 70000}
-        },
-        "factories": {
-            "in_steel": {"name": "فولاد", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}
-        }
+        "cities": "دهلی نو، بمبئی، کلکته، چنای، بنگلور",
+        "mines": {"iron_mine": {"name": "آهن", "output_res": "iron", "amount": 60000}},
+        "factories": {"in_steel": {"name": "فولاد", "income": 150000, "cost": 350000, "consumes": "iron", "produces": "steel"}},
+        "military_str": "تانک: T-54/55، T-72، Vijayanta | هواپیما: MiG-21، Su-7، Hunter | سلاح سبک: Ishapore 2A1 (L1A1)"
     },
     "پاکستان": {
         "gdp_init": 25798000000, "mil_budget_init": 1979000000, "army_init": 400000, "tanks_init": 1000, "jets_init": 247, "refineries_init": 100000,
-        "cities": "اسلام‌آباد، کراچی، لاهور، پیشاور، کویته، مولتان، راولپندی",
-        "mines": {
-            "iron_mine": {"name": "آهن", "output_res": "iron", "amount": 20000}
-        },
-        "factories": {
-            "pk_ammo": {"name": "مهمات", "income": 100000, "cost": 250000, "consumes": "iron", "produces": "ammo"}
-        }
+        "cities": "اسلام‌آباد، کراچی، لاهور، پیشاور",
+        "mines": {"iron_mine": {"name": "آهن", "output_res": "iron", "amount": 20000}},
+        "factories": {"pk_ammo": {"name": "مهمات", "income": 100000, "cost": 250000, "consumes": "iron", "produces": "ammo"}},
+        "military_str": "تانک: Type 59، M48 | هواپیما: MiG-19، Mirage III، F-6 | سلاح سبک: G3, AK-47"
     },
     "ترکیه": {
         "gdp_init": 126394000000, "mil_budget_init": 4733000000, "army_init": 500000, "tanks_init": 3000, "jets_init": 300, "refineries_init": 400000,
-        "cities": "آنکارا، استانبول، ازمیر، بورسا، آدانا، قونیه، دیاربکر، ترابزون",
-        "mines": {
-            "chromium_mine": {"name": "کروم", "output_res": "chromium", "amount": 40000}, 
-            "coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 40000}
-        },
-        "factories": {
-            "tr_steel": {"name": "فولاد", "income": 120000, "cost": 250000, "consumes": "coal", "produces": "steel"}
-        }
+        "cities": "آنکارا، استانبول، ازمیر، بورسا",
+        "mines": {"chromium_mine": {"name": "کروم", "output_res": "chromium", "amount": 40000}},
+        "factories": {"tr_steel": {"name": "فولاد", "income": 120000, "cost": 250000, "consumes": "coal", "produces": "steel"}},
+        "military_str": "تانک: M48، M47 | هواپیما: F-4، F-100، F-104 | سلاح سبک: G3, M1 Garand"
     },
     "برزیل": {
-        "gdp_init": 186976000000, "mil_budget_init": 6811000000, "army_init": 200000, "tanks_init": 600, "jets_init": 205, "refineries_init": 1000000,
-        "cities": "برازیلیا، سائوپائولو، ریودوژانیرو، بلو هوریزونته، سالوادور، کوریتیبا، رسیفه",
-        "mines": {
-            "iron_mine": {"name": "آهن", "output_res": "iron", "amount": 80000}
-        },
-        "factories": {
-            "br_steel": {"name": "فولاد", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}
-        }
+        "gdp_init": 186976000000, "mil_budget_init": 6811000000, "army_init": 257000, "tanks_init": 350, "jets_init": 205, "refineries_init": 1000000,
+        "cities": "برازیلیا، سائوپائولو، ریودوژانیرو",
+        "mines": {"iron_mine": {"name": "آهن", "output_res": "iron", "amount": 80000}},
+        "factories": {"br_steel": {"name": "فولاد", "income": 150000, "cost": 300000, "consumes": "iron", "produces": "steel"}},
+        "military_str": "تانک: M41 250، M3A1 220، X1A2 25 | هواپیما: Mirage III، F-5E 79، AT-26 | سلاح سبک: FN FAL (M964)"
     },
     "آرژانتین": {
-        "gdp_init": 73916000000, "mil_budget_init": 14098000000, "army_init": 130000, "tanks_init": 350, "jets_init": 100, "refineries_init": 600000,
-        "cities": "بوئنوس آیرس، کوردوبا، سانتافه، مندوزا، لا پلاتا، توکومان",
-        "mines": {
-            "copper_mine": {"name": "مس", "output_res": "copper", "amount": 20000}
-        },
-        "factories": {
-            "ar_steel": {"name": "فولاد", "income": 100000, "cost": 250000, "consumes": "copper", "produces": "steel"}
-        }
+        "gdp_init": 73916000000, "mil_budget_init": 14098000000, "army_init": 133500, "tanks_init": 350, "jets_init": 132, "refineries_init": 600000,
+        "cities": "بوئنوس آیرس، کوردوبا، سانتافه",
+        "mines": {"copper_mine": {"name": "مس", "output_res": "copper", "amount": 20000}},
+        "factories": {"ar_steel": {"name": "فولاد", "income": 100000, "cost": 250000, "consumes": "copper", "produces": "steel"}},
+        "military_str": "تانک: M4 Sherman، AMX-13، TAM | هواپیما: Dagger 35، Pucara 30، A-4، Canberra 8 | سلاح سبک: FN FAL, FMK-3"
     },
     "کره جنوبی": {
         "gdp_init": 66947000000, "mil_budget_init": 8819000000, "army_init": 600000, "tanks_init": 350, "jets_init": 520, "refineries_init": 600000,
-        "cities": "سئول، بوسان، اینچئون، دئگو، دائجون، گوانگجو، اولسان",
-        "mines": {
-            "tungsten_mine": {"name": "تنگستن", "output_res": "tungsten", "amount": 15000}
-        },
-        "factories": {
-            "kr_steel": {"name": "فولاد", "income": 150000, "cost": 300000, "consumes": "tungsten", "produces": "steel"}
-        }
+        "cities": "سئول، بوسان، اینچئون، دئگو",
+        "mines": {"tungsten_mine": {"name": "تنگستن", "output_res": "tungsten", "amount": 15000}},
+        "factories": {"kr_steel": {"name": "فولاد", "income": 150000, "cost": 300000, "consumes": "tungsten", "produces": "steel"}},
+        "military_str": "تانک: M47، M48 | هواپیما: F-4، F-5، F-86 | سلاح سبک: M16A1"
     },
     "کره شمالی": {
         "gdp_init": 9490000000, "mil_budget_init": 2000000000, "army_init": 600000, "tanks_init": 2300, "jets_init": 565, "refineries_init": 50000,
-        "cities": "پیونگ‌یانگ، هامهونگ، چونگ‌جین، نامپو، وونسان",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 50000}, 
-            "iron_mine": {"name": "آهن", "output_res": "iron", "amount": 40000}
-        },
-        "factories": {
-            "nk_ammo": {"name": "مهمات", "income": 100000, "cost": 200000, "consumes": "coal", "produces": "ammo"}
-        }
+        "cities": "پیونگ‌یانگ، هامهونگ",
+        "mines": {"coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 50000}},
+        "factories": {"nk_ammo": {"name": "مهمات", "income": 100000, "cost": 200000, "consumes": "coal", "produces": "ammo"}},
+        "military_str": "تانک: T-34، T-54/55، T-62 | هواپیما: MiG-21، MiG-17 | سلاح سبک: AK-47, Type 58"
     },
     "ویتنام": {
-        "gdp_init": 7140000000, "mil_budget_init": 1000000000, "army_init": 600000, "tanks_init": 1500, "jets_init": 200, "refineries_init": 0,
-        "cities": "هانوی، هوشی‌مین، هایفونگ، دانانگ، کان‌تو",
-        "mines": {
-            "coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 30000}
-        },
-        "factories": {
-            "vn_ammo": {"name": "مهمات", "income": 80000, "cost": 200000, "consumes": "coal", "produces": "ammo"}
-        }
+        "gdp_init": 7140000000, "mil_budget_init": 1000000000, "army_init": 615000, "tanks_init": 2000, "jets_init": 300, "refineries_init": 0,
+        "cities": "هانوی، هوشی‌مین، هایفونگ",
+        "mines": {"coal_mine": {"name": "زغال سنگ", "output_res": "coal", "amount": 30000}},
+        "factories": {"vn_ammo": {"name": "مهمات", "income": 80000, "cost": 200000, "consumes": "coal", "produces": "ammo"}},
+        "military_str": "تانک: T-54/55، M48، PT-76 | هواپیما: MiG-21 70، MiG-19 70، MiG-17 120، F-5 41 | سلاح سبک: AK-47, M16"
     },
     "کوبا": {
-        "gdp_init": 19584000000, "mil_budget_init": 1500000000, "army_init": 150000, "tanks_init": 800, "jets_init": 150, "refineries_init": 100000,
-        "cities": "هاوانا، سانتیاگو د کوبا، کاماگوئی، اولگین، سانتا کلارا",
-        "mines": {
-            "cobalt_mine": {"name": "کوبالت", "output_res": "cobalt", "amount": 15000}
-        },
-        "factories": {
-            "cu_refinery": {"name": "پالایشگاه", "income": 80000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}
-        }
+        "gdp_init": 19584000000, "mil_budget_init": 1500000000, "army_init": 150000, "tanks_init": 800, "jets_init": 168, "refineries_init": 100000,
+        "cities": "هاوانا، سانتیاگو د کوبا",
+        "mines": {"cobalt_mine": {"name": "کوبالت", "output_res": "cobalt", "amount": 15000}},
+        "factories": {"cu_refinery": {"name": "پالایشگاه", "income": 80000, "cost": 200000, "consumes": "oil", "produces": "chemicals"}},
+        "military_str": "تانک: T-54/55 630، T-62 50، T-34 350 | هواپیما: MiG-23 20، MiG-21 78، MiG-19 40 | سلاح سبک: AK-47, FN FAL"
     }
 }
 
@@ -297,7 +197,6 @@ ALLOWED_COUNTRIES = list(COUNTRY_DB.keys())
 pool = None
 temp = {}
 
-# --- ادامه کد در پیام بعدی ---
 async def init_db():
     global pool
     pool = await asyncpg.create_pool(DATABASE_URL, min_size=1, max_size=5)
@@ -325,7 +224,6 @@ async def init_db():
         for res in RESOURCES.keys():
             await conn.execute(f"ALTER TABLE countries ADD COLUMN IF NOT EXISTS res_{res} BIGINT DEFAULT 0")
         
-        # اضافه کردن ستون‌های جدید در صورت وجود نداشتن
         try:
             await conn.execute("ALTER TABLE countries ADD COLUMN IF NOT EXISTS tanks INT DEFAULT 0")
         except:
@@ -433,6 +331,9 @@ COUNTRY STATS (1979):
 - Refinery Capacity: {country['refineries']:,} bpd
 - Satisfaction: {country.get('satisfaction', 50)}%
 
+FORCE DETAILS:
+{country.get('military_str', 'اطلاعات جزئی در دسترس نیست')}
+
 ORDER CATEGORY: {category}
 ORDER: "{order_text}"
 
@@ -444,6 +345,7 @@ ECONOMY & MILITARY RULES:
 5. Buying 1 TANK costs $2,000,000.
 6. If cost > available funds, "success" MUST be false and all changes MUST be 0.
 7. Calculate changes (gdp_change, mil_budget_change, jets_change, tanks_change, refineries_change) logically.
+8. The order must be analyzed in the context of the specific models listed in FORCE DETAILS (e.g., if ordering to buy F-14, refer to the fact that they already have 77).
 
 STRICT RULES:
 1. Output MUST be valid JSON.
@@ -551,6 +453,8 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         
     data = COUNTRY_DB.get(c['name'])
     cities = data['cities'] if data else "نامشخص"
+    military_str = data.get('military_str', 'نامشخص') if data else "نامشخص"
+    
     text = (
         f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n"
         f"🏙️ *شهرها و استان‌ها:* {cities}\n\n"
@@ -560,7 +464,8 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🚜 تانک‌ها: {c.get('tanks', 0):,} عراده\n"
         f"🏭 ظرفیت پالایش: {c['refineries']:,} بشکه در روز\n"
         f"🎖 ارتش: {c['army']:,} نفر\n"
-        f"❤️ رضایت: {c.get('satisfaction', 50)}%"
+        f"❤️ رضایت: {c.get('satisfaction', 50)}%\n\n"
+        f"⚔️ *جزئیات نظامی:*\n{military_str}"
     )
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
