@@ -500,7 +500,14 @@ async def _analyze_inner(order_id: int, context):
     
     enemy_deployments_str = await get_enemy_deployments_str(country['name'])
     prompt = _build_prompt(dict(country), order["order_text"], order["category"], enemy_deployments_str)
-    ai_response = await ask_ai(prompt, system_prompt="You are a strict JSON-only API. Use ONLY Persian characters.")
+    
+    # 👇 سیستم پرامپت اصلاح شد تا کلیدهای JSON رو به فارسی ترجمه نکنه
+    sys_prompt = "You are a strict JSON API. Output RAW JSON only. DO NOT wrap in markdown. DO NOT translate the JSON keys. Keep keys in English exactly as requested. Use Persian ONLY for the values of reason, narrative_short, and narrative_long."
+    ai_response = await ask_ai(prompt, system_prompt=sys_prompt)
+    
+    # 👇 این خط رو اضافه کردم که دقیقا ببینیم AI چی فرستاده (توی لاگ رندر)
+    logger.info(f"AI RAW for order {order_id}:\n{ai_response}")
+    
     data = _safe_parse_json(ai_response)
 
     if "success" not in data or "narrative_long" not in data:
@@ -550,6 +557,58 @@ async def _analyze_inner(order_id: int, context):
             
             return data
 
+    if data.get("success"):
+        try:
+            g_change = int(data.get("gdp_change") or 0)
+            m_change = int(data.get("mil_budget_change") or 0)
+            j_change = int(data.get("jets_change") or 0)
+            t_change = int(data.get("tanks_change") or 0)
+            r_change = int(data.get("refineries_change") or 0)
+            s_change = int(data.get("satisfaction_change") or 0)
+        except:
+            data = {"success": False, "reason": "خطای عددی", "narrative_short": "", "narrative_long": "", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": order_intent, "region": region}
+        else:
+            if country["gdp"] + g_change < 0 or country["mil_budget"] + m_change < 0:
+                data = {"success": False, "reason": "ورشکستگی! بودجه کافی نیست.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": -5, "narrative_short": "اقتصاد فروپاشید.", "narrative_long": "با خالی شدن خزانه ملی، طرح پیشنهادی با شکست مواجه شد.", "battle_occurred": False, "order_intent": order_intent, "region": region}
+            else:
+                new_sat = max(0, min(100, country.get("satisfaction", 50) + s_change))
+                data["satisfaction_change"] = new_sat - country.get("satisfaction", 50)
+                async with pool.acquire() as conn:
+                    await conn.execute(
+                        "UPDATE countries SET gdp = GREATEST(0, gdp + $1), mil_budget = GREATEST(0, mil_budget + $2), jets = GREATEST(0, jets + $3), tanks = GREATEST(0, tanks + $4), refineries = GREATEST(0, refineries + $5), satisfaction = $6 WHERE user_id = $7", 
+                        g_change, m_change, j_change, t_change, r_change, new_sat, order["user_id"]
+                    )
+                await apply_battle_changes(context, order["user_id"], country['name'], data)
+    
+    enemy = None
+    if action_type in ["deploy", "attack"] and region and region != "None":
+        async with pool.acquire() as conn:
+            enemy_row = await conn.fetchrow(
+                "SELECT user_id, country_name FROM deployments WHERE region = $1 AND country_name != $2 AND quantity > 0 LIMIT 1",
+                region, country['name']
+            )
+            if enemy_row:
+                enemy = dict(enemy_row)
+    
+    async with pool.acquire() as conn:
+        await conn.execute(
+            "UPDATE orders SET order_intent = $1, region = $2, ai_analysis_raw = $3, enemy_user_id = $4 WHERE id = $5",
+            order_intent, region, json.dumps(data, ensure_ascii=False), 
+            enemy['user_id'] if enemy else None, order_id
+        )
+    
+    if enemy and action_type in ["deploy", "attack"]:
+        if order_intent == "attack":
+            enc_id = await create_encounter_and_battle(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
+            data["encounter_id"] = enc_id
+            data["battle_triggered"] = "immediate"
+        elif order_intent in ["patrol", "deploy"]:
+            enc_id = await create_encounter_ask_intent(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
+            data["encounter_id"] = enc_id
+            data["battle_triggered"] = "awaiting_intent"
+    
+    return data
+    
     if data.get("success"):
         try:
             g_change = int(data.get("gdp_change") or 0)
