@@ -45,29 +45,29 @@ AIRCRAFT_SPECS = {
 }
 
 MILITARY_DB = {
-    "ایران": {"نیروی هوایی": "F-14A Tomcat: 77 | F-4 Phantom II: 190 | F-5 Tiger II: 166", "نیروی زمینی": "تانک Chieftain: 894 | تانک M60 Patton: 460 | تانک M47 Patton: 400 | تانک Scorpion: 250", "توپخانه و خمپاره‌انداز": "M101 105mm: 330 | M114 155mm: 100 | M107 175mm: 100 | M110 203mm: 100 | BM-21 Grad: 64 | خمپاره 81mm/120mm/240mm", "نیروی دریایی": "ناوشکن Battle: 1 | ناوشکن Sumner: 2 | ناوچه Alvand: 4 | قایق موشک‌انداز Kaman: 10", "پدافند هوایی": "MIM-23 Hawk | توپ ضدهوایی ۱۸۰۰ عراده", "سلاح سبک": "H&K G3"},
-    "آمریکا": {"نیروی هوایی": "F-15A/B Eagle: 310 | F-4 Phantom II: 968 | A-10 Thunderbolt II: 144 | F-111 Aardvark: 350 | B-52 Stratofortress: 346 | F-16A/B Fighting Falcon: 156", "نیروی زمینی": "تانک M60A3 Patton: 2560 | تانک M48A5 Patton: 2067 | تانک M551 Sheridan: 59", "توپخانه و خمپاره‌انداز": "M101A1 105mm: 1500 | M102 105mm: 500 | M109A1 155mm: 2000 | M114A2 155mm: 500 | M107 175mm: 750 | M110 203mm: 750 | خمپاره M224 60mm | M29 81mm | M30 107mm", "نیروی دریایی": "ناو هواپیمابر: 13 | رزمناو: 28 | ناوشکن: 97 | زیردریایی SSN: 80 | SSBN: 41", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "M16A1 | M1911A1"},
-    "شوروی": {"نیروی هوایی": "MiG-23/27 Flogger: 800 | MiG-25 Foxbat: 25 | Su-17/20/22 Fitter: 500 | Su-24 Fencer: 100 | Tu-95 Bear: 113 | Tu-22M Backfire: 150", "نیروی زمینی": "تانک T-64/T-72/T-80: +20000 | تانک T-62/T-55/T-54: 50000", "توپخانه و خمپاره‌انداز": "D-30 122mm: 4379 | 2S1 Gvozdika 122mm: 2751 | 2S3 Akatsiya 152mm: 2325 | 2S5 Giatsint-S 152mm: 507 | 2S7 Pion 203mm: 347 | 2S4 Tyulpan 240mm: 430 | BM-21 Grad: 4520 | BM-27 Uragan: 720", "نیروی دریایی": "ناو هواپیمابر Kiev: 2 | رزمناو Kirov: 1 | Kara: 7 | زیردریایی هسته‌ای: 180 | SSBN: 64", "پدافند هوایی": "SA-2 | SA-3 | SA-5 | SA-10", "سلاح سبک": "AK-74 | AKM"},
-    "چین": {"نیروی هوایی": "J-5 (MiG-17): 1400 | J-6 (MiG-19): 1000 | J-7 (MiG-21): 75 | Q-5 Fantan: 300 | H-5 (Il-28): 300 | H-6 (Tu-16): 100", "نیروی زمینی": "تانک Type 59: +9000 | تانک Type 69: چند صد | T-34: چند صد", "توپخانه و خمپاره‌انداز": "Type 54 122mm: 10000 | Type 59 130mm: 4000 | Type 66 152mm: 1000 | Type 63 107mm: 4000 | Type 63 130mm: 1000 | خمپاره 82mm/120mm/160mm", "نیروی دریایی": "زیردریایی: 54 | ناوشکن/ناوچه: 16 | قایق گشتی: 763", "پدافند هوایی": "SA-2 | توپ‌های ۱۰۰mm", "سلاح سبک": "Type 56"},
-    "عراق": {"نیروی هوایی": "MiG-21: 115 | MiG-23: 80 | Su-20/22: 70 | Tu-22: 12 | Tu-16: 14 | Mirage F1EQ: 12", "نیروی زمینی": "تانک T-54/55/62: 1700 | T-72: 100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 100 | M-30 122mm: 400 | M-46 130mm: 100 | GHN-45 155mm: 200 | G-5 155mm: 100 | GCT 155mm: 76 | 2S1 122mm: 100 | BM-21: چند صد | خمپاره 82mm/120mm/160mm", "نیروی دریایی": "OSA-I: 4 | OSA-II: 8 | P-6: 12", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47 | Tabuk"},
-    "اسرائیل": {"نیروی هوایی": "F-15A/B: 24 | F-4E: 90 | A-4 Skyhawk: 270 | Kfir-C2: 80", "نیروی زمینی": "Centurion: 1000 | M60 Patton: 810 | M48 Patton: 650 | Merkava Mk.1: 40", "توپخانه و خمپاره‌انداز": "M109 155mm: 120 | M107 175mm: 60 | M110 203mm: 48 | M101 105mm: 500 | M114 155mm: 450 | خمپاره 81mm/120mm/160mm", "نیروی دریایی": "Reshef: 10 | Saar: 12 | Type 206: 3", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "Galil | Uzi | M16A1"},
-    "مصر": {"نیروی هوایی": "MiG-21: 208 | MiG-17: 50 | Su-7: 120 | Tu-16: 25 | Mirage 5: 60 | F-4E: 16", "نیروی زمینی": "T-54/55: 850 | T-62: 750 | M60A3: 60", "توپخانه و خمپاره‌انداز": "D-30 122mm: 300 | M-46 130mm: 200 | 2S1 122mm: 100 | 2S3 152mm: 50 | BM-21: 200 | SU-100: 200 | خمپاره 82mm/120mm/160mm", "نیروی دریایی": "Skory: 4 | Z: 1 | Romeo: 6 | Whiskey: 6 | OSA-I: 8 | Komar: 5", "پدافند هوایی": "SA-2: 360 | SA-3: 200 | SA-6: 75", "سلاح سبک": "AK-47"},
-    "سوریه": {"نیروی هوایی": "MiG-21: 172 | MiG-23: 140 | MiG-25: 25 | Su-20/22: 30", "نیروی زمینی": "T-54/55: 1500 | T-62: 800 | T-72: 65", "توپخانه و خمپاره‌انداز": "2S1 122mm: 100 | 2S3 152mm: 50 | D-30 122mm: 300 | M-46 130mm: 200 | BM-21: 200 | خمپاره 82mm/120mm/160mm/240mm", "نیروی دریایی": "OSA-I/II: 12 | Komar: 2", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47"},
+    "ایران": {"نیروی هوایی": "F-14A Tomcat: 77 | F-4 Phantom II: 190 | F-5 Tiger II: 166", "نیروی زمینی": "Chieftain: 894 | M60 Patton: 460 | M47 Patton: 400 | Scorpion: 250", "توپخانه و خمپاره‌انداز": "M101 105mm: 330 | M114 155mm: 100 | M107 175mm: 100 | M110 203mm: 100 | BM-21 Grad: 64 | خمپاره 81/120/240mm", "نیروی دریایی": "ناوشکن Battle: 1 | ناوشکن Sumner: 2 | ناوچه Alvand: 4 | قایق موشک‌انداز Kaman: 10", "پدافند هوایی": "MIM-23 Hawk | توپ ضدهوایی ۱۸۰۰ عراده", "سلاح سبک": "H&K G3"},
+    "آمریکا": {"نیروی هوایی": "F-15A/B Eagle: 310 | F-4 Phantom II: 968 | A-10 Thunderbolt II: 144 | F-111 Aardvark: 350 | B-52 Stratofortress: 346 | F-16A/B Fighting Falcon: 156", "نیروی زمینی": "M60A3 Patton: 2560 | M48A5 Patton: 2067 | M551 Sheridan: 59", "توپخانه و خمپاره‌انداز": "M101A1 105mm: 1500 | M102 105mm: 500 | M109A1 155mm: 2000 | M114A2 155mm: 500 | M107 175mm: 750 | M110 203mm: 750 | خمپاره 60/81/107mm", "نیروی دریایی": "ناو هواپیمابر: 13 | رزمناو: 28 | ناوشکن: 97 | زیردریایی SSN: 80 | SSBN: 41", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "M16A1 | M1911A1"},
+    "شوروی": {"نیروی هوایی": "MiG-23/27 Flogger: 800 | MiG-25 Foxbat: 25 | Su-17/20/22 Fitter: 500 | Su-24 Fencer: 100 | Tu-95 Bear: 113 | Tu-22M Backfire: 150", "نیروی زمینی": "T-64/T-72/T-80: +20000 | T-62/T-55/T-54: 50000", "توپخانه و خمپاره‌انداز": "D-30 122mm: 4379 | 2S1 Gvozdika: 2751 | 2S3 Akatsiya: 2325 | 2S5 Giatsint-S: 507 | 2S7 Pion: 347 | 2S4 Tyulpan: 430 | BM-21 Grad: 4520 | BM-27 Uragan: 720", "نیروی دریایی": "ناو هواپیمابر Kiev: 2 | Kirov: 1 | Kara: 7 | زیردریایی هسته‌ای: 180 | SSBN: 64", "پدافند هوایی": "SA-2 | SA-3 | SA-5 | SA-10", "سلاح سبک": "AK-74 | AKM"},
+    "چین": {"نیروی هوایی": "J-5: 1400 | J-6: 1000 | J-7: 75 | Q-5 Fantan: 300 | H-5: 300 | H-6: 100", "نیروی زمینی": "Type 59: +9000 | Type 69: چند صد | T-34: چند صد", "توپخانه و خمپاره‌انداز": "Type 54 122mm: 10000 | Type 59 130mm: 4000 | Type 66 152mm: 1000 | Type 63 107mm: 4000 | خمپاره 82/120/160mm", "نیروی دریایی": "زیردریایی: 54 | ناوشکن/ناوچه: 16 | قایق گشتی: 763", "پدافند هوایی": "SA-2 | توپ ۱۰۰mm", "سلاح سبک": "Type 56"},
+    "عراق": {"نیروی هوایی": "MiG-21: 115 | MiG-23: 80 | Su-20/22: 70 | Tu-22: 12 | Tu-16: 14 | Mirage F1EQ: 12", "نیروی زمینی": "T-54/55/62: 1700 | T-72: 100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 100 | M-30 122mm: 400 | M-46 130mm: 100 | GHN-45 155mm: 200 | G-5 155mm: 100 | GCT 155mm: 76 | 2S1 122mm: 100 | BM-21: چند صد | خمپاره 82/120/160mm", "نیروی دریایی": "OSA-I: 4 | OSA-II: 8 | P-6: 12", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47 | Tabuk"},
+    "اسرائیل": {"نیروی هوایی": "F-15A/B: 24 | F-4E: 90 | A-4 Skyhawk: 270 | Kfir-C2: 80", "نیروی زمینی": "Centurion: 1000 | M60 Patton: 810 | M48 Patton: 650 | Merkava Mk.1: 40", "توپخانه و خمپاره‌انداز": "M109 155mm: 120 | M107 175mm: 60 | M110 203mm: 48 | M101 105mm: 500 | M114 155mm: 450 | خمپاره 81/120/160mm", "نیروی دریایی": "Reshef: 10 | Saar: 12 | Type 206: 3", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "Galil | Uzi | M16A1"},
+    "مصر": {"نیروی هوایی": "MiG-21: 208 | MiG-17: 50 | Su-7: 120 | Tu-16: 25 | Mirage 5: 60 | F-4E: 16", "نیروی زمینی": "T-54/55: 850 | T-62: 750 | M60A3: 60", "توپخانه و خمپاره‌انداز": "D-30 122mm: 300 | M-46 130mm: 200 | 2S1 122mm: 100 | 2S3 152mm: 50 | BM-21: 200 | SU-100: 200 | خمپاره 82/120/160mm", "نیروی دریایی": "Skory: 4 | Z: 1 | Romeo: 6 | Whiskey: 6 | OSA-I: 8 | Komar: 5", "پدافند هوایی": "SA-2: 360 | SA-3: 200 | SA-6: 75", "سلاح سبک": "AK-47"},
+    "سوریه": {"نیروی هوایی": "MiG-21: 172 | MiG-23: 140 | MiG-25: 25 | Su-20/22: 30", "نیروی زمینی": "T-54/55: 1500 | T-62: 800 | T-72: 65", "توپخانه و خمپاره‌انداز": "2S1 122mm: 100 | 2S3 152mm: 50 | D-30 122mm: 300 | M-46 130mm: 200 | BM-21: 200 | خمپاره 82/120/160/240mm", "نیروی دریایی": "OSA-I/II: 12 | Komar: 2", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47"},
     "بریتانیا": {"نیروی هوایی": "Phantom FGR.2: 40 | Jaguar GR.1: 52 | Harrier GR.3: 26 | Buccaneer S.2: 24 | Vulcan B.2: 50", "نیروی زمینی": "Chieftain: 640", "توپخانه و خمپاره‌انداز": "Abbot 105mm: 100 | M109 155mm: 50 | M107 175mm: 20 | خمپاره 81mm", "نیروی دریایی": "Hermes: 1 | Type 42: 7 | Type 22: 2 | Leander: 26 | Resolution (SSBN): 4", "پدافند هوایی": "Rapier | Bloodhound", "سلاح سبک": "L1A1 SLR | Sterling"},
     "فرانسه": {"نیروی هوایی": "Mirage F1C: 90 | Mirage IIIE: 30 | Jaguar: 174 | Mirage IV: 34", "نیروی زمینی": "AMX-30: 1360", "توپخانه و خمپاره‌انداز": "AMX-30 AuF1 155mm: 110 | TR 155mm: 20 | خمپاره 120mm: 400", "نیروی دریایی": "Clemenceau: 2 | Colbert: 1 | موشک‌انداز: 6 | Redoutable (SSBN): 4 | زیردریایی تهاجمی: 22", "پدافند هوایی": "Roland | MIM-23 Hawk", "سلاح سبک": "FAMAS | MAS 49/56"},
     "آلمان غربی": {"نیروی هوایی": "F-4F Phantom II: 175 | RF-4E: 88 | F-104G: 144 | Tornado IDS: 10", "نیروی زمینی": "Leopard 1: 2400 | Leopard 2: 100 | M48: 650", "توپخانه و خمپاره‌انداز": "M109G 155mm: 586 | FH-70 155mm: 215 | LARS 110mm: 209 | خمپاره 120mm", "نیروی دریایی": "Type 206: 18 | Lütjens: 3 | Bremen: 6 | قایق موشک‌انداز: 40", "پدافند هوایی": "Roland | Gepard", "سلاح سبک": "H&K G3 | MP5"},
     "آلمان شرقی": {"نیروی هوایی": "MiG-21: 252 | MiG-23: 81 | Su-7: 80 | MiG-17: 30", "نیروی زمینی": "T-54/55: 2500 | T-72: 549 | T-34: 600", "توپخانه و خمپاره‌انداز": "2S1 122mm: 200 | 2S3 152mm: 100 | D-30 122mm: 300 | BM-21: 108 | خمپاره 120mm: 250", "نیروی دریایی": "Koni: 3 | OSA-I: 15 | Shershen: 18 | Libelle: 30 | Kondor: 51", "پدافند هوایی": "SA-4 | SA-6 | SA-7", "سلاح سبک": "AK-47 | AK-74"},
-    "ژاپن": {"نیروی هوایی": "F-4EJ: 140 | RF-4E: 14 | F-1: 77 | F-104J", "نیروی زمینی": "Type 74: 740", "توپخانه و خمپاره‌انداز": "Type 75 155mm: 200 | Type 74 105mm: 100 | خمپاره 81mm/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | توپ‌های ۳۵mm", "سلاح سبک": "Howa Type 64"},
-    "هند": {"نیروی هوایی": "MiG-21: 300 | Su-7: 120 | Jaguar: 88 | MiG-23BN: 53 | MiG-17: 148", "نیروی زمینی": "T-54/55: 950 | T-72: 70 | Vijayanta: 1100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | FH-77B 155mm: 100 | BM-21: 200 | خمپاره 81mm/120mm", "نیروی دریایی": "Vikrant: 1 | Foxtrot: 8 | ناوشکن/ناوچه: 23", "پدافند هوایی": "SA-2 | توپ‌های ۴۰mm", "سلاح سبک": "Ishapore 2A1"},
-    "پاکستان": {"نیروی هوایی": "Mirage III: 65 | Mirage 5: 52 | J-6: 175 | F-7P: 74", "نیروی زمینی": "Type 59: 1000 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | M101 105mm: 300 | خمپاره 81mm/120mm", "نیروی دریایی": "ناوشکن: 1 | ناوچه: 8 | زیردریایی: 9", "پدافند هوایی": "SA-2 | توپ‌های ۳۷mm", "سلاح سبک": "G3 | AK-47"},
-    "ترکیه": {"نیروی هوایی": "F-4E: 80 | RF-4E: 8 | F-104G: 72 | F-104D: 45 | F-5: 24", "نیروی زمینی": "M48: 3000 | M47", "توپخانه و خمپاره‌انداز": "M101 105mm: 500 | M114 155mm: 300 | M115 203mm: 100 | خمپاره 81mm/120mm", "نیروی دریایی": "ناوشکن: 13 | زیردریایی: 15", "پدافند هوایی": "Rapier | توپ‌های ۴۰mm", "سلاح سبک": "G3 | M1 Garand"},
-    "برزیل": {"نیروی هوایی": "Mirage IIIEBR: 15 | Mirage IIIDBR: 2 | F-5E: 36 | F-5B: 6 | AT-26: 50", "نیروی زمینی": "M41: 250 | M3A1: 220 | X1A2: 25", "توپخانه و خمپاره‌انداز": "M101 105mm: 300 | M114 155mm: 100 | خمپاره 81mm/120mm", "نیروی دریایی": "Minas Gerais: 1 | Oberon: 3 | GUPPY: 7 | ناوشکن: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL"},
-    "آرژانتین": {"نیروی هوایی": "Mirage IIIEA: 16 | Dagger: 35 | A-4: 16 | Canberra: 8 | Pucara: 30", "نیروی زمینی": "TAM: 350 | AMX-13 | M4 Sherman", "توپخانه و خمپاره‌انداز": "CITER 155mm: 87 | OTO Melara 105mm: 80 | خمپاره 81mm/120mm", "نیروی دریایی": "Veinticinco de Mayo: 1 | Belgrano: 1 | ناوشکن: 8 | Type 209: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL | FMK-3"},
-    "کره جنوبی": {"نیروی هوایی": "F-4D/E: 128 | F-5A/B: 44 | F-5E/F: 160", "نیروی زمینی": "M47: 350 | M48", "توپخانه و خمپاره‌انداز": "M109 155mm: 200 | M101 105mm: 500 | خمپاره 81mm/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | M163 Vulcan", "سلاح سبک": "M16A1"},
-    "کره شمالی": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 130 | MiG-17: 107 | Su-7: 20", "نیروی زمینی": "T-54/55: 2000 | T-62: 300 | T-34: 300", "توپخانه و خمپاره‌انداز": "D-30 122mm: 1000 | M-46 130mm: 500 | BM-21: 500 | خمپاره 82mm/120mm/160mm", "نیروی دریایی": "زیردریایی: 20 | OSA: 52", "پدافند هوایی": "SA-2 | توپ‌های ۱۰۰mm", "سلاح سبک": "AK-47 | Type 58"},
-    "ویتنام": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 70 | MiG-17: 70 | F-5: 20 | A-37: 19", "نیروی زمینی": "T-54/55: 1600 | Type 59: 160 | PT-76: 450 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | BM-21: 200 | خمپاره 82mm/120mm", "نیروی دریایی": "OSA: 8 | مین‌روب: 5", "پدافند هوایی": "SA-2: 360 | SA-3", "سلاح سبک": "AK-47 | M16"},
-    "کوبا": {"نیروی هوایی": "MiG-23BN: 25 | MiG-21: 78 | MiG-19: 40 | MiG-17: 30", "نیروی زمینی": "T-54/55: 630 | T-62: 50 | T-34: 350", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | BM-21: 100 | خمپاره 82mm/120mm", "نیروی دریایی": "Foxtrot: 2 | OSA-II: 13", "پدافند هوایی": "SA-2 | SA-3 | ZSU-23-4", "سلاح سبک": "AK-47 | FN FAL"},
-    "عربستان": {"نیروی هوایی": "F-5E: 70 | F-5F: 20 | F-5B: 20", "نیروی زمینی": "M47 | M41 | AML-60/90", "توپخانه و خمپاره‌انداز": "M101 105mm: 200 | M109 155mm: 100 | خمپاره 81mm/120mm", "نیروی دریایی": "قایق‌های گشتی ساحلی", "پدافند هوایی": "MIM-23 Hawk | توپ‌های ۳۵mm", "سلاح سبک": "FN FAL | G3"}
+    "ژاپن": {"نیروی هوایی": "F-4EJ: 140 | RF-4E: 14 | F-1: 77 | F-104J", "نیروی زمینی": "Type 74: 740", "توپخانه و خمپاره‌انداز": "Type 75 155mm: 200 | Type 74 105mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | توپ ۳۵mm", "سلاح سبک": "Howa Type 64"},
+    "هند": {"نیروی هوایی": "MiG-21: 300 | Su-7: 120 | Jaguar: 88 | MiG-23BN: 53 | MiG-17: 148", "نیروی زمینی": "T-54/55: 950 | T-72: 70 | Vijayanta: 1100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | FH-77B 155mm: 100 | BM-21: 200 | خمپاره 81/120mm", "نیروی دریایی": "Vikrant: 1 | Foxtrot: 8 | ناوشکن/ناوچه: 23", "پدافند هوایی": "SA-2 | توپ ۴۰mm", "سلاح سبک": "Ishapore 2A1"},
+    "پاکستان": {"نیروی هوایی": "Mirage III: 65 | Mirage 5: 52 | J-6: 175 | F-7P: 74", "نیروی زمینی": "Type 59: 1000 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | M101 105mm: 300 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 1 | ناوچه: 8 | زیردریایی: 9", "پدافند هوایی": "SA-2 | توپ ۳۷mm", "سلاح سبک": "G3 | AK-47"},
+    "ترکیه": {"نیروی هوایی": "F-4E: 80 | RF-4E: 8 | F-104G: 72 | F-104D: 45 | F-5: 24", "نیروی زمینی": "M48: 3000 | M47", "توپخانه و خمپاره‌انداز": "M101 105mm: 500 | M114 155mm: 300 | M115 203mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 13 | زیردریایی: 15", "پدافند هوایی": "Rapier | توپ ۴۰mm", "سلاح سبک": "G3 | M1 Garand"},
+    "برزیل": {"نیروی هوایی": "Mirage IIIEBR: 15 | Mirage IIIDBR: 2 | F-5E: 36 | F-5B: 6 | AT-26: 50", "نیروی زمینی": "M41: 250 | M3A1: 220 | X1A2: 25", "توپخانه و خمپاره‌انداز": "M101 105mm: 300 | M114 155mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "Minas Gerais: 1 | Oberon: 3 | GUPPY: 7 | ناوشکن: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL"},
+    "آرژانتین": {"نیروی هوایی": "Mirage IIIEA: 16 | Dagger: 35 | A-4: 16 | Canberra: 8 | Pucara: 30", "نیروی زمینی": "TAM: 350 | AMX-13 | M4 Sherman", "توپخانه و خمپاره‌انداز": "CITER 155mm: 87 | OTO Melara 105mm: 80 | خمپاره 81/120mm", "نیروی دریایی": "Veinticinco de Mayo: 1 | Belgrano: 1 | ناوشکن: 8 | Type 209: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL | FMK-3"},
+    "کره جنوبی": {"نیروی هوایی": "F-4D/E: 128 | F-5A/B: 44 | F-5E/F: 160", "نیروی زمینی": "M47: 350 | M48", "توپخانه و خمپاره‌انداز": "M109 155mm: 200 | M101 105mm: 500 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | M163 Vulcan", "سلاح سبک": "M16A1"},
+    "کره شمالی": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 130 | MiG-17: 107 | Su-7: 20", "نیروی زمینی": "T-54/55: 2000 | T-62: 300 | T-34: 300", "توپخانه و خمپاره‌انداز": "D-30 122mm: 1000 | M-46 130mm: 500 | BM-21: 500 | خمپاره 82/120/160mm", "نیروی دریایی": "زیردریایی: 20 | OSA: 52", "پدافند هوایی": "SA-2 | توپ ۱۰۰mm", "سلاح سبک": "AK-47 | Type 58"},
+    "ویتنام": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 70 | MiG-17: 70 | F-5: 20 | A-37: 19", "نیروی زمینی": "T-54/55: 1600 | Type 59: 160 | PT-76: 450 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | BM-21: 200 | خمپاره 82/120mm", "نیروی دریایی": "OSA: 8 | مین‌روب: 5", "پدافند هوایی": "SA-2: 360 | SA-3", "سلاح سبک": "AK-47 | M16"},
+    "کوبا": {"نیروی هوایی": "MiG-23BN: 25 | MiG-21: 78 | MiG-19: 40 | MiG-17: 30", "نیروی زمینی": "T-54/55: 630 | T-62: 50 | T-34: 350", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | BM-21: 100 | خمپاره 82/120mm", "نیروی دریایی": "Foxtrot: 2 | OSA-II: 13", "پدافند هوایی": "SA-2 | SA-3 | ZSU-23-4", "سلاح سبک": "AK-47 | FN FAL"},
+    "عربستان": {"نیروی هوایی": "F-5E: 70 | F-5F: 20 | F-5B: 20", "نیروی زمینی": "M47 | M41 | AML-60/90", "توپخانه و خمپاره‌انداز": "M101 105mm: 200 | M109 155mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "قایق‌های گشتی ساحلی", "پدافند هوایی": "MIM-23 Hawk | توپ ۳۵mm", "سلاح سبک": "FN FAL | G3"}
 }
 
 COUNTRY_DB = {
@@ -157,7 +157,7 @@ async def init_db():
                 await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}")
             except:
                 pass
-    logger.info("Database initialized (Full v2).")
+    logger.info("Database initialized (Full v3).")
 
 async def get_enemy_deployments_str(player_country):
     async with pool.acquire() as conn:
@@ -602,6 +602,22 @@ async def _analyze_inner(order_id: int, context):
     
     return data
 
+async def analyze_and_apply_order(order_id: int, context):
+    try:
+        return await asyncio.wait_for(_analyze_inner(order_id, context), timeout=120.0)
+    except asyncio.TimeoutError:
+        logger.error(f"AI Timeout for order {order_id}")
+        data = {"success": False, "reason": "پردازش طول کشید", "narrative_short": "به تعویق افتاد.", "narrative_long": "پردازش هوش مصنوعی طول کشید و به تعویق افتاد.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
+        return data
+    except Exception as e:
+        logger.error(f"AI Analysis error for order {order_id}: {type(e).__name__}: {e}")
+        data = {"success": False, "reason": f"خطا: {str(e)[:100]}", "narrative_short": "خطا در تحلیل", "narrative_long": "هوش مصنوعی نتوانست تحلیل را انجام دهد.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
+        return data
+
 async def set_commands(app):
     await app.bot.set_my_commands([
         BotCommand("start", "ثبت‌نام"), 
@@ -610,7 +626,7 @@ async def set_commands(app):
         BotCommand("economy", "انبار منابع"), 
         BotCommand("factory", "مدیریت کارخانه‌ها"), 
         BotCommand("mines", "معادن"), 
-        BotCommand("order", "دستور جدید"), 
+        BotCommand("order", "ثبت دستور جدید"), 
         BotCommand("admin", "پنل ادمین"), 
         BotCommand("turn", "پردازش نوبت (ادمین)")
     ])
@@ -729,16 +745,14 @@ async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
     if not c or c["status"] != "active": 
         return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
-    if not context.args: 
-        return await update.message.reply_text("⚠️ مثال: `/order پیمان اتحاد نظامی با آمریکا`")
         
-    temp[uid] = {"order_text": " ".join(context.args), "step": "ORDER_CATEGORY"}
+    temp[uid] = {"step": "ORDER_CATEGORY"}
     
     kb_cats = InlineKeyboardMarkup([
         [InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic"), InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")],
         [InlineKeyboardButton("🤝 دیپلماسی", callback_data="cat_diplomacy"), InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]
     ])
-    await update.message.reply_text("دسته‌بندی؟", reply_markup=kb_cats)
+    await update.message.reply_text("دسته‌بندی دستور خود را انتخاب کنید:", reply_markup=kb_cats)
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: 
@@ -762,6 +776,16 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         temp.pop(uid, None)
         await context.bot.send_message(uid, "⏳ در انتظار تایید ادمین.")
         await context.bot.send_message(ADMIN_ID, f"📥 **درخواست جدید**\n🌍 {text}\n🆔 `{uid}`", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]]))
+        
+    elif t.get("step") == "AWAITING_ORDER_TEXT":
+        category = t.get("category")
+        temp[uid] = {"step": "SELECT_VISIBILITY", "category": category, "order_text": text}
+        
+        kb_vis = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🌍 عمومی (در گروه منتشر شود)", callback_data="vis_public")],
+            [InlineKeyboardButton("🤫 محرمانه (فقط ادمین و طرفین)", callback_data="vis_secret")]
+        ])
+        await update.message.reply_text("آیا نتیجه این دستور باید در گروه منتشر شود؟", reply_markup=kb_vis)
         
     elif t.get("step") == "ADMIN_SET_GDP_ID" and uid == ADMIN_ID:
         try: 
@@ -817,18 +841,11 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await cb.edit_message_text("👑 **پنل ادمین**", reply_markup=kb([[InlineKeyboardButton("📋 لیست کشورها", callback_data="adm_list")], [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]]), parse_mode="Markdown")
 
     elif data.startswith("cat_"):
-        ot = t.get("order_text")
-        if not ot: 
-            return await cb.edit_message_text("⚠️ منقضی شده.")
-        
         category = data.replace("cat_", "")
-        temp[uid] = {"order_text": ot, "category": category, "step": "SELECT_VISIBILITY"}
+        temp[uid] = {"step": "AWAITING_ORDER_TEXT", "category": category}
         
-        kb_vis = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🌍 عمومی (در گروه منتشر شود)", callback_data="vis_public")],
-            [InlineKeyboardButton("🤫 محرمانه (فقط ادمین و طرفین)", callback_data="vis_secret")]
-        ])
-        await cb.edit_message_text("آیا نتیجه این دستور باید در گروه منتشر شود؟", reply_markup=kb_vis)
+        cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(category, category)
+        await cb.edit_message_text(f"دسته‌بندی: {cat_fa}\n\nلطفاً متن دستور خود را بنویسید و ارسال کنید:")
 
     elif data == "vis_public" or data == "vis_secret":
         is_public = (data == "vis_public")
@@ -1104,6 +1121,9 @@ async def process_turn(context):
                 
     await context.bot.send_message(ADMIN_ID, "✅ نوبت پردازش شد.")
 
+async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
+    logger.error(f"Update {update} caused error {context.error}", exc_info=context.error)
+
 async def post_init(app):
     await init_db()
     await set_commands(app)
@@ -1111,6 +1131,8 @@ async def post_init(app):
 
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
+    app.add_error_handler(error_handler)
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("country", country_cmd))
     app.add_handler(CommandHandler("military", military_cmd))
@@ -1121,12 +1143,17 @@ def main():
     app.add_handler(CommandHandler("admin", admin_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-    
+
     rh = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     if rh:
         port = int(os.environ.get("PORT", 10000))
-        app.run_webhook(listen="0.0.0.0", port=port, url_path=TOKEN, webhook_url=f"https://{rh}/{TOKEN}")
-    else: 
+        app.run_webhook(
+            listen="0.0.0.0", 
+            port=port, 
+            url_path=TOKEN, 
+            webhook_url=f"https://{rh}/{TOKEN}"
+        )
+    else:
         app.run_polling()
 
 if __name__ == "__main__":
