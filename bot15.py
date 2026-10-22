@@ -20,51 +20,12 @@ CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
 CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
 
 GOVERNMENTS = {
-    "communist": {
-        "name": "☭ کمونیستی",
-        "subs": {
-            "marxist": "مارکسیسم-لنینیسم", "stalinist": "استالینیسم",
-            "maoist": "مائوئیسم", "trotskyist": "تروتسکیسم",
-            "titoist": "تیتوئیسم", "castrist": "کاستروئیسم", "council": "کمونیسم شورایی"
-        }
-    },
-    "dictator": {
-        "name": "✊ دیکتاتوری",
-        "subs": {
-            "military": "دیکتاتوری نظامی", "personal": "دیکتاتوری فردی",
-            "party": "دیکتاتوری حزبی", "oligarchy": "الیگارشی", "technocracy": "تکنوکراسی"
-        }
-    },
-    "democracy": {
-        "name": "🗳️ دموکراسی",
-        "subs": {
-            "parliamentary": "پارلمانی", "presidential": "ریاستی",
-            "semi_presidential": "نیمه‌ریاستی", "federal": "فدرال",
-            "direct": "مستقیم", "social_democracy": "سوسیال دموکراسی"
-        }
-    },
-    "monarchy": {
-        "name": "👑 سلطنتی",
-        "subs": {
-            "absolute": "مطلقه", "constitutional": "مشروطه",
-            "federal": "فدرال", "elective": "انتخابی", "empire": "امپراتوری"
-        }
-    },
-    "republic": {
-        "name": "🏛️ جمهوری",
-        "subs": {
-            "secular": "سکولار", "islamic": "اسلامی", "theocratic": "تئوکراتیک",
-            "socialist": "سوسیالیستی", "federal_rep": "فدرال", "liberal": "لیبرال"
-        }
-    },
-    "religious": {
-        "name": "🕌 دینی",
-        "subs": {
-            "shia_theo": "تئوکراسی شیعه", "suni_theo": "تئوکراتیک سنی",
-            "caliphate": "خلافتی", "velayat": "ولایت فقیه",
-            "confucian": "کنفوسیوسی", "buddhist": "بودایی"
-        }
-    }
+    "communist": {"name": "☭ کمونیستی", "subs": {"marxist": "مارکسیسم-لنینیسم", "stalinist": "استالینیسم", "maoist": "مائوئیسم", "trotskyist": "تروتسکیسم", "titoist": "تیتوئیسم", "castrist": "کاستروئیسم", "council": "کمونیسم شورایی"}},
+    "dictator": {"name": "✊ دیکتاتوری", "subs": {"military": "دیکتاتوری نظامی", "personal": "دیکتاتوری فردی", "party": "دیکتاتوری حزبی", "oligarchy": "الیگارشی", "technocracy": "تکنوکراسی"}},
+    "democracy": {"name": "🗳️ دموکراسی", "subs": {"parliamentary": "پارلمانی", "presidential": "ریاستی", "semi_presidential": "نیمه‌ریاستی", "federal": "فدرال", "direct": "مستقیم", "social_democracy": "سوسیال دموکراسی"}},
+    "monarchy": {"name": "👑 سلطنتی", "subs": {"absolute": "مطلقه", "constitutional": "مشروطه", "federal": "فدرال", "elective": "انتخابی", "empire": "امپراتوری"}},
+    "republic": {"name": "🏛️ جمهوری", "subs": {"secular": "سکولار", "islamic": "اسلامی", "theocratic": "تئوکراتیک", "socialist": "سوسیالیستی", "federal_rep": "فدرال", "liberal": "لیبرال"}},
+    "religious": {"name": "🕌 دینی", "subs": {"shia_theo": "تئوکراسی شیعه", "suni_theo": "تئوکراتیک سنی", "caliphate": "خلافتی", "velayat": "ولایت فقیه", "confucian": "کنفوسیوسی", "buddhist": "بودایی"}}
 }
 
 pool = None
@@ -89,10 +50,8 @@ async def init_db():
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        # اضافه کردن ستون رضایت در صورت وجود نداشتن (آپدیت ایمن)
         try:
             await conn.execute("ALTER TABLE countries ADD COLUMN satisfaction INT DEFAULT 50")
-            logger.info("Added satisfaction column to countries table.")
         except asyncpg.exceptions.DuplicateColumnError:
             pass
             
@@ -125,18 +84,19 @@ async def get_order(order_id):
 def kb(rows):
     return InlineKeyboardMarkup(rows)
 
-def fmt_money(units):
+# تابع فرمت پول حالا مستقیم دلاره
+def fmt_money(dollars):
     try:
-        dollars = int(units) * 1000
+        d = int(dollars)
     except (TypeError, ValueError):
         return "0 دلار"
-    if dollars >= 1_000_000_000:
-        return f"${dollars / 1_000_000_000:.2f} میلیارد دلار"
-    if dollars >= 1_000_000:
-        return f"${dollars / 1_000_000:.1f} میلیون دلار"
-    if dollars >= 1_000:
-        return f"${dollars / 1_000:.0f} هزار دلار"
-    return f"${dollars:,.0f} دلار"
+    if d >= 1_000_000_000:
+        return f"${d / 1_000_000_000:.2f} میلیارد دلار"
+    if d >= 1_000_000:
+        return f"${d / 1_000_000:.1f} میلیون دلار"
+    if d >= 1_000:
+        return f"${d / 1_000:.0f} هزار دلار"
+    return f"${d:,.0f} دلار"
 
 def _safe_parse_json(raw) -> dict:
     if isinstance(raw, dict): return raw
@@ -155,13 +115,21 @@ def _safe_parse_json(raw) -> dict:
     logger.error(f"All JSON parsing layers failed for: {raw}")
     return {}
 
+# پاکسازی کاراکترهای خراب (چینی، روسی، انگلیسی) از متن
+def _clean_persian_text(text: str) -> str:
+    if not isinstance(text, str):
+        return ""
+    # فقط حروف فارسی، اعداد، فاصله و علائم نگارشی مجاز
+    cleaned = re.sub(r'[^\u0600-\u06FF0-9\s\.\,\!\?\:\-\؛\(\)\[\]\«\»\n]', '', text)
+    return cleaned.strip()
+
 async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. Output raw JSON only.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
     payload = {
         "messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}],
         "max_tokens": 1500,
-        "temperature": 0.7 # افزایش خلاقیت برای نوشتن متن‌های حماسی
+        "temperature": 0.7
     }
 
     def fallback(reason, narrative):
@@ -176,13 +144,12 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
                     if attempt == 0: 
                         await asyncio.sleep(5)
                         continue
-                    return fallback("محدودیت روزانه هوش مصنوعی", "سهمیه روزانه AI تمام شده. لطفاً بعداً تلاش کنید.")
+                    return fallback("محدودیت روزانه", "سهمیه روزانه AI تمام شده.")
                 if response.status_code != 200:
-                    logger.error(f"CF Error body: {response.text[:400]}")
                     if attempt == 0: 
                         await asyncio.sleep(3)
                         continue
-                    return fallback(f"خطای سرویس ({response.status_code})", "سرویس هوش مصنوعی در دسترس نیست.")
+                    return fallback(f"خطای سرویس ({response.status_code})", "سرویس در دسترس نیست.")
                 res_data = response.json()
                 if res_data.get("success"):
                     resp = res_data["result"]["response"]
@@ -192,57 +159,66 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a game master API. O
                     if attempt == 0: 
                         await asyncio.sleep(3)
                         continue
-                    return fallback("مدل خطا داد", "مدل قادر به پاسخ‌دهی نبود.")
+                    return fallback("مدل خطا داد", "پاسخ‌دهی نبود.")
         except httpx.TimeoutException:
             if attempt == 0: 
                 await asyncio.sleep(2)
                 continue
-            return fallback("پاسخ AI زمان زیادی طول کشید", "سرویس AI پاسخگو نبود.")
+            return fallback("تایم اوت", "سرویس پاسخگو نبود.")
         except Exception as e:
             logger.error(f"AI Exception: {type(e).__name__}: {e}")
             if attempt == 0: 
                 await asyncio.sleep(2)
                 continue
-            return fallback("خطای شبکه", "ارتباط با AI برقرار نشد.")
+            return fallback("خطای شبکه", "ارتباط برقرار نشد.")
 
 def _build_prompt(country: dict, order_text: str, category: str) -> str:
     if category == "political":
-        narrative_rule = "The narrative MUST be a highly dramatic, grandiloquent (گنده‌گوزی) political speech or declaration to the world. It should sound arrogant, epic, and theatrical, like a dictator addressing a massive crowd."
+        narrative_rule = "The narrative MUST be a highly dramatic, grandiloquent political speech or declaration. Focus on pride, threats, or grand promises. DO NOT mention lack of funds unless the speech explicitly cost money to organize."
+        cost_rule = "Political speeches, declarations, and PR campaigns typically cost $0 to $10,000 (for stage setup). They should almost NEVER fail due to lack of funds."
     elif category == "military":
-        narrative_rule = "The narrative MUST be an epic war report. Describe the marching armies, the thunder of boots, or the devastating failure on the battlefield with dramatic tension."
+        narrative_rule = "The narrative MUST be an epic war report. Describe the marching armies or the devastating failure on the battlefield."
+        cost_rule = "Military costs: Assassination ($500,000), Airstrike ($10,000,000), Heavy combined military operation ($100,000,000). If cost > treasury, success MUST be false."
     else:
-        narrative_rule = "The narrative MUST be a dramatic economic news report. If successful, describe the golden age and prosperity. If failed, describe the despair of the people and the empty national treasury."
+        narrative_rule = "The narrative MUST be a dramatic economic news report. Describe the golden age (if success) or the despair and empty treasury (if failed)."
+        cost_rule = "Economic investments: Massive infrastructure ($500,000,000+), National project ($100,000,000), Local project ($10,000,000). If cost > treasury, success MUST be false."
 
-    return f"""You are the Epic Game Master and narrator of a grand strategy roleplaying game.
-Your task is to analyze the player's order, calculate the impact, and write a cinematic narrative (in Persian).
+    return f"""You are the strict Game Master of a grand strategy game.
+Your task is to analyze the player's order, calculate the economic impact (IN DOLLARS), and write a cinematic narrative in Persian.
 
 COUNTRY INFO:
 - Name: {country['name']}
-- Treasury: {country['treasury']} units (1 unit = $1,000)
-- GDP: {country['gdp']} units
+- Treasury: ${country['treasury']:,}
+- GDP: ${country['gdp']:,}
 - Army: {country['army']} soldiers
+- Current Satisfaction: {country.get('satisfaction', 50)}%
 
 ORDER CATEGORY: {category}
 PLAYER ORDER: "{order_text}"
 
-STRICT RULES (YOU WILL BE TERMINATED IF YOU BREAK THESE):
-1. CALCULATION: 1 unit = $1,000. Example: $5,000,000 costs 5,000 units.
-2. LOGIC: If cost > treasury, success MUST be false. All changes MUST be 0.
+ECONOMIC SCALE (CRITICAL):
+- $500,000,000 is a VAST amount of wealth (Half a billion dollars).
+- A normal assassination costs $500,000.
+- A heavy military operation costs $100,000,000.
+- {cost_rule}
+
+STRICT RULES (FAILURE TO COMPLY WILL RESULT IN SYSTEM ERROR):
+1. CURRENCY: All changes MUST be in exact USD ($). No units, no thousands. E.g., spending 50 million means "treasury_change": -50000000.
+2. LOGIC: If calculated cost > current Treasury, "success" MUST be false, and all changes MUST be 0.
 3. NARRATIVE STYLE: {narrative_rule}
-4. FAILURE NARRATIVE: If success is false, the narrative MUST explicitly describe the failure, the lack of funds, or the rejection by the government/people. Do NOT write contradictory sentences (e.g., never say "rejected due to sufficient funds").
-5. LANGUAGE: Use ONLY Persian (Farsi) alphabet. Do NOT use English, Chinese, Arabic, or any other characters.
-6. FORMATTING: NO literal newlines (\\n) inside the narrative string. NO quotation marks inside the string.
-7. OUTPUT: Valid JSON only.
+4. PERSIAN ONLY: You MUST output Persian words using ONLY the Persian alphabet. NO English letters, NO Chinese characters, NO Russian (Cyrillic) letters. If you use foreign words like "пуст", the system will crash.
+5. FORMATTING: NO newlines (\\n) inside the "narrative" string. NO double quotes (") inside the string.
+6. OUTPUT: Valid JSON only.
 
 EXACT JSON FORMAT:
 {{
   "success": true or false,
-  "reason": "A strict, logical Persian explanation of WHY it succeeded or failed (max 100 chars).",
-  "treasury_change": integer,
+  "reason": "A strict, logical Persian explanation in dollars (max 100 chars).",
+  "treasury_change": integer (exact dollars, e.g. -500000),
   "army_change": integer,
-  "gdp_change": integer,
+  "gdp_change": integer (exact dollars),
   "satisfaction_change": integer (between -10 and +10),
-  "narrative": "The epic, cinematic Persian text (max 800 chars)."
+  "narrative": "Epic Persian text (max 800 chars)."
 }}
 """
 
@@ -262,7 +238,7 @@ async def _analyze_inner(order_id: int):
     if not country: return {"success": False, "reason": "کشور یافت نشد", "narrative": ""}
 
     prompt = _build_prompt(country, order["order_text"], order["category"])
-    sys_prompt = "You are a strict JSON-only API. You speak only Persian in your responses. Never use foreign characters. Never break JSON format. Do not include markdown fences like ```json."
+    sys_prompt = "You are a strict JSON-only API for a game. You MUST use ONLY Persian characters in your strings. Do NOT use English, Chinese, or Russian characters. Output raw JSON."
     
     ai_response = await ask_ai(prompt, system_prompt=sys_prompt)
     logger.info(f"AI RAW for order {order_id}:\n{ai_response}")
@@ -271,6 +247,10 @@ async def _analyze_inner(order_id: int):
 
     if "success" not in data or "narrative" not in data:
         data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative": "دستور ثبت شد اما نیاز به بررسی دستی دارد.", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0}
+
+    # پاکسازی متن‌ها از کاراکترهای خراب
+    if "narrative" in data: data["narrative"] = _clean_persian_text(str(data["narrative"]))
+    if "reason" in data: data["reason"] = _clean_persian_text(str(data["reason"]))
 
     if data.get("success"):
         try:
@@ -282,7 +262,7 @@ async def _analyze_inner(order_id: int):
             data = {"success": False, "reason": "خطای عددی", "narrative": "", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0}
         else:
             if country["treasury"] + t_change < 0:
-                data = {"success": False, "reason": f"کمبود بودجه: {abs(t_change):,} > {country['treasury']:,}", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": f"دولت {country['name']} اعلام کرد بودجه کافی نیست."}
+                data = {"success": False, "reason": f"کمبود بودجه: ${abs(t_change):,} > ${country['treasury']:,}", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": f"دولت {country['name']} اعلام کرد بودجه کافی نیست."}
             elif country["army"] + a_change < 0:
                 data = {"success": False, "reason": "نیرو کم است", "treasury_change": 0, "army_change": 0, "gdp_change": 0, "satisfaction_change": 0, "narrative": "فرماندهی ارتش مخالفت کرد."}
             else:
@@ -493,7 +473,7 @@ async def analyze_and_send_to_admin(update_or_cb, context, order_id):
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
     ch = ""
     if ai_data.get("success"):
-        ch = f"\n💰 خزانه: {ai_data.get('treasury_change',0):+,} | 🎖 ارتش: {ai_data.get('army_change',0):+,} | 📈 GDP: {ai_data.get('gdp_change',0):+,} | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n"
+        ch = f"\n💰 خزانه: {ai_data.get('treasury_change',0):+,} $ | 🎖 ارتش: {ai_data.get('army_change',0):+,} | 📈 GDP: {ai_data.get('gdp_change',0):+,} $ | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n"
         
     txt = f"🧠 نتیجه تحلیل (70B)\n\n📌 وضعیت: {st}\n📝 تحلیل: {ai_data.get('reason', '')}\n{ch}\n📖 پیش‌نمایش انتشار:\n{ai_data.get('narrative', '')}\n\nتایید می‌کنید؟"
     btn = kb([[InlineKeyboardButton("📢 انتشار", callback_data=f"pub_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
@@ -512,20 +492,20 @@ Calculate the income and growth for the next turn for this country.
 
 COUNTRY INFO:
 - Name: {country['name']}
-- Treasury: {country['treasury']} units (1 unit = $1,000)
-- GDP: {country['gdp']} units
+- Treasury: ${country['treasury']:,}
+- GDP: ${country['gdp']:,}
 - Army: {country['army']} soldiers
 
 INSTRUCTIONS:
 1. Treasury usually grows by 5% to 15% of the current GDP per turn (due to taxes, trade, etc.).
 2. GDP can grow by 2% to 5% per turn.
-3. Write a short, epic "narrative" in Persian (max 300 chars) about the country's economic prosperity and the new budget. NO literal newlines.
+3. Write a short, epic "narrative" in Persian (max 300 chars) about the country's economic prosperity. NO literal newlines.
 4. Output strictly valid JSON.
 
 EXACT JSON FORMAT:
 {{
-  "treasury_change": integer (in units),
-  "gdp_change": integer (in units),
+  "treasury_change": integer (exact dollars),
+  "gdp_change": integer (exact dollars),
   "narrative": "Persian economic news here"
 }}
 """
@@ -535,7 +515,7 @@ async def next_turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if uid != ADMIN_ID:
         return await update.message.reply_text("⚠️ فقط ادمین می‌تواند نوبت را رد کند.")
     
-    msg = await update.message.reply_text("⏳ در حال محاسبه اقتصاد جهانی و درآمد کشورها... (ممکن است کمی طول بکشد)")
+    msg = await update.message.reply_text("⏳ در حال محاسبه اقتصاد جهانی...")
     
     async with pool.acquire() as conn:
         countries = await conn.fetch("SELECT * FROM countries WHERE status = 'active'")
@@ -554,7 +534,7 @@ async def next_turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             t_change = int(data.get("treasury_change", 0))
             g_change = int(data.get("gdp_change", 0))
-            narrative = data.get("narrative", "اقتصاد روند عادی خود را طی کرد.")
+            narrative = _clean_persian_text(data.get("narrative", "اقتصاد روند عادی خود را طی کرد."))
         except:
             t_change, g_change, narrative = 0, 0, "خطا در محاسبات اقتصادی."
             
@@ -571,13 +551,13 @@ async def next_turn_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 t_change, g_change, country["user_id"]
             )
             
-        report_lines.append(f"🏛️ {country['name']}:\n💰 +{t_change:,} واحد | 📈 +{g_change:,} واحد\n📰 {narrative}\n")
+        report_lines.append(f"🏛️ {country['name']}:\n💰 +${t_change:,} | 📈 +${g_change:,}\n📰 {narrative}\n")
     
     final_report = "📊 **گزارش پایان نوبت و درآمد کشورها**\n\n" + "\n".join(report_lines)
     btn = kb([[InlineKeyboardButton("📢 انتشار گزارش در کانال", callback_data="pub_economy_report")]])
     
     if len(final_report) > 4000:
-        await msg.edit_text("✅ اقتصاد آپدیت شد، اما متن گزارش طولانی است. لاگ‌ها را چک کنید.")
+        await msg.edit_text("✅ اقتصاد آپدیت شد، اما متن گزارش طولانی است.")
     else:
         await msg.edit_text(final_report, reply_markup=btn)
 
