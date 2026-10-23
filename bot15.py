@@ -213,10 +213,8 @@ async def init_db():
                 final_narrative TEXT, created_at TIMESTAMP DEFAULT NOW()
             )
         """)
-        
         for res in RESOURCES.keys():
             await conn.execute(f"ALTER TABLE countries ADD COLUMN IF NOT EXISTS res_{res} BIGINT DEFAULT 0")
-        
         columns_to_add = [
             ("orders", "is_public", "BOOLEAN DEFAULT TRUE"),
             ("orders", "target_country", "TEXT"),
@@ -240,11 +238,9 @@ async def init_db():
                 await conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {col} {col_type}")
             except:
                 pass
-
         await conn.execute("UPDATE countries SET alliance = 'ناتو' WHERE name IN ('آمریکا', 'بریتانیا', 'فرانسه', 'آلمان غربی', 'ترکیه') AND alliance = 'none'")
         await conn.execute("UPDATE countries SET alliance = 'ورشو' WHERE name IN ('شوروی', 'آلمان شرقی') AND alliance = 'none'")
-
-    logger.info("Database initialized (Full V4).")
+    logger.info("Database initialized (Full V5).")
 
 def kb(rows):
     return InlineKeyboardMarkup(rows)
@@ -322,10 +318,8 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
     payload = {"messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}], "max_tokens": 1500, "temperature": 0.7}
-    
     def fallback(reason, narrative):
         return json.dumps({"success": False, "reason": reason, "narrative_short": narrative, "narrative_long": narrative}, ensure_ascii=False)
-
     for attempt in range(2):
         try:
             async with httpx.AsyncClient() as client:
@@ -371,10 +365,8 @@ def _build_prompt(country: dict, order_text: str, category: str, enemy_deploymen
         narrative_rule = "The narrative MUST be an epic war report."
     else:
         narrative_rule = "The narrative MUST be a dramatic economic news report."
-
     current_tech = country.get('researching_tech', 'None')
     tech_info = f"در حال تحقیق: {current_tech}" if current_tech != 'None' else "هیچ تحقیقی در جریان نیست."
-
     return f"""You are the strict Game Master of a grand strategy game set in 1979.
 
 COUNTRY: {country['name']} | GDP: ${country['gdp']:,} | Mil Budget: ${country['mil_budget']:,}
@@ -443,13 +435,11 @@ async def create_encounter_ask_intent(context, order_id, user_id, country_name, 
         enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
         if enemy_asset_row:
             await conn.execute("UPDATE encounters SET detected_asset = $1 WHERE id = $2", enemy_asset_row['model'], enc_id)
-    
     intent_kb = InlineKeyboardMarkup([
         [InlineKeyboardButton("🕊️ گشت‌زنی", callback_data=f"intent_patrol_{enc_id}")], 
         [InlineKeyboardButton("⚔️ حمله", callback_data=f"intent_attack_{enc_id}")], 
         [InlineKeyboardButton("🏃 عقب‌نشینی", callback_data=f"intent_retreat_{enc_id}")]
     ])
-    
     for target_id, our_asset in [(user_id, asset), (enemy['user_id'], enemy_asset_row['model'] if enemy_asset_row else 'نامشخص')]:
         try:
             await context.bot.send_message(target_id, f"🚨 **درگیری هوایی در {region}**\n\nکشور شما (`{our_asset}`) با دشمن روبرو شد.\n**نیت شما چیست؟**", reply_markup=intent_kb)
@@ -478,14 +468,11 @@ async def handle_intent_response(context, enc_id, user_id, intent):
             await conn.execute("UPDATE encounters SET detected_intent = $1 WHERE id = $2 AND detected_intent = 'pending'", intent, enc_id)
         else:
             return
-            
         enc = await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id)
         if enc['detector_intent'] == 'pending' or enc['detected_intent'] == 'pending':
             return
-        
         det_intent = enc['detector_intent']
         ed_intent = enc['detected_intent']
-        
         if det_intent == 'retreat' or ed_intent == 'retreat':
             if det_intent == 'retreat' and ed_intent == 'retreat':
                 await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
@@ -522,10 +509,8 @@ async def simulate_encounter_battle(context, enc_id, enc):
         det_country = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", enc['detector_id'])
         ed_country = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", enc['detected_id'])
         await conn.execute("UPDATE encounters SET status = 'resolved' WHERE id = $1", enc_id)
-    
     if not det_country or not ed_country:
         return
-    
     det_spec = "نامشخص"
     ed_spec = "نامشخص"
     for key, spec in AIRCRAFT_SPECS.items():
@@ -533,10 +518,8 @@ async def simulate_encounter_battle(context, enc_id, enc):
             det_spec = spec
         if key.lower() in enc['detected_asset'].lower():
             ed_spec = spec
-            
     det_intent = enc.get('detector_intent', 'attack')
     ed_intent = enc.get('detected_intent', 'attack')
-    
     prompt = f"""You are an elite tactical air combat simulator for the year 1979. 
 === AIRCRAFT TECHNICAL ANALYSIS ===
 DETECTOR: {enc['detector_country']} | Aircraft: {enc['detector_asset']} | Specs: {det_spec} | Intent: {det_intent.upper()}
@@ -555,30 +538,23 @@ Output JSON only:
   "detected_pilot_deaths": integer,
   "narrative": "Persian detailed tactical report including BVR, WVR, and pilot ejections."
 }}"""
-    
     ai_response = await ask_ai(prompt)
     data = _safe_parse_json(ai_response)
-    
     det_losses = max(0, int(data.get('detector_losses', 0)))
     ed_losses = max(0, int(data.get('detected_losses', 0)))
     det_p_deaths = max(0, int(data.get('detector_pilot_deaths', 0)))
     ed_p_deaths = max(0, int(data.get('detected_pilot_deaths', 0)))
     narrative = _clean_persian_text(data.get('narrative', 'نبردی شدید رخ داد.'))
-    
     async with pool.acquire() as conn:
         await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", det_losses, det_p_deaths, enc['detector_id'])
         await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", ed_losses, ed_p_deaths, enc['detected_id'])
-        
         await conn.execute("UPDATE deployments SET quantity = GREATEST(0, quantity - $1) WHERE country_name = $2 AND region = $3", det_losses, enc['detector_country'], enc['region'])
         await conn.execute("UPDATE deployments SET quantity = GREATEST(0, quantity - $1) WHERE country_name = $2 AND region = $3", ed_losses, enc['detected_country'], enc['region'])
         await conn.execute("DELETE FROM deployments WHERE quantity <= 0")
-        
         await conn.execute("UPDATE encounters SET battle_narrative = $1 WHERE id = $2", narrative, enc_id)
         await conn.execute("UPDATE orders SET final_narrative = $1 WHERE id = $2", narrative, enc['order_id'])
-        
         det_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detector_id'])
         ed_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detected_id'])
-        
     if det_data and ed_data and det_data['alliance'] != 'none' and det_data['alliance'] != ed_data['alliance']:
         async with pool.acquire() as conn:
             allies = await conn.fetch("SELECT user_id FROM countries WHERE alliance = $1 AND status = 'active' AND user_id != $2", ed_data['alliance'], enc['detected_id'])
@@ -587,7 +563,6 @@ Output JSON only:
                 await context.bot.send_message(ally['user_id'], f"🚨 **فعال شدن پیمان {ed_data['alliance']}!**\n\n{enc['detected_country']} در {enc['region']} مورد حمله قرار گرفت.")
             except:
                 pass
-
     battle_msg = f"⚔️ **نتیجه نبرد در {enc['region']}**\n\n🏴 **{enc['detector_country']}**: {det_losses} فروند، {det_p_deaths} خلبان\n🏳️ **{enc['detected_country']}**: {ed_losses} فروند، {ed_p_deaths} خلبان\n\n📖 **تحلیل:**\n{narrative}"
     for uid in [enc['detector_id'], enc['detected_id']]:
         try:
@@ -601,25 +576,20 @@ async def _analyze_inner(order_id: int, context):
         if not order:
             return {"success": False, "reason": "سفارش یافت نشد", "narrative_short": "", "narrative_long": ""}
         country = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", order["user_id"])
-    
     enemy_str = await get_enemy_deployments_str(country['name'])
     prompt = _build_prompt(dict(country), order["order_text"], order["category"], enemy_str)
     ai_response = await ask_ai(prompt)
     data = _safe_parse_json(ai_response)
-
     if "success" not in data or "narrative_long" not in data:
         data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative_short": "خطا", "narrative_long": "بررسی دستی.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
-
     for k in ["narrative_short", "narrative_long", "reason", "target_country"]:
         if k in data:
             data[k] = _clean_persian_text(str(data[k]))
-
     order_intent = data.get("order_intent", "deploy")
     region = data.get("region", "None")
     action_type = data.get("action_type", "economic")
     target_country = data.get("target_country", "None")
     deployed_asset = data.get("deployed_asset", "نیروی نامشخص")
-    
     if action_type == "diplomacy" and target_country != "None":
         async with pool.acquire() as conn:
             target_data = await conn.fetchrow("SELECT user_id FROM countries WHERE name = $1 AND status = 'active'", target_country)
@@ -634,8 +604,7 @@ async def _analyze_inner(order_id: int, context):
             except:
                 pass
             return data
-
-    if data.get("success"):
+        if data.get("success"):
         try:
             g_change = int(data.get("gdp_change") or 0)
             m_change = int(data.get("mil_budget_change") or 0)
@@ -643,6 +612,7 @@ async def _analyze_inner(order_id: int, context):
             t_change = int(data.get("tanks_change") or 0)
             r_change = int(data.get("refineries_change") or 0)
             s_change = int(data.get("satisfaction_change") or 0)
+            
             if action_type in ["deploy", "attack"]:
                 j_change = 0
                 t_change = 0
@@ -690,20 +660,20 @@ async def analyze_and_apply_order(order_id: int, context):
             await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
         return data
 
-        async def set_commands(app):
+async def set_commands(app):
     await app.bot.set_my_commands([
-        BotCommand("start", "ثبت‌نام"),
-        BotCommand("country", "اطلاعات کشور"),
-        BotCommand("military", "آرشیو نظامی"),
-        BotCommand("economy", "انبار منابع"),
-        BotCommand("factory", "کارخانه‌ها"),
-        BotCommand("mines", "معادن"),
-        BotCommand("order", "دستور جدید"),
-        BotCommand("research", "تحقیق و توسعه"),
-        BotCommand("admin", "پنل ادمین"),
+        BotCommand("start", "ثبت‌نام"), 
+        BotCommand("country", "اطلاعات کشور"), 
+        BotCommand("military", "آرشیو نظامی"), 
+        BotCommand("economy", "انبار منابع"), 
+        BotCommand("factory", "کارخانه‌ها"), 
+        BotCommand("mines", "معادن"), 
+        BotCommand("order", "دستور جدید"), 
+        BotCommand("research", "تحقیق و توسعه"), 
+        BotCommand("admin", "پنل ادمین"), 
         BotCommand("unban", "رفع مسدودی (ادمین)")
     ])
-    
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     if check_spam(uid):
@@ -1284,7 +1254,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await conn.execute("INSERT INTO infrastructure (user_id, sector_type, name, income) VALUES ($1, $2, $3, $4)", uid, sector, req['name'], req['income'])
         await cb.answer("✅ ساخته شد!", show_alert=True)
 
-
 async def send_analysis(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
@@ -1310,7 +1279,6 @@ async def send_analysis(update_or_cb, context, order_id):
             pass
             
     await context.bot.send_message(update_or_cb.from_user.id, txt, reply_markup=btn)
-
 
 async def process_turn(context):
     async with pool.acquire() as conn:
@@ -1347,16 +1315,13 @@ async def process_turn(context):
                 
     await context.bot.send_message(ADMIN_ID, "✅ نوبت پردازش شد.")
 
-
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(f"Update {update} caused error {context.error}", exc_info=context.error)
-
 
 async def post_init(app):
     await init_db()
     await set_commands(app)
     await app.bot.delete_webhook(drop_pending_updates=True)
-
 
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
@@ -1382,7 +1347,5 @@ def main():
     else:
         app.run_polling()
 
-
 if __name__ == "__main__":
     main()
-    
