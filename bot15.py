@@ -692,18 +692,18 @@ async def analyze_and_apply_order(order_id: int, context):
 
         async def set_commands(app):
     await app.bot.set_my_commands([
-        BotCommand("start", "ثبت‌نام"), 
-        BotCommand("country", "اطلاعات کشور"), 
-        BotCommand("military", "آرشیو نظامی"), 
-        BotCommand("economy", "انبار منابع"), 
-        BotCommand("factory", "کارخانه‌ها"), 
-        BotCommand("mines", "معادن"), 
-        BotCommand("order", "دستور جدید"), 
-        BotCommand("research", "تحقیق و توسعه"), 
-        BotCommand("admin", "پنل ادمین"), 
+        BotCommand("start", "ثبت‌نام"),
+        BotCommand("country", "اطلاعات کشور"),
+        BotCommand("military", "آرشیو نظامی"),
+        BotCommand("economy", "انبار منابع"),
+        BotCommand("factory", "کارخانه‌ها"),
+        BotCommand("mines", "معادن"),
+        BotCommand("order", "دستور جدید"),
+        BotCommand("research", "تحقیق و توسعه"),
+        BotCommand("admin", "پنل ادمین"),
         BotCommand("unban", "رفع مسدودی (ادمین)")
     ])
-
+    
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     if check_spam(uid):
