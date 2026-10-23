@@ -23,9 +23,9 @@ CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
 CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
 
 RESOURCES = {
-    "oil": "🛢 نفت خام", "coal": "🪨 زغال سنگ", "iron": "⛏ سنگ آهن", 
-    "copper": "🟤 سنگ مس", "titanium": "⚙️ سنگ تیتانیوم", "uranium": "☢ سنگ اورانیوم", 
-    "tungsten": "🔫 سنگ تنگستن", "cobalt": "🔋 سنگ کوبالت", "chromium": "✨ سنگ کروم", 
+    "oil": "🛢 نفت خام", "coal": "🪨 زغال سنگ", "iron": "⛏ سنگ آهن",
+    "copper": "🟤 سنگ مس", "titanium": "⚙️ سنگ تیتانیوم", "uranium": "☢ سنگ اورانیوم",
+    "tungsten": "🔫 سنگ تنگستن", "cobalt": "🔋 سنگ کوبالت", "chromium": "✨ سنگ کروم",
     "rare_earth": "💎 فلزات کمیاب", "steel": "🏗 فولاد", "chemicals": "🧪 مواد شیمیایی",
     "tank_armor": "🛡 آلیاژ زره", "jet_engine": "🚀 سوپرآلیاژ جت", "electronics": "📟 الکترونیک", "ammo": "🔫 مهمات",
     "gold": "🏵 طلا", "lead": "🔘 سرب", "zinc": "⚪ روی", "phosphate": "🧪 فسفات", "sulfur": "🟡 گوگرد"
@@ -49,6 +49,24 @@ AIRCRAFT_SPECS = {
     "MiG-23": "سرعت 2.35 ماخ | رادار RP-23 (70km) | R-23 (35km) | R-60 (8km) | مانور خوب | خدمه: 1 نفر",
     "MiG-25": "سرعت 2.83 ماخ | رادار RP-25 (100km) | R-40 (80km) | مانور ضعیف | خدمه: 1 نفر",
     "Mirage F1": "سرعت 2.2 ماخ | رادار Cyrano IV (60km) | R.530 (30km) | R.550 (10km) | توپ 30mm | خدمه: 1 نفر"
+}
+
+def get_radar_range(asset_name):
+    if not asset_name:
+        return 40
+    for key, spec in AIRCRAFT_SPECS.items():
+        if key.lower() in asset_name.lower():
+            m = re.search(r'\((\d+)km\)', spec)
+            if m:
+                return int(m.group(1))
+    return 40
+
+PILOT_DB = {
+    "ایران": 5000, "آمریکا": 25000, "شوروی": 30000, "چین": 10000, "عراق": 2000,
+    "اسرائیل": 2500, "مصر": 3000, "سوریه": 2000, "بریتانیا": 5000, "فرانسه": 3000,
+    "آلمان غربی": 4000, "آلمان شرقی": 2000, "ژاپن": 3500, "هند": 3855, "پاکستان": 3000,
+    "ترکیه": 3000, "برزیل": 1500, "آرژانتین": 1500, "کره جنوبی": 2500, "کره شمالی": 3000,
+    "ویتنام": 1500, "کوبا": 1000, "عربستان": 800
 }
 
 MILITARY_DB = {
@@ -101,14 +119,6 @@ PERSONNEL_DB = {
     "ویتنام": "ارتش: ۶۰۰,۰۰۰ نفر | نیروی هوایی: ۱۲,۰۰۰ نفر | نیروی دریایی: ۳,۰۰۰ نفر",
     "کوبا": "ارتش: ۱۳۰,۰۰۰ نفر | نیروی هوایی: ۱۵,۰۰۰ نفر | نیروی دریایی: ۵,۰۰۰ نفر",
     "عربستان": "ارتش: ۴۰,۰۰۰ نفر | نیروی هوایی: ۱۰,۰۰۰ نفر | نیروی دریایی: ۱,۷۰۰ نفر"
-}
-
-PILOT_DB = {
-    "ایران": 4500, "آمریکا": 25000, "شوروی": 30000, "چین": 12000, "عراق": 2000,
-    "اسرائیل": 2500, "مصر": 3000, "سوریه": 2000, "بریتانیا": 5000, "فرانسه": 6000,
-    "آلمان غربی": 4000, "آلمان شرقی": 2000, "ژاپن": 3500, "هند": 5000, "پاکستان": 2000,
-    "ترکیه": 3000, "برزیل": 1500, "آرژانتین": 1000, "کره جنوبی": 2500, "کره شمالی": 3000,
-    "ویتنام": 1500, "کوبا": 1000, "عربستان": 800
 }
 
 FACTORY_DB = {
@@ -176,25 +186,25 @@ async def init_db():
     async with pool.acquire() as conn:
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS countries (
-                user_id BIGINT PRIMARY KEY, username TEXT, name TEXT, status TEXT DEFAULT 'pending', 
+                user_id BIGINT PRIMARY KEY, username TEXT, name TEXT, status TEXT DEFAULT 'pending',
                 leader TEXT, gov_main TEXT, gov_sub TEXT,
-                gdp BIGINT DEFAULT 500000000, mil_budget BIGINT DEFAULT 35000000, 
-                jets INT DEFAULT 0, tanks INT DEFAULT 0, refineries INT DEFAULT 0, army INT DEFAULT 100000, 
-                pilots INT DEFAULT 0, satisfaction INT DEFAULT 50, tax_rate INT DEFAULT 10, 
-                alliance TEXT DEFAULT 'none', reputation INT DEFAULT 50, 
+                gdp BIGINT DEFAULT 500000000, mil_budget BIGINT DEFAULT 35000000,
+                jets INT DEFAULT 0, tanks INT DEFAULT 0, refineries INT DEFAULT 0, army INT DEFAULT 100000,
+                pilots INT DEFAULT 0, satisfaction INT DEFAULT 50, tax_rate INT DEFAULT 10,
+                alliance TEXT DEFAULT 'none', reputation INT DEFAULT 50,
                 researching_tech TEXT DEFAULT 'None', research_turns_left INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS deployments (
-                id SERIAL PRIMARY KEY, user_id BIGINT, country_name TEXT, region TEXT, 
+                id SERIAL PRIMARY KEY, user_id BIGINT, country_name TEXT, region TEXT,
                 asset_type TEXT, model TEXT, quantity INT, status TEXT DEFAULT 'active', created_at TIMESTAMP DEFAULT NOW()
             )
         """)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS encounters (
-                id SERIAL PRIMARY KEY, order_id BIGINT, 
+                id SERIAL PRIMARY KEY, order_id BIGINT,
                 detector_id BIGINT, detector_country TEXT, detector_asset TEXT, detector_intent TEXT DEFAULT 'pending',
                 detected_id BIGINT, detected_country TEXT, detected_asset TEXT, detected_intent TEXT DEFAULT 'pending',
                 region TEXT, status TEXT DEFAULT 'awaiting_intent', battle_narrative TEXT, created_at TIMESTAMP DEFAULT NOW()
@@ -207,9 +217,9 @@ async def init_db():
         """)
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS orders (
-                id SERIAL PRIMARY KEY, user_id BIGINT, order_text TEXT, category TEXT, status TEXT DEFAULT 'pending', 
+                id SERIAL PRIMARY KEY, user_id BIGINT, order_text TEXT, category TEXT, status TEXT DEFAULT 'pending',
                 ai_analysis_raw TEXT, order_intent TEXT, region TEXT, enemy_user_id BIGINT, target_country TEXT,
-                is_public BOOLEAN DEFAULT TRUE, player_approved BOOLEAN DEFAULT FALSE, leader_approved BOOLEAN DEFAULT FALSE, 
+                is_public BOOLEAN DEFAULT TRUE, player_approved BOOLEAN DEFAULT FALSE, leader_approved BOOLEAN DEFAULT FALSE,
                 final_narrative TEXT, created_at TIMESTAMP DEFAULT NOW()
             )
         """)
@@ -285,7 +295,9 @@ def _safe_parse_json(raw) -> dict:
 def _clean_persian_text(text: str) -> str:
     if not isinstance(text, str):
         return ""
-    return re.sub(r'[^\u0600-\u06FF0-9\s\.\,\!\?\:\-\؛\(\)\[\]\«\»\n]', '', text).strip()
+    cleaned = re.sub(r'[*_`\[\]<>#|\\]', '', text)
+    cleaned = re.sub(r'[\x00-\x08\x0b\x0c\x0e-\x1f]', '', cleaned)
+    return cleaned.strip()
 
 def check_spam(uid):
     if uid == ADMIN_ID:
@@ -385,10 +397,18 @@ CRITICAL MILITARY RULES (DEPLOYMENT):
 - If the order is to DEPLOY forces: Extract EXACT number, model, and region.
 - Deploying forces DOES NOT consume total jets/tanks. Set "jets_change" and "tanks_change" to 0.
 
+CRITICAL MILITARY INTENT DETECTION (VERY IMPORTANT):
+- "گشت", "گشت‌زنی", "گشت و جستجو", "پاترول", "patrol", "مراقبت" → order_intent="patrol", action_type="deploy"
+- "حمله", "تهاجم", "یورش", "بمباران", "attack", "شلیک" → order_intent="attack", action_type="attack"
+- "اعزام", "انتقال", "استقرار", "deploy", "بفرست" → order_intent="deploy", action_type="deploy"
+
+NARRATIVE RULE:
+- If order_intent="patrol": narrative MUST say "گشت‌زنی" and NEVER say "حمله" or "تهاجمی".
+- If order_intent="attack": narrative MUST say "حمله" or "تهاجم".
+- "گشت و جستجو" is ALWAYS patrol, NEVER attack.
+
 CRITICAL DIPLOMACY:
 - Extract "target_country" if diplomatic. If not, "None".
-- Determine "order_intent": "attack", "patrol", "deploy", "economic", "political", "diplomacy".
-- Determine "action_type": "deploy", "attack", "economic", "political", "diplomacy".
 
 NARRATIVE STYLE: {narrative_rule}
 Use ONLY Persian alphabet for values. Keep JSON keys in English.
@@ -431,20 +451,33 @@ async def apply_battle_changes(context, user_id, country_name, data):
 
 async def create_encounter_ask_intent(context, order_id, user_id, country_name, asset, enemy, region):
     async with pool.acquire() as conn:
-        enc_id = await conn.fetchval("""INSERT INTO encounters (order_id, detector_id, detector_country, detector_asset, detected_id, detected_country, detected_asset, region, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'awaiting_intent') RETURNING id""", order_id, user_id, country_name, asset, enemy['user_id'], enemy['country_name'], "نیروی نامشخص", region)
-        enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
-        if enemy_asset_row:
-            await conn.execute("UPDATE encounters SET detected_asset = $1 WHERE id = $2", enemy_asset_row['model'], enc_id)
-    intent_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🕊️ گشت‌زنی", callback_data=f"intent_patrol_{enc_id}")], 
-        [InlineKeyboardButton("⚔️ حمله", callback_data=f"intent_attack_{enc_id}")], 
-        [InlineKeyboardButton("🏃 عقب‌نشینی", callback_data=f"intent_retreat_{enc_id}")]
+        enemy_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
+    enemy_asset = enemy_row['model'] if enemy_row else 'نامشخص'
+    our_radar = get_radar_range(asset)
+    enemy_radar = get_radar_range(enemy_asset)
+    if our_radar >= enemy_radar:
+        det_id, det_c, det_a = user_id, country_name, asset
+        ed_id, ed_c, ed_a = enemy['user_id'], enemy['country_name'], enemy_asset
+        det_range, ed_range = our_radar, enemy_radar
+    else:
+        det_id, det_c, det_a = enemy['user_id'], enemy['country_name'], enemy_asset
+        ed_id, ed_c, ed_a = user_id, country_name, asset
+        det_range, ed_range = enemy_radar, our_radar
+    async with pool.acquire() as conn:
+        enc_id = await conn.fetchval("""
+            INSERT INTO encounters (order_id, detector_id, detector_country, detector_asset,
+                detected_id, detected_country, detected_asset, region, status)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'radar_contact') RETURNING id
+        """, order_id, det_id, det_c, det_a, ed_id, ed_c, ed_a, region)
+    kb_radar = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🚀 شلیک موشک و شروع درگیری", callback_data=f"radar_launch_{enc_id}")],
+        [InlineKeyboardButton("📻 هشدار رادیویی + اسکورت تا مرز", callback_data=f"radar_warn_{enc_id}")],
+        [InlineKeyboardButton("🏃 عقب‌نشینی", callback_data=f"radar_retreat_{enc_id}")]
     ])
-    for target_id, our_asset in [(user_id, asset), (enemy['user_id'], enemy_asset_row['model'] if enemy_asset_row else 'نامشخص')]:
-        try:
-            await context.bot.send_message(target_id, f"🚨 **درگیری هوایی در {region}**\n\nکشور شما (`{our_asset}`) با دشمن روبرو شد.\n**نیت شما چیست؟**", reply_markup=intent_kb)
-        except:
-            pass
+    try:
+        await context.bot.send_message(det_id, f"📡 **تماس راداری در {region}**\n\nرادار شما ({det_a}) با برد **{det_range}km** دشمن را شناسایی کرد.\nرادار دشمن ({ed_a}) فقط **{ed_range}km** برد دارد.\n\n👤 **دشمن:** {ed_c}\n✈️ **جنگنده:** {ed_a}\n\n**تصمیم شما چیست؟**", reply_markup=kb_radar, parse_mode="Markdown")
+    except:
+        pass
     return enc_id
 
 async def create_encounter_and_battle(context, order_id, user_id, country_name, asset, enemy, region):
@@ -473,27 +506,24 @@ async def handle_intent_response(context, enc_id, user_id, intent):
             return
         det_intent = enc['detector_intent']
         ed_intent = enc['detected_intent']
-        if det_intent == 'retreat' or ed_intent == 'retreat':
-            if det_intent == 'retreat' and ed_intent == 'retreat':
-                await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
-                for uid in [enc['detector_id'], enc['detected_id']]:
-                    try:
-                        await context.bot.send_message(uid, "🕊️ هر دو طرف عقب‌نشینی کردند.")
-                    except:
-                        pass
-            elif det_intent == 'retreat':
-                if ed_intent == 'attack':
-                    await conn.execute("UPDATE encounters SET status = 'battle' WHERE id = $1", enc_id)
-                    await simulate_encounter_battle(context, enc_id, dict(enc))
-                else:
-                    await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
-            else:
-                if det_intent == 'attack':
-                    await conn.execute("UPDATE encounters SET status = 'battle' WHERE id = $1", enc_id)
-                    await simulate_encounter_battle(context, enc_id, dict(enc))
-                else:
-                    await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
-        elif det_intent == 'attack' and ed_intent == 'attack':
+        if det_intent == 'retreat' and ed_intent == 'retreat':
+            await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
+            for uid in [enc['detector_id'], enc['detected_id']]:
+                try:
+                    await context.bot.send_message(uid, "🕊️ هر دو طرف عقب‌نشینی کردند.")
+                except:
+                    pass
+        elif (det_intent == 'retreat' and ed_intent == 'attack') or (ed_intent == 'retreat' and det_intent == 'attack'):
+            await conn.execute("UPDATE encounters SET status = 'battle' WHERE id = $1", enc_id)
+            await simulate_encounter_battle(context, enc_id, dict(enc))
+        elif det_intent == 'retreat' or ed_intent == 'retreat':
+            await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
+            for uid in [enc['detector_id'], enc['detected_id']]:
+                try:
+                    await context.bot.send_message(uid, "🕊️ درگیری رخ نداد، یک طرف عقب‌نشینی کرد.")
+                except:
+                    pass
+        elif det_intent == 'attack' or ed_intent == 'attack':
             await conn.execute("UPDATE encounters SET status = 'battle' WHERE id = $1", enc_id)
             await simulate_encounter_battle(context, enc_id, dict(enc))
         else:
@@ -520,7 +550,7 @@ async def simulate_encounter_battle(context, enc_id, enc):
             ed_spec = spec
     det_intent = enc.get('detector_intent', 'attack')
     ed_intent = enc.get('detected_intent', 'attack')
-    prompt = f"""You are an elite tactical air combat simulator for the year 1979. 
+    prompt = f"""You are an elite tactical air combat simulator for the year 1979.
 === AIRCRAFT TECHNICAL ANALYSIS ===
 DETECTOR: {enc['detector_country']} | Aircraft: {enc['detector_asset']} | Specs: {det_spec} | Intent: {det_intent.upper()}
 DETECTED: {enc['detected_country']} | Aircraft: {enc['detected_asset']} | Specs: {ed_spec} | Intent: {ed_intent.upper()}
@@ -656,17 +686,72 @@ async def analyze_and_apply_order(order_id: int, context):
             await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
         return data
 
+async def handle_radar_launch(context, enc_id, uid):
+    async with pool.acquire() as conn:
+        enc = await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id)
+        if not enc or enc['status'] != 'radar_contact' or uid != enc['detector_id']:
+            return
+        await conn.execute("UPDATE encounters SET status='missile_incoming', detector_intent='attack' WHERE id=$1", enc_id)
+    try:
+        await context.bot.send_message(uid, f"🚀 **موشک شلیک شد!**\n\nموشک به سمت {enc['detected_asset']} در حرکت است. دشمن تا ۳۰ کیلومتری خبر ندارد...")
+    except:
+        pass
+    await asyncio.sleep(3)
+    kb_missile = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏃 عقب‌نشینی فوری (فرار)", callback_data=f"missile_retreat_{enc_id}")],
+        [InlineKeyboardButton("⚔️ ورود به درگیری", callback_data=f"missile_engage_{enc_id}")]
+    ])
+    try:
+        await context.bot.send_message(enc['detected_id'], f"🚨 **هشدار! موشک در ۳۰ کیلومتری!**\n\nسیستم هشدار رادار شما موشکی را شناسایی کرد!\nشلیک‌کننده: **{enc['detector_country']}**\n\n⏱ شما فقط چند ثانیه فرصت دارید!\n**تصمیم؟**", reply_markup=kb_missile, parse_mode="Markdown")
+    except:
+        pass
+
+async def handle_radar_warn(context, enc_id, uid):
+    async with pool.acquire() as conn:
+        enc = await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id)
+        if not enc or enc['status'] != 'radar_contact' or uid != enc['detector_id']:
+            return
+        await conn.execute("UPDATE encounters SET status='warned', detector_intent='patrol' WHERE id=$1", enc_id)
+    for u in [enc['detector_id'], enc['detected_id']]:
+        try:
+            await context.bot.send_message(u, f"📻 **هشدار رادیویی در {enc['region']}**\n\n{enc['detector_country']} پیام هشدار فرستاد و {enc['detected_country']} را تا مرز اسکورت کرد.\nهیچ درگیری رخ نداد. 🕊️")
+        except:
+            pass
+
+async def handle_radar_retreat(context, enc_id, uid):
+    async with pool.acquire() as conn:
+        enc = await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id)
+        if not enc or enc['status'] != 'radar_contact' or uid != enc['detector_id']:
+            return
+        await conn.execute("UPDATE encounters SET status='avoided', detector_intent='retreat' WHERE id=$1", enc_id)
+    try:
+        await context.bot.send_message(uid, f"🏃 عقب‌نشینی از {enc['region']} انجام شد.")
+    except:
+        pass
+    try:
+        await context.bot.send_message(enc['detected_id'], f"📡 رادار شما {enc['detector_country']} را دید اما آنها عقب‌نشینی کردند.")
+    except:
+        pass
+
+async def handle_missile_response(context, enc_id, uid, choice):
+    async with pool.acquire() as conn:
+        enc = await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id)
+        if not enc or enc['status'] != 'missile_incoming' or uid != enc['detected_id']:
+            return
+        await conn.execute("UPDATE encounters SET status='battle', detected_intent=$1 WHERE id=$2", choice, enc_id)
+    await simulate_encounter_battle(context, enc_id, dict(enc))
+
 async def set_commands(app):
     await app.bot.set_my_commands([
-        BotCommand("start", "ثبت‌نام"), 
-        BotCommand("country", "اطلاعات کشور"), 
-        BotCommand("military", "آرشیو نظامی"), 
-        BotCommand("economy", "انبار منابع"), 
-        BotCommand("factory", "کارخانه‌ها"), 
-        BotCommand("mines", "معادن"), 
-        BotCommand("order", "دستور جدید"), 
-        BotCommand("research", "تحقیق و توسعه"), 
-        BotCommand("admin", "پنل ادمین"), 
+        BotCommand("start", "ثبت‌نام"),
+        BotCommand("country", "اطلاعات کشور"),
+        BotCommand("military", "آرشیو نظامی"),
+        BotCommand("economy", "انبار منابع"),
+        BotCommand("factory", "کارخانه‌ها"),
+        BotCommand("mines", "معادن"),
+        BotCommand("order", "دستور جدید"),
+        BotCommand("research", "تحقیق و توسعه"),
+        BotCommand("admin", "پنل ادمین"),
         BotCommand("unban", "رفع مسدودی (ادمین)")
     ])
 
@@ -713,15 +798,17 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def military_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
+        if not c:
+            return
         deployments = await conn.fetch("SELECT * FROM deployments WHERE country_name = $1 AND quantity > 0", c['name'])
-    if not c or c["status"] != "active":
+    if c["status"] != "active":
         return await update.message.reply_text("⚠️ شما مجاز نیستید.")
     mil_data = MILITARY_DB.get(c['name'])
     if not mil_data:
         return
     personnel_str = PERSONNEL_DB.get(c['name'], f"کل: {c['army']:,} نفر")
     deploy_str = "هیچ نیرویی مستقر نیست." if not deployments else "\n".join([f"• 📍 {d['region']}: {d['quantity']} {d['model']}" for d in deployments])
-    def fmt_b(text): 
+    def fmt_b(text):
         return "\n   🔸 ".join(text.split(" | ")) if text else "نامشخص"
     text = (
         f"⚔️ *آرشیو نظامی {c['name']}*\n\n"
@@ -759,8 +846,10 @@ async def mines_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def factory_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
+        if not c:
+            return
         infras = await conn.fetch("SELECT sector_type, count(*) as count FROM infrastructure WHERE user_id = $1 GROUP BY sector_type", update.effective_user.id)
-    if not c or c["status"] != "active":
+    if c["status"] != "active":
         return
     counts = {r['sector_type']: r['count'] for r in infras}
     data = COUNTRY_DB.get(c['name'])
@@ -798,13 +887,13 @@ async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID:
         return
     await update.message.reply_text(
-        "👑 **پنل مدیریت کل**\nبخش مورد نظر:", 
+        "👑 **پنل مدیریت کل**\nبخش مورد نظر:",
         reply_markup=kb([
-            [InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")], 
-            [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")], 
-            [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], 
+            [InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")],
+            [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")],
+            [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")],
             [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]
-        ]), 
+        ]),
         parse_mode="Markdown"
     )
 
@@ -904,13 +993,13 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await cb.answer()
     if data == "adm_panel" and uid == ADMIN_ID:
         await cb.edit_message_text(
-            "👑 **پنل مدیریت کل**", 
+            "👑 **پنل مدیریت کل**",
             reply_markup=kb([
-                [InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")], 
-                [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")], 
-                [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], 
+                [InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")],
+                [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")],
+                [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")],
                 [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]
-            ]), 
+            ]),
             parse_mode="Markdown"
         )
     elif data.startswith("adm_list_") and uid == ADMIN_ID:
@@ -1075,12 +1164,21 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except:
                     pass
         await cb.edit_message_text("✅ تایید نهایی شد.")
-    elif data.startswith("enc_yes_"):
-        await cb.edit_message_text("✅ نبرد آغاز شد.")
-        await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
-    elif data.startswith("enc_no_"):
-        await cb.edit_message_text("🕊️ عقب‌نشینی.")
-        await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
+    elif data.startswith("radar_launch_"):
+        await cb.edit_message_text("🚀 شلیک...")
+        await handle_radar_launch(context, int(data.split("_")[2]), uid)
+    elif data.startswith("radar_warn_"):
+        await cb.edit_message_text("📻 هشدار...")
+        await handle_radar_warn(context, int(data.split("_")[2]), uid)
+    elif data.startswith("radar_retreat_"):
+        await cb.edit_message_text("🏃 عقب‌نشینی...")
+        await handle_radar_retreat(context, int(data.split("_")[2]), uid)
+    elif data.startswith("missile_retreat_"):
+        await cb.edit_message_text("🏃 فرار...")
+        await handle_missile_response(context, int(data.split("_")[2]), uid, "retreat")
+    elif data.startswith("missile_engage_"):
+        await cb.edit_message_text("⚔️ درگیری...")
+        await handle_missile_response(context, int(data.split("_")[2]), uid, "attack")
     elif data.startswith("intent_patrol_"):
         await cb.edit_message_text("🕊️ گشت‌زنی.")
         await handle_intent_response(context, int(data.split("_")[2]), uid, "patrol")
@@ -1216,13 +1314,28 @@ async def process_turn(context):
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     logger.error(f"Update {update} caused error {context.error}", exc_info=context.error)
+    try:
+        await context.bot.send_message(ADMIN_ID, f"⚠️ خطا:\n`{type(context.error).__name__}: {str(context.error)[:200]}`", parse_mode="Markdown")
+    except:
+        pass
 
 async def post_init(app):
-    await init_db()
-    await set_commands(app)
-    await app.bot.delete_webhook(drop_pending_updates=True)
+    try:
+        await init_db()
+        await set_commands(app)
+        await app.bot.delete_webhook(drop_pending_updates=True)
+        logger.info("✅ Bot started successfully")
+    except Exception as e:
+        logger.error(f"❌ FATAL in post_init: {type(e).__name__}: {e}", exc_info=True)
+        raise
 
 def main():
+    if not TOKEN:
+        logger.error("❌ BOT_TOKEN is empty!")
+        return
+    if not DATABASE_URL:
+        logger.error("❌ DATABASE_URL is empty!")
+        return
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_error_handler(error_handler)
     app.add_handler(CommandHandler("start", start))
