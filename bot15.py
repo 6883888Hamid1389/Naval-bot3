@@ -690,7 +690,7 @@ async def analyze_and_apply_order(order_id: int, context):
             await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
         return data
 
-async def set_commands(app):
+        async def set_commands(app):
     await app.bot.set_my_commands([
         BotCommand("start", "ثبت‌نام"), 
         BotCommand("country", "اطلاعات کشور"), 
@@ -1182,95 +1182,107 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     pass
         await cb.edit_message_text("✅ تایید نهایی شد.")
 
-            elif data.startswith("intent_retreat_"):
-            await cb.edit_message_text("🏃 عقب‌نشینی.")
-            await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
+    elif data.startswith("enc_yes_"):
+        await cb.edit_message_text("✅ نبرد آغاز شد.")
+        await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
+    elif data.startswith("enc_no_"):
+        await cb.edit_message_text("🕊️ عقب‌نشینی.")
+        await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
+    elif data.startswith("intent_patrol_"):
+        await cb.edit_message_text("🕊️ گشت‌زنی.")
+        await handle_intent_response(context, int(data.split("_")[2]), uid, "patrol")
+    elif data.startswith("intent_attack_"):
+        await cb.edit_message_text("⚔️ حمله.")
+        await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
+    elif data.startswith("intent_retreat_"):
+        await cb.edit_message_text("🏃 عقب‌نشینی.")
+        await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
 
-        elif data.startswith("ord_appr_"):
-            oid = int(data.split("_")[2])
-            await cb.edit_message_text("⏳ تحلیل...")
-            await send_analysis(cb, context, oid)
-            
-        elif data.startswith("ord_rej_"):
-            oid = int(data.split("_")[2])
-            async with pool.acquire() as conn:
-                await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
-            await cb.edit_message_text("❌ رد شد.")
+    elif data.startswith("ord_appr_"):
+        oid = int(data.split("_")[2])
+        await cb.edit_message_text("⏳ تحلیل...")
+        await send_analysis(cb, context, oid)
+        
+    elif data.startswith("ord_rej_"):
+        oid = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
+        await cb.edit_message_text("❌ رد شد.")
 
-        elif data.startswith("pub_short_") or data.startswith("pub_long_"):
-            is_short = "pub_short_" in data
-            oid = int(data.split("_")[2])
-            await cb.answer("در حال ارسال...")
+    elif data.startswith("pub_short_") or data.startswith("pub_long_"):
+        is_short = "pub_short_" in data
+        oid = int(data.split("_")[2])
+        await cb.answer("در حال ارسال...")
+        
+        async with pool.acquire() as conn:
+            order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", oid)
+            country_data = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
             
-            async with pool.acquire() as conn:
-                order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", oid)
-                country_data = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
-                
+        try:
+            ai_data = json.loads(order["ai_analysis_raw"] or "{}")
+        except:
+            ai_data = {}
+            
+        text_to_send = ai_data.get('narrative_short', '') if is_short else ai_data.get('narrative_long', '')
+        country_name = country_data['name'] if country_data else "نامشخص"
+        final_text = f"📢 **بیانیه رسمی {country_name}**\n\n{text_to_send}"
+        
+        is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
+        is_secret = (not order['is_public']) and (not is_attack)
+        
+        if is_secret:
             try:
-                ai_data = json.loads(order["ai_analysis_raw"] or "{}")
+                await context.bot.send_message(order['user_id'], f"🤫 **نتیجه محرمانه:**\n\n{text_to_send}")
             except:
-                ai_data = {}
+                pass
+            try:
+                await context.bot.send_message(ADMIN_ID, f"🤫 **محرمانه از {country_name}:**\n\n{text_to_send}")
+            except:
+                pass
+            async with pool.acquire() as conn:
+                await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
+            await cb.edit_message_text("✅ محرمانه ارسال شد.")
+        else:
+            if not order['is_public'] and is_attack:
+                final_text = f"🚨 **افشای حمله نظامی!**\n\n{final_text}"
                 
-            text_to_send = ai_data.get('narrative_short', '') if is_short else ai_data.get('narrative_long', '')
-            country_name = country_data['name'] if country_data else "نامشخص"
-            final_text = f"📢 **بیانیه رسمی {country_name}**\n\n{text_to_send}"
-            
-            is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
-            is_secret = (not order['is_public']) and (not is_attack)
-            
-            if is_secret:
+            sent = False
+            if GROUP_ID and TOPIC_ID:
                 try:
-                    await context.bot.send_message(order['user_id'], f"🤫 **نتیجه محرمانه:**\n\n{text_to_send}")
+                    await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown")
+                    sent = True
                 except:
                     pass
+            if not sent and CHANNEL_ID:
                 try:
-                    await context.bot.send_message(ADMIN_ID, f"🤫 **محرمانه از {country_name}:**\n\n{text_to_send}")
+                    await context.bot.send_message(int(CHANNEL_ID.strip()), final_text)
+                    sent = True
                 except:
                     pass
+                    
+            if sent:
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
-                await cb.edit_message_text("✅ محرمانه ارسال شد.")
+                await cb.edit_message_text("✅ منتشر شد.")
             else:
-                if not order['is_public'] and is_attack:
-                    final_text = f"🚨 **افشای حمله نظامی!**\n\n{final_text}"
-                    
-                sent = False
-                if GROUP_ID and TOPIC_ID:
-                    try:
-                        await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown")
-                        sent = True
-                    except:
-                        pass
-                if not sent and CHANNEL_ID:
-                    try:
-                        await context.bot.send_message(int(CHANNEL_ID.strip()), final_text)
-                        sent = True
-                    except:
-                        pass
-                        
-                if sent:
-                    async with pool.acquire() as conn:
-                        await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
-                    await cb.edit_message_text("✅ منتشر شد.")
-                else:
-                    await cb.edit_message_text("❌ خطا در ارسال.")
-                    
-        elif data == "cancel_pub":
-            await cb.edit_message_text("❌ لغو شد.")
+                await cb.edit_message_text("❌ خطا در ارسال.")
+                
+    elif data == "cancel_pub":
+        await cb.edit_message_text("❌ لغو شد.")
+        
+    elif data.startswith("fact_build_"):
+        sector = data.replace("fact_build_", "")
+        async with pool.acquire() as conn:
+            c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
             
-        elif data.startswith("fact_build_"):
-            sector = data.replace("fact_build_", "")
-            async with pool.acquire() as conn:
-                c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-                
-            req = COUNTRY_DB.get(c['name'], {}).get('factories', {}).get(sector)
-            if not req or c['gdp'] < req['cost']:
-                return await cb.answer("❌ GDP کافی نیست!", show_alert=True)
-                
-            async with pool.acquire() as conn:
-                await conn.execute("UPDATE countries SET gdp = gdp - $1 WHERE user_id = $2", req['cost'], uid)
-                await conn.execute("INSERT INTO infrastructure (user_id, sector_type, name, income) VALUES ($1, $2, $3, $4)", uid, sector, req['name'], req['income'])
-            await cb.answer("✅ ساخته شد!", show_alert=True)
+        req = COUNTRY_DB.get(c['name'], {}).get('factories', {}).get(sector)
+        if not req or c['gdp'] < req['cost']:
+            return await cb.answer("❌ GDP کافی نیست!", show_alert=True)
+            
+        async with pool.acquire() as conn:
+            await conn.execute("UPDATE countries SET gdp = gdp - $1 WHERE user_id = $2", req['cost'], uid)
+            await conn.execute("INSERT INTO infrastructure (user_id, sector_type, name, income) VALUES ($1, $2, $3, $4)", uid, sector, req['name'], req['income'])
+        await cb.answer("✅ ساخته شد!", show_alert=True)
 
 
 async def send_analysis(update_or_cb, context, order_id):
