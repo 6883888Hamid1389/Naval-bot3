@@ -333,7 +333,7 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
         "Content-Type": "application/json"
     }
     payload = {
-        "model": "google/gemma-4-31b-it:free",
+        "model": "liquidai/lfm2.5-2.6b:free",
         "messages": [
             {"role": "system", "content": system_prompt},
             {"role": "user", "content": prompt}
