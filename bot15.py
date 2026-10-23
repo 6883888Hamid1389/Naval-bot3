@@ -604,7 +604,7 @@ async def _analyze_inner(order_id: int, context):
             except:
                 pass
             return data
-        if data.get("success"):
+    if data.get("success"):
         try:
             g_change = int(data.get("gdp_change") or 0)
             m_change = int(data.get("mil_budget_change") or 0)
@@ -612,7 +612,6 @@ async def _analyze_inner(order_id: int, context):
             t_change = int(data.get("tanks_change") or 0)
             r_change = int(data.get("refineries_change") or 0)
             s_change = int(data.get("satisfaction_change") or 0)
-            
             if action_type in ["deploy", "attack"]:
                 j_change = 0
                 t_change = 0
@@ -627,17 +626,14 @@ async def _analyze_inner(order_id: int, context):
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE countries SET gdp = GREATEST(0, gdp + $1), mil_budget = GREATEST(0, mil_budget + $2), jets = GREATEST(0, jets + $3), tanks = GREATEST(0, tanks + $4), refineries = GREATEST(0, refineries + $5), satisfaction = $6 WHERE user_id = $7", g_change, m_change, j_change, t_change, r_change, new_sat, order["user_id"])
                 await apply_battle_changes(context, order["user_id"], country['name'], data)
-    
     enemy = None
     if action_type in ["deploy", "attack"] and region and region != "None":
         async with pool.acquire() as conn:
             enemy_row = await conn.fetchrow("SELECT user_id, country_name FROM deployments WHERE region = $1 AND country_name != $2 AND quantity > 0 LIMIT 1", region, country['name'])
             if enemy_row:
                 enemy = dict(enemy_row)
-    
     async with pool.acquire() as conn:
         await conn.execute("UPDATE orders SET order_intent = $1, region = $2, ai_analysis_raw = $3, enemy_user_id = $4 WHERE id = $5", order_intent, region, json.dumps(data, ensure_ascii=False), enemy['user_id'] if enemy else None, order_id)
-    
     if enemy and action_type in ["deploy", "attack"]:
         if order_intent == "attack":
             enc_id = await create_encounter_and_battle(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
@@ -680,10 +676,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET status = 'spam_banned' WHERE user_id = $1", uid)
         return await update.message.reply_text("🚫 شما به دلیل اسپم مسدود شدید.")
-        
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-        
     if c:
         if c["status"] == "active":
             await context.bot.send_message(uid, f"✅ کشور {c['name']} فعال است.")
@@ -692,7 +686,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         elif c["status"] == "pending":
             await context.bot.send_message(uid, "⏳ در انتظار تایید ادمین.")
         return
-        
     temp[uid] = {"step": "SELECT_COUNTRY"}
     await context.bot.send_message(uid, f"🏛️ **Welcome to rustabad RP (1979)**\n\nلطفاً نام کشور خود را انتخاب کنید:\n\n{'، '.join(ALLOWED_COUNTRIES)}", parse_mode="Markdown")
 
@@ -701,7 +694,6 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
     if not c or c["status"] != "active":
         return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
-        
     data = COUNTRY_DB.get(c['name'])
     text = (
         f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n"
@@ -724,17 +716,13 @@ async def military_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         deployments = await conn.fetch("SELECT * FROM deployments WHERE country_name = $1 AND quantity > 0", c['name'])
     if not c or c["status"] != "active":
         return await update.message.reply_text("⚠️ شما مجاز نیستید.")
-        
     mil_data = MILITARY_DB.get(c['name'])
     if not mil_data:
         return
-        
     personnel_str = PERSONNEL_DB.get(c['name'], f"کل: {c['army']:,} نفر")
     deploy_str = "هیچ نیرویی مستقر نیست." if not deployments else "\n".join([f"• 📍 {d['region']}: {d['quantity']} {d['model']}" for d in deployments])
-    
     def fmt_b(text): 
         return "\n   🔸 ".join(text.split(" | ")) if text else "نامشخص"
-        
     text = (
         f"⚔️ *آرشیو نظامی {c['name']}*\n\n"
         f"👥 **پرسنل:**\n{personnel_str}\n\n"
@@ -754,7 +742,6 @@ async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
     if not c or c["status"] != "active":
         return
-        
     res_text = "".join([f"{v}: {c.get(f'res_{k}', 0):,}\n" for k, v in RESOURCES.items() if c.get(f'res_{k}', 0) > 0]) or "خالی."
     await context.bot.send_message(update.effective_user.id, f"💰 *اقتصاد {c['name']}*\n🏦 GDP: {fmt_money(c['gdp'])}\n\n📦 *انبار:*\n{res_text}", parse_mode="Markdown")
 
@@ -763,11 +750,9 @@ async def mines_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
     if not c or c["status"] != "active":
         return
-        
     data = COUNTRY_DB.get(c['name'])
     if not data:
         return
-        
     text = f"⛏ *معادن {c['name']}*\n\n" + "".join([f"🔹 {m['name']}\n📦 {m['amount']:,} واحد {RESOURCES.get(m['output_res'], m['output_res'])}\n\n" for m in data['mines'].values()])
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
@@ -777,16 +762,13 @@ async def factory_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         infras = await conn.fetch("SELECT sector_type, count(*) as count FROM infrastructure WHERE user_id = $1 GROUP BY sector_type", update.effective_user.id)
     if not c or c["status"] != "active":
         return
-        
     counts = {r['sector_type']: r['count'] for r in infras}
     data = COUNTRY_DB.get(c['name'])
     if not data:
         return
-        
     real_f = FACTORY_DB.get(c['name'], {})
     fac_str = "\n".join([f"🏭 {m}: {l}" for m, l in real_f.items()]) if real_f else "نامشخص."
     rows = [[InlineKeyboardButton(f"🏭 {f['name']} | {fmt_money(f['cost'])}", callback_data=f"fact_build_{k}")] for k, f in data['factories'].items() if counts.get(k, 0) < 5]
-    
     await context.bot.send_message(update.effective_user.id, f"🏭 *کارخانه‌های {c['name']}*\n\n**خطوط تولید ۱۹۷۹:**\n{fac_str}\n\nساخت کارخانه جدید:", parse_mode="Markdown", reply_markup=kb(rows))
 
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -795,7 +777,6 @@ async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
     if not c or c["status"] != "active":
         return await update.message.reply_text("⚠️ مجاز نیستید.")
-        
     temp[uid] = {"step": "ORDER_CATEGORY"}
     await update.message.reply_text("دسته‌بندی دستور:", reply_markup=kb([[InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic"), InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")], [InlineKeyboardButton("🤝 دیپلماسی", callback_data="cat_diplomacy"), InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]]))
 
@@ -805,14 +786,11 @@ async def research_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
     if not c or c["status"] != "active":
         return
-        
     if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0:
         return await update.message.reply_text(f"🔬 در حال تحقیق: {c['researching_tech']}\n⏳ نوبت باقی‌مانده: {c['research_turns_left']}")
-        
     techs = TECH_TREE.get(c['name'])
     if not techs:
         return await update.message.reply_text("⚠️ درخت تکنولوژی ندارید.")
-        
     rows = [[InlineKeyboardButton(f"🔬 {t} | {fmt_money(i['cost'])} | {i['turns']} نوبت", callback_data=f"res_start_{t}")] for t, i in techs.items()]
     await update.message.reply_text("🔬 **مرکز تحقیق و توسعه**\nتکنولوژی مورد نظر:", reply_markup=kb(rows))
 
@@ -854,22 +832,17 @@ async def show_admin_list(chat_id, msg_id, context, page, list_type):
         else:
             countries = await conn.fetch("SELECT * FROM countries WHERE status = 'active' ORDER BY created_at DESC")
             title = "🌍 **کشورهای فعال**"
-            
     per_page = 5
     start = page * per_page
     end = start + per_page
     page_items = countries[start:end]
-    
     text = f"{title} (صفحه {page+1})\n\n"
     buttons = []
-    
     if not page_items:
         text += "خالی است."
-        
     for c in page_items:
         status_icon = "✅" if c['status'] == 'active' else "🚫" if c['status'] in ['banned', 'spam_banned'] else "⏳"
         buttons.append([InlineKeyboardButton(f"{status_icon} {c['name']} | {c['username'] or 'بدون آیدی'}", callback_data=f"adm_view_{c['user_id']}")])
-        
     nav = []
     if page > 0:
         nav.append(InlineKeyboardButton("⬅️", callback_data=f"adm_list_{list_type}_{page-1}"))
@@ -877,7 +850,6 @@ async def show_admin_list(chat_id, msg_id, context, page, list_type):
         nav.append(InlineKeyboardButton("➡️", callback_data=f"adm_list_{list_type}_{page+1}"))
     nav.append(InlineKeyboardButton("🔙 بازگشت", callback_data="adm_panel"))
     buttons.append(nav)
-    
     try:
         await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
     except:
@@ -889,41 +861,32 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET status = 'spam_banned' WHERE user_id = $1", uid)
         return await update.message.reply_text("🚫 اسپم! مسدود شدید.")
-        
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT status FROM countries WHERE user_id = $1", uid)
-        
     if c and c['status'] == 'banned':
         return await update.message.reply_text("🚫 مسدود هستید.")
-        
     text = update.message.text.strip()
     t = temp.get(uid, {})
-    
     if t.get("step") == "SELECT_COUNTRY":
         if text not in ALLOWED_COUNTRIES:
             return await context.bot.send_message(uid, "❌ کشور نامعتبر.")
-            
         async with pool.acquire() as conn:
             if await conn.fetchval("SELECT 1 FROM countries WHERE name = $1 AND status != 'rejected'", text):
                 return await context.bot.send_message(uid, "❌ قبلاً انتخاب شده.")
             data = COUNTRY_DB[text]
             await conn.execute("INSERT INTO countries (user_id, username, name, status, gdp, mil_budget, jets, tanks, refineries, army, pilots) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9, $10)", uid, update.effective_user.username or "بدون", text, data['gdp_init'], data['mil_budget_init'], data['jets_init'], data['tanks_init'], data['refineries_init'], data['army_init'], PILOT_DB.get(text, 1000))
-            
         temp.pop(uid, None)
         await context.bot.send_message(uid, "⏳ در انتظار تایید.")
         await context.bot.send_message(ADMIN_ID, f"📥 **درخواست جدید**\n🌍 {text}\n🆔 `{uid}`", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]]))
-        
     elif t.get("step") == "AWAITING_ORDER_TEXT":
         temp[uid] = {"step": "SELECT_VISIBILITY", "category": t.get("category"), "order_text": text}
         await update.message.reply_text("انتشار عمومی یا محرمانه؟", reply_markup=kb([[InlineKeyboardButton("🌍 عمومی", callback_data="vis_public")], [InlineKeyboardButton("🤫 محرمانه", callback_data="vis_secret")]]))
-        
     elif t.get("step") == "ADMIN_SET_GDP_ID" and uid == ADMIN_ID:
         try:
             temp[uid] = {"step": "ADMIN_SET_GDP_AMOUNT", "target_id": int(text)}
             await update.message.reply_text("مقدار GDP:")
         except:
             await update.message.reply_text("❌ عدد وارد کنید.")
-            
     elif t.get("step") == "ADMIN_SET_GDP_AMOUNT" and uid == ADMIN_ID:
         try:
             async with pool.acquire() as conn:
@@ -939,7 +902,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = cb.from_user.id
     t = temp.get(uid, {})
     await cb.answer()
-    
     if data == "adm_panel" and uid == ADMIN_ID:
         await cb.edit_message_text(
             "👑 **پنل مدیریت کل**", 
@@ -951,52 +913,41 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ]), 
             parse_mode="Markdown"
         )
-        
     elif data.startswith("adm_list_") and uid == ADMIN_ID:
         parts = data.split("_")
         await show_admin_list(uid, cb.message.message_id, context, int(parts[3]), parts[2])
-        
     elif data.startswith("adm_view_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", target)
-            
         if not c:
             return await cb.answer("یافت نشد.", show_alert=True)
-            
         data_info = COUNTRY_DB.get(c['name'], {})
         gov_name = GOVERNMENTS.get(c.get('gov_main', ''), {}).get('name', c.get('gov_main', 'نامشخص'))
         gov_sub = GOVERNMENTS.get(c.get('gov_main', ''), {}).get('subs', {}).get(c.get('gov_sub', ''), '')
         cities = data_info.get('cities', 'نامشخص')
         status_fa = {"active": "✅ فعال", "pending": "⏳ در انتظار", "banned": "🚫 بن", "spam_banned": "🤖 اسپم"}.get(c['status'], c['status'])
-        
         text = f"👤 **پروفایل**\n\n🌍 **کشور:** {c['name']}\n👤 **رهبر:** {c.get('leader', 'نامشخص')}\n⚙️ **حکومت:** {gov_name} - {gov_sub}\n🏙️ **شهرها:** {cities}\n🆔 **آیدی پلیر:** `{c['user_id']}`\n📌 **وضعیت:** {status_fa}\n📈 **GDP:** {fmt_money(c['gdp'])}"
-        
         buttons = []
         if c['status'] in ['banned', 'spam_banned']:
             buttons.append([InlineKeyboardButton("✅ آنبن", callback_data=f"adm_unban_{target}")])
         else:
             buttons.append([InlineKeyboardButton("🚫 بن", callback_data=f"adm_ban_{target}")])
-            
         buttons.append([InlineKeyboardButton("🔄 ریست آمار", callback_data=f"adm_reset_{target}"), InlineKeyboardButton("🗑 حذف کامل", callback_data=f"adm_del_{target}")])
         buttons.append([InlineKeyboardButton("🔙 بازگشت", callback_data="adm_list_active_0")])
-        
         await cb.edit_message_text(text, parse_mode="Markdown", reply_markup=kb(buttons))
-        
     elif data.startswith("adm_ban_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET status = 'banned' WHERE user_id = $1", target)
         await cb.answer("مسدود شد.", show_alert=True)
         await show_admin_list(uid, cb.message.message_id, context, 0, "banned")
-        
     elif data.startswith("adm_unban_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
         await cb.answer("آزاد شد.", show_alert=True)
         await show_admin_list(uid, cb.message.message_id, context, 0, "active")
-        
     elif data.startswith("adm_reset_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -1008,101 +959,79 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await conn.execute("DELETE FROM deployments WHERE user_id = $1", target)
         await cb.answer("ریست شد.", show_alert=True)
         await cb.edit_message_text("✅ ریست شد.")
-        
     elif data.startswith("adm_del_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("DELETE FROM countries WHERE user_id = $1", target)
         await cb.answer("حذف شد.", show_alert=True)
         await cb.edit_message_text("🗑 حذف شد.")
-        
     elif data.startswith("adm_ok_"):
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
         await cb.edit_message_text("✅ تایید شد.")
         await context.bot.send_message(target, "🎉 تایید شد! /country")
-        
     elif data.startswith("adm_rej_"):
         target = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("DELETE FROM countries WHERE user_id = $1", target)
         await cb.edit_message_text("❌ رد شد.")
-        
     elif data == "adm_next_turn":
         await cb.edit_message_text("⏳ در حال پردازش...")
         await process_turn(context)
-        
     elif data == "adm_set_gdp":
         await cb.edit_message_text("🆔 آیدی:")
         temp[uid] = {"step": "ADMIN_SET_GDP_ID"}
-
     elif data.startswith("cat_"):
         category = data.replace("cat_", "")
         temp[uid] = {"step": "AWAITING_ORDER_TEXT", "category": category}
         cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(category, "")
         await cb.edit_message_text(f"دسته: {cat_fa}\n\nمتن دستور را بنویسید:")
-        
     elif data == "vis_public" or data == "vis_secret":
         is_public = (data == "vis_public")
         ot = t.get("order_text")
         category = t.get("category")
         temp.pop(uid, None)
-        
         if not ot or not category:
             return await cb.edit_message_text("⚠️ منقضی شده.")
-            
         if check_ai_limit(uid):
             return await cb.answer("⚠️ حداکثر ۴ دستور در دقیقه!", show_alert=True)
-            
         async with pool.acquire() as conn:
             oid = await conn.fetchval("INSERT INTO orders (user_id, order_text, category, is_public) VALUES ($1, $2, $3, $4) RETURNING id", uid, ot, category, is_public)
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-            
         cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(category, category)
         vis_fa = "عمومی" if is_public else "محرمانه"
-        
         if category == "diplomacy":
             await cb.edit_message_text("⏳ تحلیل...")
             await send_analysis(cb, context, oid)
         else:
             await context.bot.send_message(ADMIN_ID, f"📜 **دستور جدید**\n🌍 {c['name']}\n🗂 {cat_fa} | {vis_fa}\n📝 {ot}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"ord_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
             await cb.edit_message_text("⏳ ارسال به ادمین.")
-
     elif data.startswith("res_start_"):
         tech_name = data.replace("res_start_", "")
         async with pool.acquire() as conn:
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-            
         if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0:
             return await cb.answer("در حال تحقیق هستید!", show_alert=True)
-            
         tech_info = TECH_TREE.get(c['name'], {}).get(tech_name)
         if not tech_info:
             return await cb.answer("نامعتبر.", show_alert=True)
-            
         if c['gdp'] < tech_info['cost']:
             return await cb.answer("❌ GDP کافی نیست!", show_alert=True)
-            
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET gdp = gdp - $1, researching_tech = $2, research_turns_left = $3 WHERE user_id = $4", tech_info['cost'], tech_name, tech_info['turns'], uid)
-            
         await cb.edit_message_text(f"✅ تحقیق روی **{tech_name}** آغاز شد.\n⏳ {tech_info['turns']} نوبت.")
-
     elif data.startswith("diplo_accept_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
             order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", oid)
             if not order or order['status'] != 'diplo_pending':
                 return await cb.edit_message_text("⚠️ منقضی شده.")
-                
             await conn.execute("UPDATE orders SET status = 'pending_admin', player_approved = TRUE WHERE id = $1", oid)
             sender = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
             receiver = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", uid)
-            
         await cb.edit_message_text("✅ قبول شد.")
         await context.bot.send_message(ADMIN_ID, f"🤝 **توافق دیپلماتیک**\n👤 {sender['name']} -> {receiver['name']}\n📝 {order['order_text']}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید نهایی", callback_data=f"final_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
-
     elif data.startswith("diplo_reject_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -1115,7 +1044,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except:
                     pass
         await cb.edit_message_text("❌ رد شد.")
-
     elif data.startswith("final_appr_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -1123,15 +1051,12 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             if not order:
                 return
             sender_country = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
-            
         try:
             ai_data = json.loads(order["ai_analysis_raw"] or "{}")
         except:
             ai_data = {}
-            
         text_to_send = ai_data.get('narrative_long', 'توافق انجام شد.')
         final_text = f"📢 **بیانیه رسمی {sender_country['name']}**\n\n{text_to_send}"
-        
         if order['status'] == 'pending_admin':
             try:
                 g = int(ai_data.get("gdp_change") or 0)
@@ -1143,7 +1068,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
             except:
                 pass
-                
         if order['is_public']:
             if GROUP_ID and TOPIC_ID:
                 try:
@@ -1151,7 +1075,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 except:
                     pass
         await cb.edit_message_text("✅ تایید نهایی شد.")
-
     elif data.startswith("enc_yes_"):
         await cb.edit_message_text("✅ نبرد آغاز شد.")
         await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
@@ -1167,39 +1090,31 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif data.startswith("intent_retreat_"):
         await cb.edit_message_text("🏃 عقب‌نشینی.")
         await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
-
     elif data.startswith("ord_appr_"):
         oid = int(data.split("_")[2])
         await cb.edit_message_text("⏳ تحلیل...")
         await send_analysis(cb, context, oid)
-        
     elif data.startswith("ord_rej_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
             await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
         await cb.edit_message_text("❌ رد شد.")
-
     elif data.startswith("pub_short_") or data.startswith("pub_long_"):
         is_short = "pub_short_" in data
         oid = int(data.split("_")[2])
         await cb.answer("در حال ارسال...")
-        
         async with pool.acquire() as conn:
             order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", oid)
             country_data = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
-            
         try:
             ai_data = json.loads(order["ai_analysis_raw"] or "{}")
         except:
             ai_data = {}
-            
         text_to_send = ai_data.get('narrative_short', '') if is_short else ai_data.get('narrative_long', '')
         country_name = country_data['name'] if country_data else "نامشخص"
         final_text = f"📢 **بیانیه رسمی {country_name}**\n\n{text_to_send}"
-        
         is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
         is_secret = (not order['is_public']) and (not is_attack)
-        
         if is_secret:
             try:
                 await context.bot.send_message(order['user_id'], f"🤫 **نتیجه محرمانه:**\n\n{text_to_send}")
@@ -1215,7 +1130,6 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         else:
             if not order['is_public'] and is_attack:
                 final_text = f"🚨 **افشای حمله نظامی!**\n\n{final_text}"
-                
             sent = False
             if GROUP_ID and TOPIC_ID:
                 try:
@@ -1229,26 +1143,21 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     sent = True
                 except:
                     pass
-                    
             if sent:
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
                 await cb.edit_message_text("✅ منتشر شد.")
             else:
                 await cb.edit_message_text("❌ خطا در ارسال.")
-                
     elif data == "cancel_pub":
         await cb.edit_message_text("❌ لغو شد.")
-        
     elif data.startswith("fact_build_"):
         sector = data.replace("fact_build_", "")
         async with pool.acquire() as conn:
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-            
         req = COUNTRY_DB.get(c['name'], {}).get('factories', {}).get(sector)
         if not req or c['gdp'] < req['cost']:
             return await cb.answer("❌ GDP کافی نیست!", show_alert=True)
-            
         async with pool.acquire() as conn:
             await conn.execute("UPDATE countries SET gdp = gdp - $1 WHERE user_id = $2", req['cost'], uid)
             await conn.execute("INSERT INTO infrastructure (user_id, sector_type, name, income) VALUES ($1, $2, $3, $4)", uid, sector, req['name'], req['income'])
@@ -1258,26 +1167,20 @@ async def send_analysis(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
     ch = f"\n📈 GDP: {ai_data.get('gdp_change',0):+,} $ | ✈️ جنگنده: {ai_data.get('jets_change',0):+,} | 🚜 تانک: {ai_data.get('tanks_change',0):+,} | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n" if ai_data.get("success") else ""
-    
     async with pool.acquire() as conn:
         order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
-        
     is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
     is_secret = (not order['is_public']) and (not is_attack)
-    
     btn1 = "🤫 محرمانه (خلاصه)" if is_secret else "📢 خلاصه"
     btn2 = "🤫 محرمانه (کامل)" if is_secret else "📜 کامل"
-    
     txt = f"🧠 تحلیل (70B)\n\n📌 وضعیت: {st}\n📝 دلیل: {ai_data.get('reason', '')}\n{ch}\n📰 **خلاصه:**\n{ai_data.get('narrative_short', '')}\n\n📖 **کامل:**\n{ai_data.get('narrative_long', '')}"
     btn = kb([[InlineKeyboardButton(btn1, callback_data=f"pub_short_{order_id}"), InlineKeyboardButton(btn2, callback_data=f"pub_long_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
-    
     if isinstance(update_or_cb, CallbackQuery):
         try:
             await update_or_cb.edit_message_text(txt, reply_markup=btn)
             return
         except:
             pass
-            
     await context.bot.send_message(update_or_cb.from_user.id, txt, reply_markup=btn)
 
 async def process_turn(context):
@@ -1287,12 +1190,10 @@ async def process_turn(context):
             c_data = COUNTRY_DB.get(c['name'])
             if not c_data:
                 continue
-                
             updates = {f'res_{m["output_res"]}': c.get(f'res_{m["output_res"]}', 0) + m['amount'] for m in c_data['mines'].values()}
             if updates:
                 set_clause = ", ".join([f"{k} = {v}" for k, v in updates.items()])
                 await conn.execute(f"UPDATE countries SET {set_clause} WHERE user_id = $1", c['user_id'])
-                
             if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0:
                 new_turns = c['research_turns_left'] - 1
                 if new_turns <= 0:
@@ -1303,7 +1204,6 @@ async def process_turn(context):
                         pass
                 else:
                     await conn.execute("UPDATE countries SET research_turns_left = $1 WHERE user_id = $2", new_turns, c['user_id'])
-                    
         infras = await conn.fetch("SELECT * FROM infrastructure")
         for i in infras:
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", i['user_id'])
@@ -1312,7 +1212,6 @@ async def process_turn(context):
                 continue
             if c.get(f'res_{fact["consumes"]}', 0) >= 1000:
                 await conn.execute(f"UPDATE countries SET res_{fact['consumes']} = res_{fact['consumes']} - 1000, res_{fact['produces']} = res_{fact['produces']} + 500, gdp = gdp + $1 WHERE user_id = $2", fact['income'], c['user_id'])
-                
     await context.bot.send_message(ADMIN_ID, "✅ نوبت پردازش شد.")
 
 async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -1326,7 +1225,6 @@ async def post_init(app):
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
     app.add_error_handler(error_handler)
-    
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("country", country_cmd))
     app.add_handler(CommandHandler("military", military_cmd))
@@ -1339,7 +1237,6 @@ def main():
     app.add_handler(CommandHandler("unban", unban_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
-    
     rh = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     if rh:
         port = int(os.environ.get("PORT", 10000))
