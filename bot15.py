@@ -19,8 +19,7 @@ DATABASE_URL = os.environ.get("DATABASE_URL", "")
 CHANNEL_ID = os.environ.get("CHANNEL_ID", "")
 GROUP_ID = os.environ.get("GROUP_ID", "")
 TOPIC_ID = os.environ.get("TOPIC_ID", "")
-CLOUDFLARE_API_TOKEN = os.environ.get("CLOUDFLARE_API_TOKEN", "")
-CLOUDFLARE_ACCOUNT_ID = os.environ.get("CLOUDFLARE_ACCOUNT_ID", "")
+HORMOUZ_API_KEY = os.environ.get("HORMOUZ_API_KEY", "")
 
 RESOURCES = {
     "oil": "🛢 نفت خام", "coal": "🪨 زغال سنگ", "iron": "⛏ سنگ آهن",
@@ -143,8 +142,9 @@ TECH_TREE = {
         "Su-30 Flanker-C": {"cost": 8000000000, "turns": 8, "next": "Su-35 Flanker-E", "desc": "جنگنده چندمنظوره با رادار پیشرفته"}
     },
     "آمریکا": {
-        "F-117 Nighthawk": {"cost": 3000000000, "turns": 5, "next": "F-22 Raptor", "desc": "جنگنده رادارگریز (استیلث)"},
-        "F-22 Raptor": {"cost": 20000000000, "turns": 15, "next": "None", "desc": "جنگنده برتری هوایی نسل پنجم"}
+        "F-16A Fighting Falcon": {"cost": 2000000000, "turns": 4, "next": "F-15C Eagle", "desc": "جنگنده سبک و چابک چندمنظوره"},
+        "F-15C Eagle": {"cost": 4000000000, "turns": 6, "next": "F-15E Strike Eagle", "desc": "جنگنده برتری هوایی با رادار پیشرفته"},
+        "F-15E Strike Eagle": {"cost": 6000000000, "turns": 8, "next": "None", "desc": "جنگنده ضربتی و سنگین"}
     }
 }
 
@@ -327,9 +327,20 @@ async def get_enemy_deployments_str(player_country):
     return "\n".join([f"- {r['country_name']}: {r['quantity']} {r['model']} در {r['region']}" for r in rows])
 
 async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. Output RAW JSON only. DO NOT wrap in markdown. DO NOT translate JSON keys. Use Persian ONLY for text values.") -> str:
-    url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
-    headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
-    payload = {"messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}], "max_tokens": 1500, "temperature": 0.7}
+    url = "https://api.hormouz.net/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {HORMOUZ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    payload = {
+        "model": "google/gemma-4-31b-it:free",
+        "messages": [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.7,
+        "max_tokens": 1500
+    }
     def fallback(reason, narrative):
         return json.dumps({"success": False, "reason": reason, "narrative_short": narrative, "narrative_long": narrative}, ensure_ascii=False)
     for attempt in range(2):
@@ -342,15 +353,14 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
                         continue
                     return fallback("محدودیت روزانه", "سهمیه AI تمام شده.")
                 if response.status_code != 200:
+                    logger.error(f"Hormouz Error: {response.status_code} - {response.text}")
                     if attempt == 0:
                         await asyncio.sleep(3)
                         continue
                     return fallback(f"خطای سرویس ({response.status_code})", "سرویس در دسترس نیست.")
                 res_data = response.json()
-                if res_data.get("success"):
-                    resp = res_data["result"]["response"]
-                    if isinstance(resp, dict):
-                        return json.dumps(resp, ensure_ascii=False)
+                if "choices" in res_data and len(res_data["choices"]) > 0:
+                    resp = res_data["choices"][0]["message"]["content"]
                     return str(resp)
                 else:
                     if attempt == 0:
@@ -363,6 +373,7 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
                 continue
             return fallback("تایم اوت", "سرویس پاسخگو نبود.")
         except Exception as e:
+            logger.error(f"AI Error: {e}")
             if attempt == 0:
                 await asyncio.sleep(2)
                 continue
@@ -390,8 +401,13 @@ ENEMY DEPLOYMENTS GLOBALLY:
 PLAYER ORDER: "{order_text}"
 CATEGORY: {category}
 
-CRITICAL GEOPOLITICAL REALITY:
-- If the order is historically impossible, REJECT IT (success: false).
+CRITICAL GAME RULES - ABSOLUTE TRUTH SOURCE:
+- The COUNTRY stats above (GDP, Army, Tanks, Jets) are the ABSOLUTE TRUTH. NEVER question them.
+- The MILITARY DATABASE has ALL the real 1979 data for this country. If it says "F-14A Tomcat: 77", that means the country HAS 77 F-14s in 1979. Do NOT reject orders based on your general knowledge - the database is always right.
+- NEVER reject an order because "the country doesn't have that weapon in 1979". If the order mentions a unit that exists in the country's arsenal, ACCEPT IT.
+- Iran HAD F-14 Tomcats in 1979 (received 1976-1978). USA had F-15, F-16. USSR had MiG-23, MiG-25. ALWAYS assume the player's weapon exists.
+- Only reject if the order is logically absurd (e.g., "send naval fleet to a landlocked country" or "launch a nuclear missile when the country has no nukes in its tech tree").
+- When in doubt, ACCEPT the order and proceed with narrative.
 
 CRITICAL MILITARY RULES (DEPLOYMENT):
 - If the order is to DEPLOY forces: Extract EXACT number, model, and region.
@@ -453,8 +469,10 @@ async def create_encounter_ask_intent(context, order_id, user_id, country_name, 
     async with pool.acquire() as conn:
         enemy_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
     enemy_asset = enemy_row['model'] if enemy_row else 'نامشخص'
+    
     our_radar = get_radar_range(asset)
     enemy_radar = get_radar_range(enemy_asset)
+    
     if our_radar >= enemy_radar:
         det_id, det_c, det_a = user_id, country_name, asset
         ed_id, ed_c, ed_a = enemy['user_id'], enemy['country_name'], enemy_asset
@@ -463,12 +481,14 @@ async def create_encounter_ask_intent(context, order_id, user_id, country_name, 
         det_id, det_c, det_a = enemy['user_id'], enemy['country_name'], enemy_asset
         ed_id, ed_c, ed_a = user_id, country_name, asset
         det_range, ed_range = enemy_radar, our_radar
+        
     async with pool.acquire() as conn:
         enc_id = await conn.fetchval("""
             INSERT INTO encounters (order_id, detector_id, detector_country, detector_asset,
                 detected_id, detected_country, detected_asset, region, status)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'radar_contact') RETURNING id
         """, order_id, det_id, det_c, det_a, ed_id, ed_c, ed_a, region)
+        
     kb_radar = InlineKeyboardMarkup([
         [InlineKeyboardButton("🚀 شلیک موشک و شروع درگیری", callback_data=f"radar_launch_{enc_id}")],
         [InlineKeyboardButton("📻 هشدار رادیویی + اسکورت تا مرز", callback_data=f"radar_warn_{enc_id}")],
@@ -550,15 +570,33 @@ async def simulate_encounter_battle(context, enc_id, enc):
             ed_spec = spec
     det_intent = enc.get('detector_intent', 'attack')
     ed_intent = enc.get('detected_intent', 'attack')
+    
     prompt = f"""You are an elite tactical air combat simulator for the year 1979.
-=== AIRCRAFT TECHNICAL ANALYSIS ===
-DETECTOR: {enc['detector_country']} | Aircraft: {enc['detector_asset']} | Specs: {det_spec} | Intent: {det_intent.upper()}
-DETECTED: {enc['detected_country']} | Aircraft: {enc['detected_asset']} | Specs: {ed_spec} | Intent: {ed_intent.upper()}
+
+STRICT LANGUAGE RULES:
+- Output the "narrative" field in PERSIAN (Farsi) ONLY.
+- NEVER use Chinese, Japanese, Korean, Spanish, or other non-Persian languages.
+- English is ONLY allowed for these technical terms: BVR, WVR, AIM-54, AIM-7, AIM-9, R-23, R-60, R-3S, R.530, R.550, MiG-21, MiG-23, MiG-25, F-4, F-14, F-15, F-16, Mirage, CHAFF, FLARES.
+- If you don't know a Persian word, use the Persian transliteration (e.g., "فلرها" for FLARES, "چف" for CHAFF, "رادار" for radar).
+
+=== AIRCRAFT (USE EXACT NAMES) ===
+DETECTOR ({enc['detector_country']}): EXACT asset name = "{enc['detector_asset']}"
+DETECTED ({enc['detected_country']}): EXACT asset name = "{enc['detected_asset']}"
+
+⚠️ USE THESE EXACT NAMES. Do NOT invent combined names like "F-4 Phantom Tomcat". Use only the string above.
+
+=== SPECS ===
+DETECTOR: {det_spec}
+DETECTED: {ed_spec}
+
+=== INTENTS ===
+DETECTOR: {det_intent.upper()}
+DETECTED: {ed_intent.upper()}
 
 === COMBAT RULES ===
-1. BVR PHASE: Compare radar/missiles. Describe evasion (CHAFF, terrain masking). Calculate losses.
-2. WVR PHASE: Compare maneuverability. Describe IR missiles, FLARES, GUNS. Calculate losses.
-3. PILOT SURVIVAL: For every jet destroyed, determine if pilot(s) EJECTED or DIED. Modern jets have high survival rates.
+1. BVR PHASE: Compare radar range and long-range missiles (AIM-54, AIM-7, R-23). Describe evasion with CHAFF and terrain masking.
+2. WVR PHASE: Compare maneuverability. Describe IR missiles (AIM-9, R-60), FLARES, and GUNS.
+3. PILOT SURVIVAL: For every jet destroyed, determine if pilot EJECTED (survived) or DIED.
 
 Output JSON only:
 {{
@@ -566,7 +604,7 @@ Output JSON only:
   "detected_losses": integer,
   "detector_pilot_deaths": integer,
   "detected_pilot_deaths": integer,
-  "narrative": "Persian detailed tactical report including BVR, WVR, and pilot ejections."
+  "narrative": "Persian tactical report. NO Chinese, NO Spanish, NO English except technical terms."
 }}"""
     ai_response = await ask_ai(prompt)
     data = _safe_parse_json(ai_response)
@@ -575,6 +613,7 @@ Output JSON only:
     det_p_deaths = max(0, int(data.get('detector_pilot_deaths', 0)))
     ed_p_deaths = max(0, int(data.get('detected_pilot_deaths', 0)))
     narrative = _clean_persian_text(data.get('narrative', 'نبردی شدید رخ داد.'))
+    
     async with pool.acquire() as conn:
         await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", det_losses, det_p_deaths, enc['detector_id'])
         await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", ed_losses, ed_p_deaths, enc['detected_id'])
@@ -585,6 +624,7 @@ Output JSON only:
         await conn.execute("UPDATE orders SET final_narrative = $1 WHERE id = $2", narrative, enc['order_id'])
         det_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detector_id'])
         ed_data = await conn.fetchrow("SELECT alliance FROM countries WHERE user_id = $1", enc['detected_id'])
+        
     if det_data and ed_data and det_data['alliance'] != 'none' and det_data['alliance'] != ed_data['alliance']:
         async with pool.acquire() as conn:
             allies = await conn.fetch("SELECT user_id FROM countries WHERE alliance = $1 AND status = 'active' AND user_id != $2", ed_data['alliance'], enc['detected_id'])
@@ -593,12 +633,31 @@ Output JSON only:
                 await context.bot.send_message(ally['user_id'], f"🚨 **فعال شدن پیمان {ed_data['alliance']}!**\n\n{enc['detected_country']} در {enc['region']} مورد حمله قرار گرفت.")
             except:
                 pass
+                
     battle_msg = f"⚔️ **نتیجه نبرد در {enc['region']}**\n\n🏴 **{enc['detector_country']}**: {det_losses} فروند، {det_p_deaths} خلبان\n🏳️ **{enc['detected_country']}**: {ed_losses} فروند، {ed_p_deaths} خلبان\n\n📖 **تحلیل:**\n{narrative}"
+    
     for uid in [enc['detector_id'], enc['detected_id']]:
         try:
             await context.bot.send_message(uid, battle_msg, parse_mode="Markdown")
         except:
             pass
+            
+    async with pool.acquire() as conn:
+        order_check = await conn.fetchrow("SELECT is_public FROM orders WHERE id = $1", enc['order_id'])
+    is_secret_battle = order_check and not order_check['is_public']
+    
+    if not is_secret_battle:
+        news_msg = f"📰 **خبر فوری — نبرد هوایی**\n\n{battle_msg}"
+        if GROUP_ID and TOPIC_ID:
+            try:
+                await context.bot.send_message(chat_id=int(GROUP_ID), text=news_msg, message_thread_id=int(TOPIC_ID), parse_mode="Markdown")
+            except Exception as e:
+                logger.error(f"News send failed: {e}")
+        elif CHANNEL_ID:
+            try:
+                await context.bot.send_message(int(CHANNEL_ID.strip()), news_msg, parse_mode="Markdown")
+            except Exception as e:
+                logger.error(f"Channel send failed: {e}")
 
 async def _analyze_inner(order_id: int, context):
     async with pool.acquire() as conn:
@@ -620,6 +679,7 @@ async def _analyze_inner(order_id: int, context):
     action_type = data.get("action_type", "economic")
     target_country = data.get("target_country", "None")
     deployed_asset = data.get("deployed_asset", "نیروی نامشخص")
+    
     if action_type == "diplomacy" and target_country != "None":
         async with pool.acquire() as conn:
             target_data = await conn.fetchrow("SELECT user_id FROM countries WHERE name = $1 AND status = 'active'", target_country)
@@ -634,7 +694,11 @@ async def _analyze_inner(order_id: int, context):
             except:
                 pass
             return data
-    if data.get("success"):
+            
+    if action_type == "diplomacy" and target_country != "None" and data.get("success"):
+        data["_skip_stat_apply"] = True
+        
+    if data.get("success") and not data.get("_skip_stat_apply"):
         try:
             g_change = int(data.get("gdp_change") or 0)
             m_change = int(data.get("mil_budget_change") or 0)
@@ -656,6 +720,7 @@ async def _analyze_inner(order_id: int, context):
                 async with pool.acquire() as conn:
                     await conn.execute("UPDATE countries SET gdp = GREATEST(0, gdp + $1), mil_budget = GREATEST(0, mil_budget + $2), jets = GREATEST(0, jets + $3), tanks = GREATEST(0, tanks + $4), refineries = GREATEST(0, refineries + $5), satisfaction = $6 WHERE user_id = $7", g_change, m_change, j_change, t_change, r_change, new_sat, order["user_id"])
                 await apply_battle_changes(context, order["user_id"], country['name'], data)
+                
     enemy = None
     if action_type in ["deploy", "attack"] and region and region != "None":
         async with pool.acquire() as conn:
@@ -664,9 +729,10 @@ async def _analyze_inner(order_id: int, context):
                 enemy = dict(enemy_row)
     async with pool.acquire() as conn:
         await conn.execute("UPDATE orders SET order_intent = $1, region = $2, ai_analysis_raw = $3, enemy_user_id = $4 WHERE id = $5", order_intent, region, json.dumps(data, ensure_ascii=False), enemy['user_id'] if enemy else None, order_id)
+        
     if enemy and action_type in ["deploy", "attack"]:
         if order_intent == "attack":
-            enc_id = await create_encounter_and_battle(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
+            enc_id = await create_encounter_ask_intent(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
         elif order_intent in ["patrol", "deploy"]:
             enc_id = await create_encounter_ask_intent(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
     return data
@@ -1209,6 +1275,13 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except:
             ai_data = {}
         text_to_send = ai_data.get('narrative_short', '') if is_short else ai_data.get('narrative_long', '')
+        
+        if ai_data.get("battle_occurred") or ai_data.get("order_intent") == "attack":
+            async with pool.acquire() as conn:
+                enc_row = await conn.fetchrow("SELECT battle_narrative FROM encounters WHERE order_id = $1 ORDER BY id DESC LIMIT 1", oid)
+            if enc_row and enc_row['battle_narrative']:
+                text_to_send = f"⚔️ نتیجه نبرد:\n\n{enc_row['battle_narrative']}"
+                
         country_name = country_data['name'] if country_data else "نامشخص"
         final_text = f"📢 **بیانیه رسمی {country_name}**\n\n{text_to_send}"
         is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
@@ -1271,7 +1344,19 @@ async def send_analysis(update_or_cb, context, order_id):
     is_secret = (not order['is_public']) and (not is_attack)
     btn1 = "🤫 محرمانه (خلاصه)" if is_secret else "📢 خلاصه"
     btn2 = "🤫 محرمانه (کامل)" if is_secret else "📜 کامل"
-    txt = f"🧠 تحلیل (70B)\n\n📌 وضعیت: {st}\n📝 دلیل: {ai_data.get('reason', '')}\n{ch}\n📰 **خلاصه:**\n{ai_data.get('narrative_short', '')}\n\n📖 **کامل:**\n{ai_data.get('narrative_long', '')}"
+    txt = f"🧠 تحلیل (Gemma)\n\n📌 وضعیت: {st}\n📝 دلیل: {ai_data.get('reason', '')}\n{ch}\n📰 **خلاصه:**\n{ai_data.get('narrative_short', '')}\n\n📖 **کامل:**\n{ai_data.get('narrative_long', '')}"
+    
+    if ai_data.get("battle_occurred") or ai_data.get("order_intent") == "attack":
+        async with pool.acquire() as conn:
+            enc = await conn.fetchrow("SELECT battle_narrative FROM encounters WHERE order_id = $1 ORDER BY id DESC LIMIT 1", order_id)
+        if enc and enc['battle_narrative']:
+            battle_txt = f"⚔️ **نتیجه نبرد:**\n\n{enc['battle_narrative']}"
+            try:
+                target_id = update_or_cb.from_user.id if hasattr(update_or_cb, 'from_user') else update_or_cb.message.chat_id
+                await context.bot.send_message(target_id, battle_txt, parse_mode="Markdown")
+            except:
+                pass
+
     btn = kb([[InlineKeyboardButton(btn1, callback_data=f"pub_short_{order_id}"), InlineKeyboardButton(btn2, callback_data=f"pub_long_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
     if isinstance(update_or_cb, CallbackQuery):
         try:
