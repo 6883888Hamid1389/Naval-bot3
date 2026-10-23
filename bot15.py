@@ -339,7 +339,7 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
             {"role": "user", "content": prompt}
         ],
         "temperature": 0.7,
-        "max_tokens": 1500
+        "max_tokens": 400
     }
     def fallback(reason, narrative):
         return json.dumps({"success": False, "reason": reason, "narrative_short": narrative, "narrative_long": narrative}, ensure_ascii=False)
