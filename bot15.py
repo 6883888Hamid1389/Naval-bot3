@@ -6,6 +6,7 @@ import httpx
 import json
 import ast
 import re
+import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, BotCommand, CallbackQuery
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters, ContextTypes
 
@@ -30,44 +31,84 @@ RESOURCES = {
     "gold": "🏵 طلا", "lead": "🔘 سرب", "zinc": "⚪ روی", "phosphate": "🧪 فسفات", "sulfur": "🟡 گوگرد"
 }
 
+GOVERNMENTS = {
+    "communist": {"name": "☭ کمونیستی", "subs": {"marxist": "مارکسیسم-لنینیسم", "stalinist": "استالینیسم", "maoist": "مائوئیسم"}},
+    "dictator": {"name": "✊ دیکتاتوری", "subs": {"military": "نظامی", "personal": "فردی", "party": "حزبی"}},
+    "democracy": {"name": "🗳️ دموکراسی", "subs": {"parliamentary": "پارلمانی", "presidential": "ریاستی", "federal": "فدرال"}},
+    "monarchy": {"name": "👑 سلطنتی", "subs": {"absolute": "مطلقه", "constitutional": "مشروطه", "empire": "امپراتوری"}},
+    "republic": {"name": "🏛️ جمهوری", "subs": {"secular": "سکولار", "islamic": "اسلامی", "socialist": "سوسیالیستی"}},
+    "religious": {"name": "🕌 دینی", "subs": {"shia_theo": "تئوکراسی شیعه", "suni_theo": "تئوکراسی سنی", "velayat": "ولایت فقیه"}}
+}
+
 AIRCRAFT_SPECS = {
-    "F-14": "سرعت 2.34 ماخ | رادار AWG-9 (300km) | AIM-54 Phoenix (200km) | AIM-7 Sparrow (80km) | AIM-9 Sidewinder (18km) | مانور عالی | بال متغیر",
-    "F-15": "سرعت 2.5 ماخ | رادار APG-63 (150km) | AIM-7 Sparrow (80km) | AIM-9 Sidewinder (18km) | مانور فوق‌العاده",
-    "F-16": "سرعت 2 ماخ | رادار APG-66 (60km) | AIM-9 Sidewinder (18km) | مانور فوق‌العاده (داگ‌فایت)",
-    "F-4": "سرعت 2.23 ماخ | رادار APQ-120 (80km) | AIM-7 Sparrow (80km) | AIM-9 Sidewinder (18km) | مانور متوسط | توپ 20mm",
-    "MiG-21": "سرعت 2.1 ماخ | رادار RP-21 (19km) | R-3S (8km) | R-60 (8km) | مانور خوب | برد کم",
-    "MiG-23": "سرعت 2.35 ماخ | رادار RP-23 (70km) | R-23 (35km) | R-60 (8km) | مانور خوب | بال متغیر",
-    "MiG-25": "سرعت 2.83 ماخ | رادار RP-25 (100km) | R-40 (80km) | بدون توپ | مانور ضعیف | ارتفاع بالا",
-    "Mirage F1": "سرعت 2.2 ماخ | رادار Cyrano IV (60km) | R.530 (30km) | R.550 Magic (10km) | مانور خوب | توپ 30mm",
-    "Su-17": "سرعت 1.6 ماخ | R-60 (8km) | مخصوص حمله زمینی",
-    "MiG-27": "سرعت 1.7 ماخ | R-60 (8km) | مخصوص حمله زمینی",
-    "Jaguar": "سرعت 1.6 ماخ | AIM-9 | مخصوص حمله زمینی"
+    "F-14": "سرعت 2.34 ماخ | رادار AWG-9 (300km) | AIM-54 (200km) | AIM-7 (80km) | AIM-9 (18km) | مانور عالی | بال متغیر | خدمه: 2 نفر",
+    "F-15": "سرعت 2.5 ماخ | رادار APG-63 (150km) | AIM-7 (80km) | AIM-9 (18km) | مانور فوق‌العاده | خدمه: 1 نفر",
+    "F-16": "سرعت 2 ماخ | رادار APG-66 (60km) | AIM-9 (18km) | مانور فوق‌العاده | خدمه: 1 نفر",
+    "F-4": "سرعت 2.23 ماخ | رادار APQ-120 (80km) | AIM-7 (80km) | AIM-9 (18km) | توپ 20mm | خدمه: 2 نفر",
+    "MiG-21": "سرعت 2.1 ماخ | رادار RP-21 (19km) | R-3S (8km) | R-60 (8km) | مانور خوب | خدمه: 1 نفر",
+    "MiG-23": "سرعت 2.35 ماخ | رادار RP-23 (70km) | R-23 (35km) | R-60 (8km) | مانور خوب | خدمه: 1 نفر",
+    "MiG-25": "سرعت 2.83 ماخ | رادار RP-25 (100km) | R-40 (80km) | مانور ضعیف | خدمه: 1 نفر",
+    "Mirage F1": "سرعت 2.2 ماخ | رادار Cyrano IV (60km) | R.530 (30km) | R.550 (10km) | توپ 30mm | خدمه: 1 نفر"
 }
 
 MILITARY_DB = {
-    "ایران": {"نیروی هوایی": "F-14A Tomcat: 77 | F-4 Phantom II: 190 | F-5 Tiger II: 166", "نیروی زمینی": "Chieftain: 894 | M60 Patton: 460 | M47 Patton: 400 | Scorpion: 250", "توپخانه و خمپاره‌انداز": "M101 105mm: 330 | M114 155mm: 100 | M107 175mm: 100 | M110 203mm: 100 | BM-21 Grad: 64 | خمپاره 81/120/240mm", "نیروی دریایی": "ناوشکن Battle: 1 | ناوشکن Sumner: 2 | ناوچه Alvand: 4 | قایق موشک‌انداز Kaman: 10", "پدافند هوایی": "MIM-23 Hawk | توپ ضدهوایی ۱۸۰۰ عراده", "سلاح سبک": "H&K G3"},
-    "آمریکا": {"نیروی هوایی": "F-15A/B Eagle: 310 | F-4 Phantom II: 968 | A-10 Thunderbolt II: 144 | F-111 Aardvark: 350 | B-52 Stratofortress: 346 | F-16A/B Fighting Falcon: 156", "نیروی زمینی": "M60A3 Patton: 2560 | M48A5 Patton: 2067 | M551 Sheridan: 59", "توپخانه و خمپاره‌انداز": "M101A1 105mm: 1500 | M102 105mm: 500 | M109A1 155mm: 2000 | M114A2 155mm: 500 | M107 175mm: 750 | M110 203mm: 750 | خمپاره 60/81/107mm", "نیروی دریایی": "ناو هواپیمابر: 13 | رزمناو: 28 | ناوشکن: 97 | زیردریایی SSN: 80 | SSBN: 41", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "M16A1 | M1911A1"},
-    "شوروی": {"نیروی هوایی": "MiG-23/27 Flogger: 800 | MiG-25 Foxbat: 25 | Su-17/20/22 Fitter: 500 | Su-24 Fencer: 100 | Tu-95 Bear: 113 | Tu-22M Backfire: 150", "نیروی زمینی": "T-64/T-72/T-80: +20000 | T-62/T-55/T-54: 50000", "توپخانه و خمپاره‌انداز": "D-30 122mm: 4379 | 2S1 Gvozdika: 2751 | 2S3 Akatsiya: 2325 | 2S5 Giatsint-S: 507 | 2S7 Pion: 347 | 2S4 Tyulpan: 430 | BM-21 Grad: 4520 | BM-27 Uragan: 720", "نیروی دریایی": "ناو هواپیمابر Kiev: 2 | Kirov: 1 | Kara: 7 | زیردریایی هسته‌ای: 180 | SSBN: 64", "پدافند هوایی": "SA-2 | SA-3 | SA-5 | SA-10", "سلاح سبک": "AK-74 | AKM"},
-    "چین": {"نیروی هوایی": "J-5: 1400 | J-6: 1000 | J-7: 75 | Q-5 Fantan: 300 | H-5: 300 | H-6: 100", "نیروی زمینی": "Type 59: +9000 | Type 69: چند صد | T-34: چند صد", "توپخانه و خمپاره‌انداز": "Type 54 122mm: 10000 | Type 59 130mm: 4000 | Type 66 152mm: 1000 | Type 63 107mm: 4000 | خمپاره 82/120/160mm", "نیروی دریایی": "زیردریایی: 54 | ناوشکن/ناوچه: 16 | قایق گشتی: 763", "پدافند هوایی": "SA-2 | توپ ۱۰۰mm", "سلاح سبک": "Type 56"},
-    "عراق": {"نیروی هوایی": "MiG-21: 115 | MiG-23: 80 | Su-20/22: 70 | Tu-22: 12 | Tu-16: 14 | Mirage F1EQ: 12", "نیروی زمینی": "T-54/55/62: 1700 | T-72: 100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 100 | M-30 122mm: 400 | M-46 130mm: 100 | GHN-45 155mm: 200 | G-5 155mm: 100 | GCT 155mm: 76 | 2S1 122mm: 100 | BM-21: چند صد | خمپاره 82/120/160mm", "نیروی دریایی": "OSA-I: 4 | OSA-II: 8 | P-6: 12", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47 | Tabuk"},
-    "اسرائیل": {"نیروی هوایی": "F-15A/B: 24 | F-4E: 90 | A-4 Skyhawk: 270 | Kfir-C2: 80", "نیروی زمینی": "Centurion: 1000 | M60 Patton: 810 | M48 Patton: 650 | Merkava Mk.1: 40", "توپخانه و خمپاره‌انداز": "M109 155mm: 120 | M107 175mm: 60 | M110 203mm: 48 | M101 105mm: 500 | M114 155mm: 450 | خمپاره 81/120/160mm", "نیروی دریایی": "Reshef: 10 | Saar: 12 | Type 206: 3", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "Galil | Uzi | M16A1"},
-    "مصر": {"نیروی هوایی": "MiG-21: 208 | MiG-17: 50 | Su-7: 120 | Tu-16: 25 | Mirage 5: 60 | F-4E: 16", "نیروی زمینی": "T-54/55: 850 | T-62: 750 | M60A3: 60", "توپخانه و خمپاره‌انداز": "D-30 122mm: 300 | M-46 130mm: 200 | 2S1 122mm: 100 | 2S3 152mm: 50 | BM-21: 200 | SU-100: 200 | خمپاره 82/120/160mm", "نیروی دریایی": "Skory: 4 | Z: 1 | Romeo: 6 | Whiskey: 6 | OSA-I: 8 | Komar: 5", "پدافند هوایی": "SA-2: 360 | SA-3: 200 | SA-6: 75", "سلاح سبک": "AK-47"},
-    "سوریه": {"نیروی هوایی": "MiG-21: 172 | MiG-23: 140 | MiG-25: 25 | Su-20/22: 30", "نیروی زمینی": "T-54/55: 1500 | T-62: 800 | T-72: 65", "توپخانه و خمپاره‌انداز": "2S1 122mm: 100 | 2S3 152mm: 50 | D-30 122mm: 300 | M-46 130mm: 200 | BM-21: 200 | خمپاره 82/120/160/240mm", "نیروی دریایی": "OSA-I/II: 12 | Komar: 2", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47"},
-    "بریتانیا": {"نیروی هوایی": "Phantom FGR.2: 40 | Jaguar GR.1: 52 | Harrier GR.3: 26 | Buccaneer S.2: 24 | Vulcan B.2: 50", "نیروی زمینی": "Chieftain: 640", "توپخانه و خمپاره‌انداز": "Abbot 105mm: 100 | M109 155mm: 50 | M107 175mm: 20 | خمپاره 81mm", "نیروی دریایی": "Hermes: 1 | Type 42: 7 | Type 22: 2 | Leander: 26 | Resolution (SSBN): 4", "پدافند هوایی": "Rapier | Bloodhound", "سلاح سبک": "L1A1 SLR | Sterling"},
-    "فرانسه": {"نیروی هوایی": "Mirage F1C: 90 | Mirage IIIE: 30 | Jaguar: 174 | Mirage IV: 34", "نیروی زمینی": "AMX-30: 1360", "توپخانه و خمپاره‌انداز": "AMX-30 AuF1 155mm: 110 | TR 155mm: 20 | خمپاره 120mm: 400", "نیروی دریایی": "Clemenceau: 2 | Colbert: 1 | موشک‌انداز: 6 | Redoutable (SSBN): 4 | زیردریایی تهاجمی: 22", "پدافند هوایی": "Roland | MIM-23 Hawk", "سلاح سبک": "FAMAS | MAS 49/56"},
-    "آلمان غربی": {"نیروی هوایی": "F-4F Phantom II: 175 | RF-4E: 88 | F-104G: 144 | Tornado IDS: 10", "نیروی زمینی": "Leopard 1: 2400 | Leopard 2: 100 | M48: 650", "توپخانه و خمپاره‌انداز": "M109G 155mm: 586 | FH-70 155mm: 215 | LARS 110mm: 209 | خمپاره 120mm", "نیروی دریایی": "Type 206: 18 | Lütjens: 3 | Bremen: 6 | قایق موشک‌انداز: 40", "پدافند هوایی": "Roland | Gepard", "سلاح سبک": "H&K G3 | MP5"},
-    "آلمان شرقی": {"نیروی هوایی": "MiG-21: 252 | MiG-23: 81 | Su-7: 80 | MiG-17: 30", "نیروی زمینی": "T-54/55: 2500 | T-72: 549 | T-34: 600", "توپخانه و خمپاره‌انداز": "2S1 122mm: 200 | 2S3 152mm: 100 | D-30 122mm: 300 | BM-21: 108 | خمپاره 120mm: 250", "نیروی دریایی": "Koni: 3 | OSA-I: 15 | Shershen: 18 | Libelle: 30 | Kondor: 51", "پدافند هوایی": "SA-4 | SA-6 | SA-7", "سلاح سبک": "AK-47 | AK-74"},
-    "ژاپن": {"نیروی هوایی": "F-4EJ: 140 | RF-4E: 14 | F-1: 77 | F-104J", "نیروی زمینی": "Type 74: 740", "توپخانه و خمپاره‌انداز": "Type 75 155mm: 200 | Type 74 105mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | توپ ۳۵mm", "سلاح سبک": "Howa Type 64"},
-    "هند": {"نیروی هوایی": "MiG-21: 300 | Su-7: 120 | Jaguar: 88 | MiG-23BN: 53 | MiG-17: 148", "نیروی زمینی": "T-54/55: 950 | T-72: 70 | Vijayanta: 1100", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | FH-77B 155mm: 100 | BM-21: 200 | خمپاره 81/120mm", "نیروی دریایی": "Vikrant: 1 | Foxtrot: 8 | ناوشکن/ناوچه: 23", "پدافند هوایی": "SA-2 | توپ ۴۰mm", "سلاح سبک": "Ishapore 2A1"},
-    "پاکستان": {"نیروی هوایی": "Mirage III: 65 | Mirage 5: 52 | J-6: 175 | F-7P: 74", "نیروی زمینی": "Type 59: 1000 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | M101 105mm: 300 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 1 | ناوچه: 8 | زیردریایی: 9", "پدافند هوایی": "SA-2 | توپ ۳۷mm", "سلاح سبک": "G3 | AK-47"},
-    "ترکیه": {"نیروی هوایی": "F-4E: 80 | RF-4E: 8 | F-104G: 72 | F-104D: 45 | F-5: 24", "نیروی زمینی": "M48: 3000 | M47", "توپخانه و خمپاره‌انداز": "M101 105mm: 500 | M114 155mm: 300 | M115 203mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 13 | زیردریایی: 15", "پدافند هوایی": "Rapier | توپ ۴۰mm", "سلاح سبک": "G3 | M1 Garand"},
-    "برزیل": {"نیروی هوایی": "Mirage IIIEBR: 15 | Mirage IIIDBR: 2 | F-5E: 36 | F-5B: 6 | AT-26: 50", "نیروی زمینی": "M41: 250 | M3A1: 220 | X1A2: 25", "توپخانه و خمپاره‌انداز": "M101 105mm: 300 | M114 155mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "Minas Gerais: 1 | Oberon: 3 | GUPPY: 7 | ناوشکن: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL"},
-    "آرژانتین": {"نیروی هوایی": "Mirage IIIEA: 16 | Dagger: 35 | A-4: 16 | Canberra: 8 | Pucara: 30", "نیروی زمینی": "TAM: 350 | AMX-13 | M4 Sherman", "توپخانه و خمپاره‌انداز": "CITER 155mm: 87 | OTO Melara 105mm: 80 | خمپاره 81/120mm", "نیروی دریایی": "Veinticinco de Mayo: 1 | Belgrano: 1 | ناوشکن: 8 | Type 209: 2", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL | FMK-3"},
-    "کره جنوبی": {"نیروی هوایی": "F-4D/E: 128 | F-5A/B: 44 | F-5E/F: 160", "نیروی زمینی": "M47: 350 | M48", "توپخانه و خمپاره‌انداز": "M109 155mm: 200 | M101 105mm: 500 | خمپاره 81/120mm", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk | M163 Vulcan", "سلاح سبک": "M16A1"},
-    "کره شمالی": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 130 | MiG-17: 107 | Su-7: 20", "نیروی زمینی": "T-54/55: 2000 | T-62: 300 | T-34: 300", "توپخانه و خمپاره‌انداز": "D-30 122mm: 1000 | M-46 130mm: 500 | BM-21: 500 | خمپاره 82/120/160mm", "نیروی دریایی": "زیردریایی: 20 | OSA: 52", "پدافند هوایی": "SA-2 | توپ ۱۰۰mm", "سلاح سبک": "AK-47 | Type 58"},
-    "ویتنام": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 70 | MiG-17: 70 | F-5: 20 | A-37: 19", "نیروی زمینی": "T-54/55: 1600 | Type 59: 160 | PT-76: 450 | M48", "توپخانه و خمپاره‌انداز": "D-30 122mm: 500 | M-46 130mm: 300 | BM-21: 200 | خمپاره 82/120mm", "نیروی دریایی": "OSA: 8 | مین‌روب: 5", "پدافند هوایی": "SA-2: 360 | SA-3", "سلاح سبک": "AK-47 | M16"},
-    "کوبا": {"نیروی هوایی": "MiG-23BN: 25 | MiG-21: 78 | MiG-19: 40 | MiG-17: 30", "نیروی زمینی": "T-54/55: 630 | T-62: 50 | T-34: 350", "توپخانه و خمپاره‌انداز": "D-30 122mm: 200 | M-46 130mm: 100 | BM-21: 100 | خمپاره 82/120mm", "نیروی دریایی": "Foxtrot: 2 | OSA-II: 13", "پدافند هوایی": "SA-2 | SA-3 | ZSU-23-4", "سلاح سبک": "AK-47 | FN FAL"},
-    "عربستان": {"نیروی هوایی": "F-5E: 70 | F-5F: 20 | F-5B: 20", "نیروی زمینی": "M47 | M41 | AML-60/90", "توپخانه و خمپاره‌انداز": "M101 105mm: 200 | M109 155mm: 100 | خمپاره 81/120mm", "نیروی دریایی": "قایق‌های گشتی ساحلی", "پدافند هوایی": "MIM-23 Hawk | توپ ۳۵mm", "سلاح سبک": "FN FAL | G3"}
+    "ایران": {"نیروی هوایی": "F-14A Tomcat: 77 | F-4 Phantom II: 190 | F-5 Tiger II: 166", "نیروی زمینی": "Chieftain: 894 | M60 Patton: 460 | M47 Patton: 400 | Scorpion: 250", "توپخانه": "M101 105mm: 330 | M114 155mm: 100 | M107 175mm: 100 | M110 203mm: 100 | BM-21 Grad: 64", "نیروی دریایی": "ناوشکن Battle: 1 | ناوشکن Sumner: 2 | ناوچه Alvand: 4 | قایق موشک‌انداز Kaman: 10", "پدافند هوایی": "MIM-23 Hawk | توپ ضدهوایی ۱۸۰۰ عراده", "سلاح سبک": "H&K G3"},
+    "آمریکا": {"نیروی هوایی": "F-15A/B: 310 | F-4: 968 | A-10: 144 | F-111: 350 | B-52: 346 | F-16: 156", "نیروی زمینی": "M60A3: 2560 | M48A5: 2067 | M551: 59", "توپخانه": "M101A1 105mm: 1500 | M109A1 155mm: 2000 | M107 175mm: 750 | M110 203mm: 750", "نیروی دریایی": "ناو هواپیمابر: 13 | رزمناو: 28 | ناوشکن: 97 | زیردریایی SSN: 80", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan | FIM-43 Redeye", "سلاح سبک": "M16A1 | M1911A1"},
+    "شوروی": {"نیروی هوایی": "MiG-23/27: 800 | MiG-25: 25 | Su-17/20/22: 500 | Su-24: 100 | Tu-95: 113 | Tu-22M: 150", "نیروی زمینی": "T-64/T-72/T-80: +20000 | T-62/T-55/T-54: 50000", "توپخانه": "D-30 122mm: 4379 | 2S1 Gvozdika: 2751 | 2S3 Akatsiya: 2325 | 2S7 Pion: 347 | BM-21: 4520", "نیروی دریایی": "ناو Kiev: 2 | Kirov: 1 | Kara: 7 | زیردریایی هسته‌ای: 180", "پدافند هوایی": "SA-2 | SA-3 | SA-5 | SA-10", "سلاح سبک": "AK-74 | AKM"},
+    "چین": {"نیروی هوایی": "J-5: 1400 | J-6: 1000 | J-7: 75 | Q-5: 300 | H-6: 100", "نیروی زمینی": "Type 59: +9000 | Type 69: چند صد | T-34: چند صد", "توپخانه": "Type 54 122mm: 10000 | Type 59 130mm: 4000 | Type 66 152mm: 1000", "نیروی دریایی": "زیردریایی: 54 | ناوشکن/ناوچه: 16 | قایق گشتی: 763", "پدافند هوایی": "SA-2", "سلاح سبک": "Type 56"},
+    "عراق": {"نیروی هوایی": "MiG-21: 115 | MiG-23: 80 | Su-20/22: 70 | Tu-22: 12 | Mirage F1EQ: 12", "نیروی زمینی": "T-54/55/62: 1700 | T-72: 100", "توپخانه": "D-30 122mm: 100 | M-46 130mm: 100 | GHN-45 155mm: 200 | 2S1 122mm: 100", "نیروی دریایی": "OSA-I: 4 | OSA-II: 8 | P-6: 12", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47 | Tabuk"},
+    "اسرائیل": {"نیروی هوایی": "F-15A/B: 24 | F-4E: 90 | A-4: 270 | Kfir-C2: 80", "نیروی زمینی": "Centurion: 1000 | M60: 810 | M48: 650 | Merkava: 40", "توپخانه": "M109 155mm: 120 | M107 175mm: 60 | M110 203mm: 48 | M101 105mm: 500", "نیروی دریایی": "Reshef: 10 | Saar: 12 | Type 206: 3", "پدافند هوایی": "MIM-72 Chaparral | M163 Vulcan", "سلاح سبک": "Galil | Uzi | M16A1"},
+    "مصر": {"نیروی هوایی": "MiG-21: 208 | MiG-17: 50 | Su-7: 120 | Tu-16: 25 | Mirage 5: 60", "نیروی زمینی": "T-54/55: 850 | T-62: 750 | M60A3: 60", "توپخانه": "D-30 122mm: 300 | M-46 130mm: 200 | 2S1 122mm: 100", "نیروی دریایی": "Skory: 4 | Romeo: 6 | OSA-I: 8 | Komar: 5", "پدافند هوایی": "SA-2: 360 | SA-3: 200 | SA-6: 75", "سلاح سبک": "AK-47"},
+    "سوریه": {"نیروی هوایی": "MiG-21: 172 | MiG-23: 140 | MiG-25: 25 | Su-20/22: 30", "نیروی زمینی": "T-54/55: 1500 | T-62: 800 | T-72: 65", "توپخانه": "2S1 122mm: 100 | 2S3 152mm: 50 | D-30 122mm: 300", "نیروی دریایی": "OSA-I/II: 12 | Komar: 2", "پدافند هوایی": "SA-2 | SA-3 | SA-6", "سلاح سبک": "AK-47"},
+    "بریتانیا": {"نیروی هوایی": "Phantom: 40 | Jaguar: 52 | Harrier: 26 | Buccaneer: 24 | Vulcan: 50", "نیروی زمینی": "Chieftain: 640", "توپخانه": "Abbot 105mm: 100 | M109 155mm: 50", "نیروی دریایی": "Hermes: 1 | Type 42: 7 | Type 22: 2 | Resolution (SSBN): 4", "پدافند هوایی": "Rapier | Bloodhound", "سلاح سبک": "L1A1 SLR"},
+    "فرانسه": {"نیروی هوایی": "Mirage F1C: 90 | Mirage IIIE: 30 | Jaguar: 174 | Mirage IV: 34", "نیروی زمینی": "AMX-30: 1360", "توپخانه": "AMX-30 AuF1 155mm: 110 | TR 155mm: 20", "نیروی دریایی": "Clemenceau: 2 | Colbert: 1 | Redoutable (SSBN): 4", "پدافند هوایی": "Roland | MIM-23 Hawk", "سلاح سبک": "FAMAS"},
+    "آلمان غربی": {"نیروی هوایی": "F-4F: 175 | RF-4E: 88 | F-104G: 144 | Tornado: 10", "نیروی زمینی": "Leopard 1: 2400 | Leopard 2: 100 | M48: 650", "توپخانه": "M109G 155mm: 586 | FH-70 155mm: 215 | LARS 110mm: 209", "نیروی دریایی": "Type 206: 18 | Lütjens: 3 | Bremen: 6", "پدافند هوایی": "Roland | Gepard", "سلاح سبک": "H&K G3"},
+    "آلمان شرقی": {"نیروی هوایی": "MiG-21: 252 | MiG-23: 81 | Su-7: 80 | MiG-17: 30", "نیروی زمینی": "T-54/55: 2500 | T-72: 549 | T-34: 600", "توپخانه": "2S1 122mm: 200 | 2S3 152mm: 100 | D-30 122mm: 300", "نیروی دریایی": "Koni: 3 | OSA-I: 15 | Shershen: 18", "پدافند هوایی": "SA-4 | SA-6 | SA-7", "سلاح سبک": "AK-47 | AK-74"},
+    "ژاپن": {"نیروی هوایی": "F-4EJ: 140 | RF-4E: 14 | F-1: 77", "نیروی زمینی": "Type 74: 740", "توپخانه": "Type 75 155mm: 200 | Type 74 105mm: 100", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk", "سلاح سبک": "Howa Type 64"},
+    "هند": {"نیروی هوایی": "MiG-21: 300 | Su-7: 120 | Jaguar: 88 | MiG-23BN: 53", "نیروی زمینی": "T-54/55: 950 | T-72: 70 | Vijayanta: 1100", "توپخانه": "D-30 122mm: 500 | M-46 130mm: 300", "نیروی دریایی": "Vikrant: 1 | Foxtrot: 8", "پدافند هوایی": "SA-2", "سلاح سبک": "Ishapore 2A1"},
+    "پاکستان": {"نیروی هوایی": "Mirage III: 65 | Mirage 5: 52 | J-6: 175 | F-7P: 74", "نیروی زمینی": "Type 59: 1000 | M48", "توپخانه": "D-30 122mm: 200 | M-46 130mm: 100", "نیروی دریایی": "ناوشکن: 1 | ناوچه: 8 | زیردریایی: 9", "پدافند هوایی": "SA-2", "سلاح سبک": "G3 | AK-47"},
+    "ترکیه": {"نیروی هوایی": "F-4E: 80 | RF-4E: 8 | F-104G: 72 | F-5: 24", "نیروی زمینی": "M48: 3000 | M47", "توپخانه": "M101 105mm: 500 | M114 155mm: 300", "نیروی دریایی": "ناوشکن: 13 | زیردریایی: 15", "پدافند هوایی": "Rapier", "سلاح سبک": "G3"},
+    "برزیل": {"نیروی هوایی": "Mirage III: 15 | F-5E: 36 | AT-26: 50", "نیروی زمینی": "M41: 250 | M3A1: 220 | X1A2: 25", "توپخانه": "M101 105mm: 300 | M114 155mm: 100", "نیروی دریایی": "Minas Gerais: 1 | Oberon: 3 | GUPPY: 7", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL"},
+    "آرژانتین": {"نیروی هوایی": "Mirage IIIEA: 16 | Dagger: 35 | A-4: 16 | Pucara: 30", "نیروی زمینی": "TAM: 350 | AMX-13", "توپخانه": "CITER 155mm: 87 | OTO Melara 105mm: 80", "نیروی دریایی": "Veinticinco de Mayo: 1 | Belgrano: 1", "پدافند هوایی": "Roland", "سلاح سبک": "FN FAL"},
+    "کره جنوبی": {"نیروی هوایی": "F-4D/E: 128 | F-5A/B: 44 | F-5E/F: 160", "نیروی زمینی": "M47: 350 | M48", "توپخانه": "M109 155mm: 200 | M101 105mm: 500", "نیروی دریایی": "ناوشکن: 60 | زیردریایی: 16", "پدافند هوایی": "MIM-23 Hawk", "سلاح سبک": "M16A1"},
+    "کره شمالی": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 130 | MiG-17: 107 | Su-7: 20", "نیروی زمینی": "T-54/55: 2000 | T-62: 300 | T-34: 300", "توپخانه": "D-30 122mm: 1000 | M-46 130mm: 500 | BM-21: 500", "نیروی دریایی": "زیردریایی: 20 | OSA: 52", "پدافند هوایی": "SA-2", "سلاح سبک": "AK-47"},
+    "ویتنام": {"نیروی هوایی": "MiG-21: 120 | MiG-19: 70 | MiG-17: 70 | F-5: 20", "نیروی زمینی": "T-54/55: 1600 | Type 59: 160 | PT-76: 450", "توپخانه": "D-30 122mm: 500 | M-46 130mm: 300", "نیروی دریایی": "OSA: 8 | مین‌روب: 5", "پدافند هوایی": "SA-2: 360", "سلاح سبک": "AK-47"},
+    "کوبا": {"نیروی هوایی": "MiG-23BN: 25 | MiG-21: 78 | MiG-19: 40", "نیروی زمینی": "T-54/55: 630 | T-62: 50 | T-34: 350", "توپخانه": "D-30 122mm: 200 | M-46 130mm: 100", "نیروی دریایی": "Foxtrot: 2 | OSA-II: 13", "پدافند هوایی": "SA-2 | SA-3", "سلاح سبک": "AK-47"},
+    "عربستان": {"نیروی هوایی": "F-5E: 70 | F-5F: 20", "نیروی زمینی": "M47 | M41", "توپخانه": "M101 105mm: 200 | M109 155mm: 100", "نیروی دریایی": "قایق‌های گشتی", "پدافند هوایی": "MIM-23 Hawk", "سلاح سبک": "FN FAL"}
+}
+
+PERSONNEL_DB = {
+    "ایران": "ارتش (Artesh): ۴۲۰,۰۰۰ نفر | سپاه پاسداران (تازه تاسیس): ۱۰۰,۰۰۰ نفر",
+    "آمریکا": "ارتش: ۷۵۴,۰۰۰ نفر | نیروی هوایی: ۵۵۵,۰۰۰ نفر | نیروی دریایی: ۵۲۹,۰۰۰ نفر | تفنگداران: ۱۸۵,۰۰۰ نفر",
+    "شوروی": "ارتش: ۲,۰۰۰,۰۰۰ نفر | نیروی هوایی: ۵۱۰,۰۰۰ نفر | نیروی دریایی: ۴۵۰,۰۰۰ نفر | پدافند: ۵۵۰,۰۰۰ نفر",
+    "چین": "ارتش: ۴,۰۰۰,۰۰۰ نفر | نیروی هوایی: ۴۹۰,۰۰۰ نفر | نیروی دریایی: ۲۸۰,۰۰۰ نفر",
+    "عراق": "ارتش: ۱۹۰,۰۰۰ نفر | نیروی هوایی: ۲۸,۰۰۰ نفر | نیروی دریایی: ۴,۰۰۰ نفر",
+    "اسرائیل": "ارتش: ۱۳۵,۰۰۰ نفر | نیروی هوایی: ۲۱,۰۰۰ نفر | نیروی دریایی: ۶,۶۰۰ نفر",
+    "مصر": "ارتش: ۲۳۵,۰۰۰ نفر | نیروی هوایی: ۲۵,۰۰۰ نفر | نیروی دریایی: ۱۵,۰۰۰ نفر | پدافند: ۸۵,۰۰۰ نفر",
+    "سوریه": "ارتش: ۱۷۰,۰۰۰ نفر | نیروی هوایی: ۴۰,۰۰۰ نفر | نیروی دریایی: ۴,۰۰۰ نفر",
+    "بریتانیا": "ارتش: ۱۳۸,۶۰۰ نفر | نیروی هوایی: ۷۹,۷۰۰ نفر | نیروی دریایی: ۶۵,۹۰۰ نفر",
+    "فرانسه": "ارتش: ۳۱۴,۷۲۲ نفر | نیروی هوایی: ۱۰۲,۰۰۰ نفر | نیروی دریایی: ۶۸,۰۰۰ نفر",
+    "آلمان غربی": "ارتش: ۳۴۰,۰۰۰ نفر | نیروی هوایی: ۱۱۱,۰۰۰ نفر | نیروی دریایی: ۳۸,۰۰۰ نفر",
+    "آلمان شرقی": "ارتش: ۱۰۷,۰۰۰ نفر | نیروی هوایی: ۳۶,۰۰۰ نفر | نیروی دریایی: ۱۶,۰۰۰ نفر",
+    "ژاپن": "ارتش: ۱۵۰,۰۰۰ نفر | نیروی هوایی: ۵۰,۵۰۰ نفر | نیروی دریایی: ۵۱,۰۰۰ نفر",
+    "هند": "ارتش: ۹۵۰,۰۰۰ نفر | نیروی هوایی: ۱۰۰,۰۰۰ نفر | نیروی دریایی: ۴۰,۰۰۰ نفر",
+    "پاکستان": "ارتش: ۴۰۰,۰۰۰ نفر | نیروی هوایی: ۳۵,۰۰۰ نفر | نیروی دریایی: ۱۵,۰۰۰ نفر",
+    "ترکیه": "ارتش: ۴۵۰,۰۰۰ نفر | نیروی هوایی: ۵۰,۰۰۰ نفر | نیروی دریایی: ۴۰,۰۰۰ نفر",
+    "برزیل": "ارتش: ۱۷۰,۰۰۰ نفر | نیروی هوایی: ۴۱,۴۰۰ نفر | نیروی دریایی: ۴۵,۸۰۰ نفر",
+    "آرژانتین": "ارتش: ۸۳,۵۰۰ نفر | نیروی هوایی: ۲۰,۰۰۰ نفر | نیروی دریایی: ۳۳,۰۰۰ نفر",
+    "کره جنوبی": "ارتش: ۵۶۰,۰۰۰ نفر | نیروی هوایی: ۳۰,۰۰۰ نفر | نیروی دریایی: ۲۰,۰۰۰ نفر",
+    "کره شمالی": "ارتش: ۵۰۰,۰۰۰ نفر | نیروی هوایی: ۴۵,۰۰۰ نفر | نیروی دریایی: ۲۰,۰۰۰ نفر",
+    "ویتنام": "ارتش: ۶۰۰,۰۰۰ نفر | نیروی هوایی: ۱۲,۰۰۰ نفر | نیروی دریایی: ۳,۰۰۰ نفر",
+    "کوبا": "ارتش: ۱۳۰,۰۰۰ نفر | نیروی هوایی: ۱۵,۰۰۰ نفر | نیروی دریایی: ۵,۰۰۰ نفر",
+    "عربستان": "ارتش: ۴۰,۰۰۰ نفر | نیروی هوایی: ۱۰,۰۰۰ نفر | نیروی دریایی: ۱,۷۰۰ نفر"
+}
+
+PILOT_DB = {
+    "ایران": 4500, "آمریکا": 25000, "شوروی": 30000, "چین": 12000, "عراق": 2000,
+    "اسرائیل": 2500, "مصر": 3000, "سوریه": 2000, "بریتانیا": 5000, "فرانسه": 6000,
+    "آلمان غربی": 4000, "آلمان شرقی": 2000, "ژاپن": 3500, "هند": 5000, "پاکستان": 2000,
+    "ترکیه": 3000, "برزیل": 1500, "آرژانتین": 1000, "کره جنوبی": 2500, "کره شمالی": 3000,
+    "ویتنام": 1500, "کوبا": 1000, "عربستان": 800
 }
 
 FACTORY_DB = {
@@ -78,6 +119,23 @@ FACTORY_DB = {
     "فرانسه": {"Mirage": "بوردو"},
     "اسرائیل": {"Kfir": "لود", "Merkava": "تل هشومر"},
     "آلمان غربی": {"Leopard": "مونیخ"}
+}
+
+TECH_TREE = {
+    "ایران": {
+        "موشک فاتح-۱۱۰": {"cost": 500000000, "turns": 3, "next": "موشک سجیل", "desc": "موشک بالستیک کوتاه‌برد دقیق"},
+        "موشک سجیل": {"cost": 1500000000, "turns": 5, "next": "موشک خرمشهر-۴", "desc": "موشک بالستیک میان‌برد سوخت جامد"},
+        "موشک خرمشهر-۴": {"cost": 3000000000, "turns": 8, "next": "None", "desc": "موشک بالستیک سنگین و دوربرد"}
+    },
+    "شوروی": {
+        "MiG-29 Fulcrum": {"cost": 2000000000, "turns": 4, "next": "Su-27 Flanker", "desc": "جنگنده برتری هوایی نسل چهارم"},
+        "Su-27 Flanker": {"cost": 5000000000, "turns": 6, "next": "Su-30 Flanker-C", "desc": "جنگنده سنگین دو موتوره با برد بالا"},
+        "Su-30 Flanker-C": {"cost": 8000000000, "turns": 8, "next": "Su-35 Flanker-E", "desc": "جنگنده چندمنظوره با رادار پیشرفته"}
+    },
+    "آمریکا": {
+        "F-117 Nighthawk": {"cost": 3000000000, "turns": 5, "next": "F-22 Raptor", "desc": "جنگنده رادارگریز (استیلث)"},
+        "F-22 Raptor": {"cost": 20000000000, "turns": 15, "next": "None", "desc": "جنگنده برتری هوایی نسل پنجم"}
+    }
 }
 
 COUNTRY_DB = {
@@ -109,6 +167,8 @@ COUNTRY_DB = {
 ALLOWED_COUNTRIES = list(COUNTRY_DB.keys())
 pool = None
 temp = {}
+spam_tracker = {}
+ai_order_tracker = {}
 
 async def init_db():
     global pool
@@ -117,10 +177,12 @@ async def init_db():
         await conn.execute("""
             CREATE TABLE IF NOT EXISTS countries (
                 user_id BIGINT PRIMARY KEY, username TEXT, name TEXT, status TEXT DEFAULT 'pending', 
+                leader TEXT, gov_main TEXT, gov_sub TEXT,
                 gdp BIGINT DEFAULT 500000000, mil_budget BIGINT DEFAULT 35000000, 
                 jets INT DEFAULT 0, tanks INT DEFAULT 0, refineries INT DEFAULT 0, army INT DEFAULT 100000, 
-                satisfaction INT DEFAULT 50, tax_rate INT DEFAULT 10, 
+                pilots INT DEFAULT 0, satisfaction INT DEFAULT 50, tax_rate INT DEFAULT 10, 
                 alliance TEXT DEFAULT 'none', reputation INT DEFAULT 50, 
+                researching_tech TEXT DEFAULT 'None', research_turns_left INT DEFAULT 0,
                 created_at TIMESTAMP DEFAULT NOW()
             )
         """)
@@ -165,6 +227,12 @@ async def init_db():
             ("orders", "final_narrative", "TEXT"),
             ("countries", "alliance", "TEXT DEFAULT 'none'"),
             ("countries", "reputation", "INT DEFAULT 50"),
+            ("countries", "leader", "TEXT"),
+            ("countries", "gov_main", "TEXT"),
+            ("countries", "gov_sub", "TEXT"),
+            ("countries", "pilots", "INT DEFAULT 0"),
+            ("countries", "researching_tech", "TEXT DEFAULT 'None'"),
+            ("countries", "research_turns_left", "INT DEFAULT 0"),
         ]
         for table, col, col_type in columns_to_add:
             try:
@@ -172,17 +240,16 @@ async def init_db():
             except:
                 pass
 
-        # اختصاص اتحادهای تاریخی ۱۹۷۹
         await conn.execute("UPDATE countries SET alliance = 'ناتو' WHERE name IN ('آمریکا', 'بریتانیا', 'فرانسه', 'آلمان غربی', 'ترکیه') AND alliance = 'none'")
         await conn.execute("UPDATE countries SET alliance = 'ورشو' WHERE name IN ('شوروی', 'آلمان شرقی') AND alliance = 'none'")
 
-    logger.info("Database initialized with Factories and Real Facilities.")
+    logger.info("Database initialized (Full V4).")
 
 async def get_enemy_deployments_str(player_country):
     async with pool.acquire() as conn:
         rows = await conn.fetch("SELECT * FROM deployments WHERE country_name != $1 AND quantity > 0", player_country)
     if not rows:
-        return "هیچ نیروی دشمنی در هیچ منطقه‌ای مستقر نیست."
+        return "هیچ نیروی دشمنی مستقر نیست."
     return "\n".join([f"- {r['country_name']}: {r['quantity']} {r['model']} در {r['region']}" for r in rows])
 
 def kb(rows):
@@ -219,7 +286,23 @@ def _clean_persian_text(text: str) -> str:
     if not isinstance(text, str): return ""
     return re.sub(r'[^\u0600-\u06FF0-9\s\.\,\!\?\:\-\؛\(\)\[\]\«\»\n]', '', text).strip()
 
-async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. Output RAW JSON only. DO NOT wrap in markdown. DO NOT translate JSON keys. Keep keys in English exactly as requested. Use Persian ONLY for text values.") -> str:
+def check_spam(uid):
+    if uid == ADMIN_ID: return False
+    now = time.time()
+    if uid not in spam_tracker: spam_tracker[uid] = []
+    spam_tracker[uid] = [t for t in spam_tracker[uid] if now - t < 60]
+    spam_tracker[uid].append(now)
+    return len(spam_tracker[uid]) > 15
+
+def check_ai_limit(uid):
+    if uid == ADMIN_ID: return False
+    now = time.time()
+    if uid not in ai_order_tracker: ai_order_tracker[uid] = []
+    ai_order_tracker[uid] = [t for t in ai_order_tracker[uid] if now - t < 60]
+    ai_order_tracker[uid].append(now)
+    return len(ai_order_tracker[uid]) > 4
+
+async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. Output RAW JSON only. DO NOT wrap in markdown. DO NOT translate JSON keys. Use Persian ONLY for text values.") -> str:
     url = f"https://api.cloudflare.com/client/v4/accounts/{CLOUDFLARE_ACCOUNT_ID}/ai/run/@cf/meta/llama-3.3-70b-instruct-fp8-fast"
     headers = {"Authorization": f"Bearer {CLOUDFLARE_API_TOKEN}", "Content-Type": "application/json"}
     payload = {"messages": [{"role": "system", "content": system_prompt}, {"role": "user", "content": prompt}], "max_tokens": 1500, "temperature": 0.7}
@@ -252,19 +335,18 @@ async def ask_ai(prompt: str, system_prompt: str = "You are a strict JSON API. O
             return fallback("خطای شبکه", "ارتباط برقرار نشد.")
 
 def _build_prompt(country: dict, order_text: str, category: str, enemy_deployments: str) -> str:
-    if category == "political": 
-        narrative_rule = "The narrative MUST be a highly dramatic political speech."
-    elif category == "diplomacy":
-        narrative_rule = "The narrative MUST be a formal diplomatic agreement or treaty declaration."
-    elif category == "military": 
-        narrative_rule = "The narrative MUST be an epic war report."
-    else: 
-        narrative_rule = "The narrative MUST be a dramatic economic news report."
+    if category == "political": narrative_rule = "The narrative MUST be a highly dramatic political speech."
+    elif category == "diplomacy": narrative_rule = "The narrative MUST be a formal diplomatic agreement."
+    elif category == "military": narrative_rule = "The narrative MUST be an epic war report."
+    else: narrative_rule = "The narrative MUST be a dramatic economic news report."
+
+    current_tech = country.get('researching_tech', 'None')
+    tech_info = f"در حال تحقیق: {current_tech}" if current_tech != 'None' else "هیچ تحقیقی در جریان نیست."
 
     return f"""You are the strict Game Master of a grand strategy game set in 1979.
 
 COUNTRY: {country['name']} | GDP: ${country['gdp']:,} | Mil Budget: ${country['mil_budget']:,}
-Army: {country['army']} | Tanks: {country['tanks']} | Jets: {country['jets']}
+Army: {country['army']} | Tanks: {country['tanks']} | Jets: {country['jets']} | {tech_info}
 
 ENEMY DEPLOYMENTS GLOBALLY:
 {enemy_deployments}
@@ -273,17 +355,14 @@ PLAYER ORDER: "{order_text}"
 CATEGORY: {category}
 
 CRITICAL GEOPOLITICAL REALITY:
-- This game is set in 1979. If the order is historically impossible (e.g., Israel making a pact with Nasrallah), REJECT IT. Set "success" to false, and explain in Persian.
+- If the order is historically impossible, REJECT IT (success: false).
 
 CRITICAL MILITARY RULES (DEPLOYMENT):
-- If the order is to DEPLOY forces to a region (e.g., "deploy 15 MiG-23 to Alaska"):
-  - Extract the EXACT number into "deployed_quantity" (e.g., 15).
-  - Extract the model into "deployed_asset" (e.g., "MiG-23").
-  - Set "region" to the target area.
-  - **IMPORTANT:** Deploying forces DOES NOT consume or reduce the country's total jets/tanks. Set "jets_change" and "tanks_change" to 0. (The system deducts losses ONLY if a battle occurs).
+- If the order is to DEPLOY forces: Extract EXACT number, model, and region.
+- Deploying forces DOES NOT consume total jets/tanks. Set "jets_change" and "tanks_change" to 0.
 
 CRITICAL DIPLOMACY:
-- Extract "target_country" from the text if diplomatic. Must be EXACTLY one of: {', '.join(ALLOWED_COUNTRIES)}. If not, "None".
+- Extract "target_country" if diplomatic. If not, "None".
 - Determine "order_intent": "attack", "patrol", "deploy", "economic", "political", "diplomacy".
 - Determine "action_type": "deploy", "attack", "economic", "political", "diplomacy".
 
@@ -318,32 +397,29 @@ EXACT JSON FORMAT:
 
 async def apply_battle_changes(context, user_id, country_name, data):
     if not data.get("success"): return
-    action = data.get("action_type")
-    region = data.get("region")
-    if action == "deploy" and region != "None":
-        asset = data.get("deployed_asset")
-        qty = int(data.get("deployed_quantity", 0))
+    if data.get("action_type") == "deploy" and data.get("region") != "None":
+        asset, qty = data.get("deployed_asset"), int(data.get("deployed_quantity", 0))
         if asset != "None" and qty > 0:
             async with pool.acquire() as conn:
-                await conn.execute("INSERT INTO deployments (user_id, country_name, region, asset_type, model, quantity) VALUES ($1, $2, $3, $4, $5, $6)", user_id, country_name, region, "aircraft/tank", asset, qty)
+                await conn.execute("INSERT INTO deployments (user_id, country_name, region, asset_type, model, quantity) VALUES ($1, $2, $3, $4, $5, $6)", user_id, country_name, data.get("region"), "aircraft", asset, qty)
 
 async def create_encounter_ask_intent(context, order_id, user_id, country_name, asset, enemy, region):
     async with pool.acquire() as conn:
         enc_id = await conn.fetchval("""INSERT INTO encounters (order_id, detector_id, detector_country, detector_asset, detected_id, detected_country, detected_asset, region, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'awaiting_intent') RETURNING id""", order_id, user_id, country_name, asset, enemy['user_id'], enemy['country_name'], "نیروی نامشخص", region)
-        enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 ORDER BY quantity DESC LIMIT 1", enemy['country_name'], region)
+        enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
         if enemy_asset_row: await conn.execute("UPDATE encounters SET detected_asset = $1 WHERE id = $2", enemy_asset_row['model'], enc_id)
     
-    intent_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🕊️ فقط گشت‌زنی", callback_data=f"intent_patrol_{enc_id}")], [InlineKeyboardButton("⚔️ قصد حمله داریم", callback_data=f"intent_attack_{enc_id}")], [InlineKeyboardButton("🏃 عقب‌نشینی", callback_data=f"intent_retreat_{enc_id}")]])
+    intent_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🕊️ گشت‌زنی", callback_data=f"intent_patrol_{enc_id}")], [InlineKeyboardButton("⚔️ حمله", callback_data=f"intent_attack_{enc_id}")], [InlineKeyboardButton("🏃 عقب‌نشینی", callback_data=f"intent_retreat_{enc_id}")]])
     
-    for target_id, target_country, our_asset in [(user_id, country_name, asset), (enemy['user_id'], enemy['country_name'], enemy_asset_row['model'] if enemy_asset_row else 'نیروی نامشخص')]:
-        try: await context.bot.send_message(target_id, f"🚨 **درگیری هوایی در {region}**\n\nکشور شما (`{our_asset}`) در این منطقه با نیروهای دشمن روبرو شده.\n**نیت شما چیست؟**", reply_markup=intent_kb)
+    for target_id, our_asset in [(user_id, asset), (enemy['user_id'], enemy_asset_row['model'] if enemy_asset_row else 'نامشخص')]:
+        try: await context.bot.send_message(target_id, f"🚨 **درگیری هوایی در {region}**\n\nکشور شما (`{our_asset}`) با دشمن روبرو شد.\n**نیت شما چیست؟**", reply_markup=intent_kb)
         except: pass
     return enc_id
 
 async def create_encounter_and_battle(context, order_id, user_id, country_name, asset, enemy, region):
     async with pool.acquire() as conn:
         enc_id = await conn.fetchval("""INSERT INTO encounters (order_id, detector_id, detector_country, detector_asset, detected_id, detected_country, detected_asset, region, detector_intent, detected_intent, status) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'attack', 'attack', 'battle') RETURNING id""", order_id, user_id, country_name, asset, enemy['user_id'], enemy['country_name'], "نیروی نامشخص", region)
-        enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 ORDER BY quantity DESC LIMIT 1", enemy['country_name'], region)
+        enemy_asset_row = await conn.fetchrow("SELECT model FROM deployments WHERE country_name = $1 AND region = $2 AND quantity > 0 LIMIT 1", enemy['country_name'], region)
         if enemy_asset_row: await conn.execute("UPDATE encounters SET detected_asset = $1 WHERE id = $2", enemy_asset_row['model'], enc_id)
         enc = dict(await conn.fetchrow("SELECT * FROM encounters WHERE id = $1", enc_id))
     await simulate_encounter_battle(context, enc_id, enc)
@@ -364,7 +440,7 @@ async def handle_intent_response(context, enc_id, user_id, intent):
             if det_intent == 'retreat' and ed_intent == 'retreat':
                 await conn.execute("UPDATE encounters SET status = 'avoided' WHERE id = $1", enc_id)
                 for uid in [enc['detector_id'], enc['detected_id']]:
-                    try: await context.bot.send_message(uid, "🕊️ هر دو طرف عقب‌نشینی کردند. نبردی رخ نداد.")
+                    try: await context.bot.send_message(uid, "🕊️ هر دو طرف عقب‌نشینی کردند.")
                     except: pass
             elif det_intent == 'retreat':
                 if ed_intent == 'attack': await conn.execute("UPDATE encounters SET status = 'battle' WHERE id = $1", enc_id); await simulate_encounter_battle(context, enc_id, dict(enc))
@@ -378,7 +454,7 @@ async def handle_intent_response(context, enc_id, user_id, intent):
         else:
             await conn.execute("UPDATE encounters SET status = 'patrol_only' WHERE id = $1", enc_id)
             for uid in [enc['detector_id'], enc['detected_id']]:
-                try: await context.bot.send_message(uid, "🕊️ هر دو طرف فقط در حال گشت‌زنی بودند. نبردی رخ نداد.")
+                try: await context.bot.send_message(uid, "🕊️ هر دو طرف فقط گشت‌زنی کردند.")
                 except: pass
 
 async def simulate_encounter_battle(context, enc_id, enc):
@@ -394,31 +470,34 @@ async def simulate_encounter_battle(context, enc_id, enc):
     det_intent = enc.get('detector_intent', 'attack')
     ed_intent = enc.get('detected_intent', 'attack')
     
-    prompt = f"""You are a tactical air combat simulator for 1979. Simulate this battle STEP BY STEP.
+    prompt = f"""You are an elite tactical air combat simulator for the year 1979. 
 === AIRCRAFT TECHNICAL ANALYSIS ===
-DETECTOR: {enc['detector_country']} | Asset: {enc['detector_asset']} | Specs: {det_spec} | Intent: {det_intent.upper()}
-DETECTED: {enc['detected_country']} | Asset: {enc['detected_asset']} | Specs: {ed_spec} | Intent: {ed_intent.upper()}
+DETECTOR: {enc['detector_country']} | Aircraft: {enc['detector_asset']} | Specs: {det_spec} | Intent: {det_intent.upper()}
+DETECTED: {enc['detected_country']} | Aircraft: {enc['detected_asset']} | Specs: {ed_spec} | Intent: {ed_intent.upper()}
 
 === COMBAT RULES ===
-1. BVR PHASE: Compare radar and BVR missile ranges. Who fires first?
-2. WVR PHASE: If both survive, compare maneuverability. Calculate dogfight losses.
-3. INTENT: If one retreats while other attacks, retreating side takes heavy losses. If both patrol, minimal losses.
+1. BVR PHASE: Compare radar/missiles. Describe evasion (CHAFF, terrain masking). Calculate losses.
+2. WVR PHASE: Compare maneuverability. Describe IR missiles, FLARES, GUNS. Calculate losses.
+3. PILOT SURVIVAL: For every jet destroyed, determine if pilot(s) EJECTED or DIED. Modern jets have high survival rates.
 
 Output JSON only:
 {{
   "detector_losses": integer,
   "detected_losses": integer,
-  "narrative": "Persian tactical report explaining BVR, WVR, and final result."
+  "detector_pilot_deaths": integer,
+  "detected_pilot_deaths": integer,
+  "narrative": "Persian detailed tactical report including BVR, WVR, and pilot ejections."
 }}"""
     
     ai_response = await ask_ai(prompt)
     data = _safe_parse_json(ai_response)
     det_losses, ed_losses = max(0, int(data.get('detector_losses', 0))), max(0, int(data.get('detected_losses', 0)))
+    det_p_deaths, ed_p_deaths = max(0, int(data.get('detector_pilot_deaths', 0))), max(0, int(data.get('detected_pilot_deaths', 0)))
     narrative = _clean_persian_text(data.get('narrative', 'نبردی شدید رخ داد.'))
     
     async with pool.acquire() as conn:
-        await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1) WHERE user_id = $2", det_losses, enc['detector_id'])
-        await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1) WHERE user_id = $2", ed_losses, enc['detected_id'])
+        await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", det_losses, det_p_deaths, enc['detector_id'])
+        await conn.execute("UPDATE countries SET jets = GREATEST(0, jets - $1), pilots = GREATEST(0, pilots - $2) WHERE user_id = $3", ed_losses, ed_p_deaths, enc['detected_id'])
         await conn.execute("UPDATE deployments SET quantity = GREATEST(0, quantity - $1) WHERE country_name = $2 AND region = $3", det_losses, enc['detector_country'], enc['region'])
         await conn.execute("UPDATE deployments SET quantity = GREATEST(0, quantity - $1) WHERE country_name = $2 AND region = $3", ed_losses, enc['detected_country'], enc['region'])
         await conn.execute("DELETE FROM deployments WHERE quantity <= 0")
@@ -432,10 +511,10 @@ Output JSON only:
         async with pool.acquire() as conn:
             allies = await conn.fetch("SELECT user_id FROM countries WHERE alliance = $1 AND status = 'active' AND user_id != $2", ed_data['alliance'], enc['detected_id'])
         for ally in allies:
-            try: await context.bot.send_message(ally['user_id'], f"🚨 **فعال شدن پیمان {ed_data['alliance']}!**\n\nکشور متحد شما (**{enc['detected_country']}**) در {enc['region']} مورد حمله قرار گرفت.")
+            try: await context.bot.send_message(ally['user_id'], f"🚨 **فعال شدن پیمان {ed_data['alliance']}!**\n\n{enc['detected_country']} در {enc['region']} مورد حمله قرار گرفت.")
             except: pass
 
-    battle_msg = f"⚔️ **نتیجه نبرد در {enc['region']}**\n\n🏴 **{enc['detector_country']}**: {det_losses} تلفات\n🏳️ **{enc['detected_country']}**: {ed_losses} تلفات\n\n📖 **تحلیل:**\n{narrative}"
+    battle_msg = f"⚔️ **نتیجه نبرد در {enc['region']}**\n\n🏴 **{enc['detector_country']}**: {det_losses} فروند، {det_p_deaths} خلبان\n🏳️ **{enc['detected_country']}**: {ed_losses} فروند، {ed_p_deaths} خلبان\n\n📖 **تحلیل:**\n{narrative}"
     for uid in [enc['detector_id'], enc['detected_id']]:
         try: await context.bot.send_message(uid, battle_msg, parse_mode="Markdown")
         except: pass
@@ -446,13 +525,13 @@ async def _analyze_inner(order_id: int, context):
         if not order: return {"success": False, "reason": "سفارش یافت نشد", "narrative_short": "", "narrative_long": ""}
         country = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", order["user_id"])
     
-    enemy_deployments_str = await get_enemy_deployments_str(country['name'])
-    prompt = _build_prompt(dict(country), order["order_text"], order["category"], enemy_deployments_str)
+    enemy_str = await get_enemy_deployments_str(country['name'])
+    prompt = _build_prompt(dict(country), order["order_text"], order["category"], enemy_str)
     ai_response = await ask_ai(prompt)
     data = _safe_parse_json(ai_response)
 
     if "success" not in data or "narrative_long" not in data:
-        data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative_short": "خطا", "narrative_long": "نیاز به بررسی دستی.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
+        data = {"success": False, "reason": "پاسخ نامعتبر بود", "narrative_short": "خطا", "narrative_long": "بررسی دستی.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
 
     for k in ["narrative_short", "narrative_long", "reason", "target_country"]:
         if k in data: data[k] = _clean_persian_text(str(data[k]))
@@ -463,13 +542,13 @@ async def _analyze_inner(order_id: int, context):
     
     if action_type == "diplomacy" and target_country != "None":
         async with pool.acquire() as conn:
-            target_data = await conn.fetchrow("SELECT user_id, name FROM countries WHERE name = $1 AND status = 'active'", target_country)
+            target_data = await conn.fetchrow("SELECT user_id FROM countries WHERE name = $1 AND status = 'active'", target_country)
         if not target_data:
-            data["success"], data["reason"] = False, f"کشور {target_country} وجود ندارد."
+            data["success"], data["reason"] = False, f"{target_country} فعال نیست."
         else:
             async with pool.acquire() as conn:
                 await conn.execute("UPDATE orders SET status = 'diplo_pending', target_country = $1, ai_analysis_raw = $2 WHERE id = $3", target_country, json.dumps(data, ensure_ascii=False), order_id)
-            try: await context.bot.send_message(target_data['user_id'], f"🤝 **درخواست دیپلماتیک از {country['name']}**\n\n📜 متن: {order['order_text']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("✅ قبول", callback_data=f"diplo_accept_{order_id}")], [InlineKeyboardButton("❌ رد", callback_data=f"diplo_reject_{order_id}")]]))
+            try: await context.bot.send_message(target_data['user_id'], f"🤝 **درخواست دیپلماتیک از {country['name']}**\n\n📜 متن: {order['order_text']}", reply_markup=kb([[InlineKeyboardButton("✅ قبول", callback_data=f"diplo_accept_{order_id}")], [InlineKeyboardButton("❌ رد", callback_data=f"diplo_reject_{order_id}")]]))
             except: pass
             return data
 
@@ -477,17 +556,12 @@ async def _analyze_inner(order_id: int, context):
         try:
             g_change, m_change, j_change = int(data.get("gdp_change") or 0), int(data.get("mil_budget_change") or 0), int(data.get("jets_change") or 0)
             t_change, r_change, s_change = int(data.get("tanks_change") or 0), int(data.get("refineries_change") or 0), int(data.get("satisfaction_change") or 0)
-            
-            # ✨ قانون جدید: موقع استقرار، موجودی کل ارتش کم نمیشه
-            if action_type in ["deploy", "attack"]:
-                j_change = 0
-                t_change = 0
-                
+            if action_type in ["deploy", "attack"]: j_change, t_change = 0, 0
         except:
             data = {"success": False, "reason": "خطای عددی", "narrative_short": "", "narrative_long": "", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": order_intent, "region": region}
         else:
             if country["gdp"] + g_change < 0 or country["mil_budget"] + m_change < 0:
-                data = {"success": False, "reason": "ورشکستگی! بودجه کافی نیست.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": -5, "narrative_short": "اقتصاد فروپاشید.", "narrative_long": "با خالی شدن خزانه ملی، طرح پیشنهادی با شکست مواجه شد.", "battle_occurred": False, "order_intent": order_intent, "region": region}
+                data = {"success": False, "reason": "ورشکستگی!", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": -5, "narrative_short": "فروپاشی", "narrative_long": "بودجه کافی نیست.", "battle_occurred": False, "order_intent": order_intent, "region": region}
             else:
                 new_sat = max(0, min(100, country.get("satisfaction", 50) + s_change))
                 data["satisfaction_change"] = new_sat - country.get("satisfaction", 50)
@@ -505,35 +579,35 @@ async def _analyze_inner(order_id: int, context):
         await conn.execute("UPDATE orders SET order_intent = $1, region = $2, ai_analysis_raw = $3, enemy_user_id = $4 WHERE id = $5", order_intent, region, json.dumps(data, ensure_ascii=False), enemy['user_id'] if enemy else None, order_id)
     
     if enemy and action_type in ["deploy", "attack"]:
-        if order_intent == "attack":
-            enc_id = await create_encounter_and_battle(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
-            data["encounter_id"], data["battle_triggered"] = enc_id, "immediate"
-        elif order_intent in ["patrol", "deploy"]:
-            enc_id = await create_encounter_ask_intent(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
-            data["encounter_id"], data["battle_triggered"] = enc_id, "awaiting_intent"
+        if order_intent == "attack": enc_id = await create_encounter_and_battle(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
+        elif order_intent in ["patrol", "deploy"]: enc_id = await create_encounter_ask_intent(context, order_id, order["user_id"], country['name'], deployed_asset, enemy, region)
     return data
 
 async def analyze_and_apply_order(order_id: int, context):
     try: return await asyncio.wait_for(_analyze_inner(order_id, context), timeout=120.0)
     except asyncio.TimeoutError:
-        logger.error(f"AI Timeout for order {order_id}")
-        data = {"success": False, "reason": "پردازش طول کشید", "narrative_short": "به تعویق افتاد.", "narrative_long": "پردازش هوش مصنوعی طول کشید.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
+        data = {"success": False, "reason": "تایم اوت", "narrative_short": "تاخیر", "narrative_long": "پردازش طول کشید.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
         async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
         return data
     except Exception as e:
-        logger.error(f"AI Analysis error for order {order_id}: {type(e).__name__}: {e}")
-        data = {"success": False, "reason": f"خطا: {str(e)[:100]}", "narrative_short": "خطا", "narrative_long": "هوش مصنوعی نتوانست تحلیل کند.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
+        logger.error(f"AI Error: {e}")
+        data = {"success": False, "reason": f"خطا: {str(e)[:50]}", "narrative_short": "خطا", "narrative_long": "خطای داخلی.", "gdp_change": 0, "mil_budget_change": 0, "jets_change": 0, "tanks_change": 0, "refineries_change": 0, "satisfaction_change": 0, "battle_occurred": False, "order_intent": "unknown", "region": "None", "target_country": "None"}
         async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status='ai_analyzed', ai_analysis_raw=$1 WHERE id=$2", json.dumps(data, ensure_ascii=False), order_id)
         return data
 
 async def set_commands(app):
-    await app.bot.set_my_commands([BotCommand("start", "ثبت‌نام"), BotCommand("country", "اطلاعات کشور"), BotCommand("military", "آرشیو نظامی"), BotCommand("economy", "انبار منابع"), BotCommand("factory", "مدیریت کارخانه‌ها"), BotCommand("mines", "معادن"), BotCommand("order", "ثبت دستور جدید"), BotCommand("admin", "پنل ادمین"), BotCommand("turn", "پردازش نوبت (ادمین)")])
+    await app.bot.set_my_commands([BotCommand("start", "ثبت‌نام"), BotCommand("country", "اطلاعات کشور"), BotCommand("military", "آرشیو نظامی"), BotCommand("economy", "انبار منابع"), BotCommand("factory", "کارخانه‌ها"), BotCommand("mines", "معادن"), BotCommand("order", "دستور جدید"), BotCommand("research", "تحقیق و توسعه"), BotCommand("admin", "پنل ادمین"), BotCommand("unban", "رفع مسدودی (ادمین)")])
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
+    if check_spam(uid):
+        async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'spam_banned' WHERE user_id = $1", uid)
+        return await update.message.reply_text("🚫 شما به دلیل اسپم مسدود شدید.")
+        
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
     if c:
         if c["status"] == "active": await context.bot.send_message(uid, f"✅ کشور {c['name']} فعال است.")
+        elif c["status"] in ["banned", "spam_banned"]: await context.bot.send_message(uid, "🚫 شما مسدود هستید.")
         elif c["status"] == "pending": await context.bot.send_message(uid, "⏳ در انتظار تایید ادمین.")
         return
     temp[uid] = {"step": "SELECT_COUNTRY"}
@@ -543,82 +617,124 @@ async def country_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
     if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
     data = COUNTRY_DB.get(c['name'])
-    text = f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n🏙️ *شهرها:* {data['cities'] if data else 'نامشخص'}\n\n📈 GDP: {fmt_money(c['gdp'])}\n🛡 بودجه نظامی: {fmt_money(c['mil_budget'])}\n✈️ جنگنده‌ها: {c['jets']:,}\n🚜 تانک‌ها: {c.get('tanks', 0):,}\n🤝 اتحاد: {c.get('alliance', 'none')}\n🏭 ظرفیت پالایش: {c['refineries']:,}\n🎖 ارتش: {c['army']:,}\n❤️ رضایت: {c.get('satisfaction', 50)}%"
+    text = f"🏛️ *کشور: {c['name']}* (۱۹۷۹)\n🏙️ *شهرها:* {data['cities'] if data else 'نامشخص'}\n\n📈 GDP: {fmt_money(c['gdp'])}\n🛡 بودجه: {fmt_money(c['mil_budget'])}\n✈️ جنگنده‌ها: {c['jets']:,}\n🚜 تانک‌ها: {c.get('tanks', 0):,}\n✈️ خلبان‌ها: {c.get('pilots', 0):,}\n🤝 اتحاد: {c.get('alliance', 'none')}\n🏭 پالایش: {c['refineries']:,}\n🎖 ارتش: {c['army']:,}\n❤️ رضایت: {c.get('satisfaction', 50)}%"
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
 async def military_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
         deployments = await conn.fetch("SELECT * FROM deployments WHERE country_name = $1 AND quantity > 0", c['name'])
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
+    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید.")
     mil_data = MILITARY_DB.get(c['name'])
-    if not mil_data: return await update.message.reply_text("⚠️ آرشیو نظامی در دسترس نیست.")
-    deploy_str = "هیچ نیرویی مستقر نیست." if not deployments else "\n".join([f"📍 {d['region']}: {d['quantity']} {d['model']}" for d in deployments])
-    text = f"⚔️ *آرشیو نظامی {c['name']}* (۱۹۷۹)\n\n🚜 **تانک‌ها:** {mil_data['نیروی زمینی']}\n\n✈️ **هواپیماها:** {mil_data['نیروی هوایی']}\n\n💥 **توپخانه:** {mil_data['توپخانه و خمپاره‌انداز']}\n\n⚓ **نیروی دریایی:** {mil_data['نیروی دریایی']}\n\n🛡 **پدافند هوایی:** {mil_data['پدافند هوایی']}\n\n🔫 **سلاح‌های سبک:** {mil_data['سلاح سبک']}\n\n📍 **نیروهای مستقر شده:**\n{deploy_str}\n\n👥 **پرسنل:** {c['army']:,} نفر\n🛡 **بودجه نظامی:** {fmt_money(c['mil_budget'])}"
+    if not mil_data: return
+    personnel_str = PERSONNEL_DB.get(c['name'], f"کل: {c['army']:,} نفر")
+    deploy_str = "هیچ نیرویی مستقر نیست." if not deployments else "\n".join([f"• 📍 {d['region']}: {d['quantity']} {d['model']}" for d in deployments])
+    
+    def fmt_b(text): return "\n   🔸 ".join(text.split(" | ")) if text else "نامشخص"
+        
+    text = f"⚔️ *آرشیو نظامی {c['name']}*\n\n👥 **پرسنل:**\n{personnel_str}\n\n🛡 **بودجه:** {fmt_money(c['mil_budget'])}\n✈️ **خلبانان:** {c.get('pilots', 0):,} نفر\n\n🚜 **زمینی:**\n   🔸 {fmt_b(mil_data.get('نیروی زمینی', ''))}\n\n✈️ **هوایی:**\n   🔸 {fmt_b(mil_data.get('نیروی هوایی', ''))}\n\n💥 **توپخانه:**\n   🔸 {fmt_b(mil_data.get('توپخانه', ''))}\n\n⚓ **دریایی:**\n   🔸 {fmt_b(mil_data.get('نیروی دریایی', ''))}\n\n🛡 **پدافند:**\n   🔸 {fmt_b(mil_data.get('پدافند هوایی', ''))}\n\n📍 **استقرارها:**\n{deploy_str}"
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
 async def economy_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
-    res_text = "".join([f"{v}: {c.get(f'res_{k}', 0):,}\n" for k, v in RESOURCES.items() if c.get(f'res_{k}', 0) > 0]) or "انبار خالی است.\n"
+    if not c or c["status"] != "active": return
+    res_text = "".join([f"{v}: {c.get(f'res_{k}', 0):,}\n" for k, v in RESOURCES.items() if c.get(f'res_{k}', 0) > 0]) or "خالی."
     await context.bot.send_message(update.effective_user.id, f"💰 *اقتصاد {c['name']}*\n🏦 GDP: {fmt_money(c['gdp'])}\n\n📦 *انبار:*\n{res_text}", parse_mode="Markdown")
 
 async def mines_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
+    if not c or c["status"] != "active": return
     data = COUNTRY_DB.get(c['name'])
     if not data: return
-    text = f"⛏ *معادن {c['name']}*\n\n" + "".join([f"🔹 {m['name']}\n📦 {m['amount']:,} واحد {RESOURCES.get(m['output_res'], m['output_res'])} در هر نوبت\n\n" for m in data['mines'].values()])
+    text = f"⛏ *معادن {c['name']}*\n\n" + "".join([f"🔹 {m['name']}\n📦 {m['amount']:,} واحد {RESOURCES.get(m['output_res'], m['output_res'])}\n\n" for m in data['mines'].values()])
     await context.bot.send_message(update.effective_user.id, text, parse_mode="Markdown")
 
 async def factory_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     async with pool.acquire() as conn:
         c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", update.effective_user.id)
         infras = await conn.fetch("SELECT sector_type, count(*) as count FROM infrastructure WHERE user_id = $1 GROUP BY sector_type", update.effective_user.id)
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
+    if not c or c["status"] != "active": return
     counts = {r['sector_type']: r['count'] for r in infras}
     data = COUNTRY_DB.get(c['name'])
     if not data: return
-    
-    real_factories = FACTORY_DB.get(c['name'], {})
-    fac_str = "\n".join([f"🏭 {model}: {loc}" for model, loc in real_factories.items()]) if real_factories else "خط تولید اختصاصی در دسترس نیست."
-    
+    real_f = FACTORY_DB.get(c['name'], {})
+    fac_str = "\n".join([f"🏭 {m}: {l}" for m, l in real_f.items()]) if real_f else "نامشخص."
     rows = [[InlineKeyboardButton(f"🏭 {f['name']} | {fmt_money(f['cost'])}", callback_data=f"fact_build_{k}")] for k, f in data['factories'].items() if counts.get(k, 0) < 5]
-    await context.bot.send_message(update.effective_user.id, f"🏭 *کارخانه‌های {c['name']}*\n\n**خطوط تولید واقعی ۱۹۷۹:**\n{fac_str}\n\nبرای ساخت کارخانه جدید کلیک کنید:", parse_mode="Markdown", reply_markup=kb(rows))
+    await context.bot.send_message(update.effective_user.id, f"🏭 *کارخانه‌های {c['name']}*\n\n**خطوط تولید ۱۹۷۹:**\n{fac_str}\n\nساخت کارخانه جدید:", parse_mode="Markdown", reply_markup=kb(rows))
 
 async def order_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
     async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
-    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ شما مجاز نیستید. /start")
+    if not c or c["status"] != "active": return await update.message.reply_text("⚠️ مجاز نیستید.")
     temp[uid] = {"step": "ORDER_CATEGORY"}
-    await update.message.reply_text("دسته‌بندی دستور خود را انتخاب کنید:", reply_markup=kb([[InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic"), InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")], [InlineKeyboardButton("🤝 دیپلماسی", callback_data="cat_diplomacy"), InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]]))
+    await update.message.reply_text("دسته‌بندی دستور:", reply_markup=kb([[InlineKeyboardButton("💰 اقتصادی", callback_data="cat_economic"), InlineKeyboardButton("🏛️ سیاسی", callback_data="cat_political")], [InlineKeyboardButton("🤝 دیپلماسی", callback_data="cat_diplomacy"), InlineKeyboardButton("⚔️ نظامی", callback_data="cat_military")]]))
+
+async def research_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id
+    async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
+    if not c or c["status"] != "active": return
+    if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0:
+        return await update.message.reply_text(f"🔬 در حال تحقیق: {c['researching_tech']}\n⏳ نوبت باقی‌مانده: {c['research_turns_left']}")
+    techs = TECH_TREE.get(c['name'])
+    if not techs: return await update.message.reply_text("⚠️ درخت تکنولوژی ندارید.")
+    rows = [[InlineKeyboardButton(f"🔬 {t} | {fmt_money(i['cost'])} | {i['turns']} نوبت", callback_data=f"res_start_{t}")] for t, i in techs.items()]
+    await update.message.reply_text("🔬 **مرکز تحقیق و توسعه**\nتکنولوژی مورد نظر:", reply_markup=kb(rows))
 
 async def admin_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_user.id != ADMIN_ID: return
-    await update.message.reply_text("👑 **پنل ادمین**", reply_markup=kb([[InlineKeyboardButton("📋 لیست کشورها", callback_data="adm_list")], [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]]), parse_mode="Markdown")
+    await update.message.reply_text("👑 **پنل مدیریت کل**\nبخش مورد نظر:", reply_markup=kb([[InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")], [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")], [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]]), parse_mode="Markdown")
+
+async def unban_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.effective_user.id != ADMIN_ID: return
+    if not context.args: return await update.message.reply_text("⚠️ استفاده: `/unban آیدی`")
+    try:
+        target = int(context.args[0])
+        async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
+        await update.message.reply_text(f"✅ کاربر {target} آزاد شد.")
+    except: await update.message.reply_text("❌ آیدی باید عدد باشد.")
+
+async def show_admin_list(chat_id, msg_id, context, page, list_type):
+    async with pool.acquire() as conn:
+        if list_type == "banned": countries = await conn.fetch("SELECT * FROM countries WHERE status IN ('banned', 'spam_banned') ORDER BY created_at DESC"); title = "🚫 **لیست مسدودها**"
+        elif list_type == "pending": countries = await conn.fetch("SELECT * FROM countries WHERE status = 'pending' ORDER BY created_at DESC"); title = "⏳ **در انتظار تایید**"
+        else: countries = await conn.fetch("SELECT * FROM countries WHERE status = 'active' ORDER BY created_at DESC"); title = "🌍 **کشورهای فعال**"
+    per_page = 5; start = page * per_page; end = start + per_page; page_items = countries[start:end]
+    text = f"{title} (صفحه {page+1})\n\n"; buttons = []
+    if not page_items: text += "خالی است."
+    for c in page_items:
+        status_icon = "✅" if c['status'] == 'active' else "🚫" if c['status'] in ['banned', 'spam_banned'] else "⏳"
+        buttons.append([InlineKeyboardButton(f"{status_icon} {c['name']} | {c['username'] or 'بدون آیدی'}", callback_data=f"adm_view_{c['user_id']}")])
+    nav = []
+    if page > 0: nav.append(InlineKeyboardButton("⬅️", callback_data=f"adm_list_{list_type}_{page-1}"))
+    if end < len(countries): nav.append(InlineKeyboardButton("➡️", callback_data=f"adm_list_{list_type}_{page+1}"))
+    nav.append(InlineKeyboardButton("🔙 بازگشت", callback_data="adm_panel"))
+    buttons.append(nav)
+    try: await context.bot.edit_message_text(chat_id=chat_id, message_id=msg_id, text=text, parse_mode="Markdown", reply_markup=kb(buttons))
+    except: pass
 
 async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id
-    text = update.message.text.strip()
-    t = temp.get(uid, {})
-    
+    if check_spam(uid):
+        async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'spam_banned' WHERE user_id = $1", uid)
+        return await update.message.reply_text("🚫 اسپم! مسدود شدید.")
+    async with pool.acquire() as conn: c = await conn.fetchrow("SELECT status FROM countries WHERE user_id = $1", uid)
+    if c and c['status'] == 'banned': return await update.message.reply_text("🚫 مسدود هستید.")
+        
+    text = update.message.text.strip(); t = temp.get(uid, {})
     if t.get("step") == "SELECT_COUNTRY":
         if text not in ALLOWED_COUNTRIES: return await context.bot.send_message(uid, "❌ کشور نامعتبر.")
         async with pool.acquire() as conn:
             if await conn.fetchval("SELECT 1 FROM countries WHERE name = $1 AND status != 'rejected'", text): return await context.bot.send_message(uid, "❌ قبلاً انتخاب شده.")
             data = COUNTRY_DB[text]
-            await conn.execute("INSERT INTO countries (user_id, username, name, status, gdp, mil_budget, jets, tanks, refineries, army) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9)", uid, update.effective_user.username or "بدون", text, data['gdp_init'], data['mil_budget_init'], data['jets_init'], data['tanks_init'], data['refineries_init'], data['army_init'])
+            await conn.execute("INSERT INTO countries (user_id, username, name, status, gdp, mil_budget, jets, tanks, refineries, army, pilots) VALUES ($1, $2, $3, 'pending', $4, $5, $6, $7, $8, $9, $10)", uid, update.effective_user.username or "بدون", text, data['gdp_init'], data['mil_budget_init'], data['jets_init'], data['tanks_init'], data['refineries_init'], data['army_init'], PILOT_DB.get(text, 1000))
         temp.pop(uid, None)
-        await context.bot.send_message(uid, "⏳ در انتظار تایید ادمین.")
+        await context.bot.send_message(uid, "⏳ در انتظار تایید.")
         await context.bot.send_message(ADMIN_ID, f"📥 **درخواست جدید**\n🌍 {text}\n🆔 `{uid}`", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"adm_ok_{uid}"), InlineKeyboardButton("❌ رد", callback_data=f"adm_rej_{uid}")]]))
-        
     elif t.get("step") == "AWAITING_ORDER_TEXT":
-        category = t.get("category")
-        temp[uid] = {"step": "SELECT_VISIBILITY", "category": category, "order_text": text}
-        await update.message.reply_text("آیا نتیجه این دستور باید در گروه منتشر شود؟", reply_markup=kb([[InlineKeyboardButton("🌍 عمومی", callback_data="vis_public")], [InlineKeyboardButton("🤫 محرمانه", callback_data="vis_secret")]]))
-        
+        temp[uid] = {"step": "SELECT_VISIBILITY", "category": t.get("category"), "order_text": text}
+        await update.message.reply_text("انتشار عمومی یا محرمانه؟", reply_markup=kb([[InlineKeyboardButton("🌍 عمومی", callback_data="vis_public")], [InlineKeyboardButton("🤫 محرمانه", callback_data="vis_secret")]]))
     elif t.get("step") == "ADMIN_SET_GDP_ID" and uid == ADMIN_ID:
-        try: temp[uid] = {"step": "ADMIN_SET_GDP_AMOUNT", "target_id": int(text)}; await update.message.reply_text("مقدار GDP (دلار):")
+        try: temp[uid] = {"step": "ADMIN_SET_GDP_AMOUNT", "target_id": int(text)}; await update.message.reply_text("مقدار GDP:")
         except: await update.message.reply_text("❌ عدد وارد کنید.")
     elif t.get("step") == "ADMIN_SET_GDP_AMOUNT" and uid == ADMIN_ID:
         try:
@@ -627,48 +743,82 @@ async def message_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except: await update.message.reply_text("❌ عدد وارد کنید.")
 
 async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    cb = update.callback_query
-    data = cb.data
-    uid = cb.from_user.id
-    t = temp.get(uid, {})
-    await cb.answer()
-    
-    if data.startswith("adm_ok_"):
+    cb = update.callback_query; data = cb.data; uid = cb.from_user.id; t = temp.get(uid, {}); await cb.answer()
+    if data == "adm_panel" and uid == ADMIN_ID:
+        await cb.edit_message_text("👑 **پنل مدیریت کل**", reply_markup=kb([[InlineKeyboardButton("🌍 کشورهای فعال", callback_data="adm_list_active_0"), InlineKeyboardButton("🚫 مسدودها", callback_data="adm_list_banned_0")], [InlineKeyboardButton("⏳ در انتظار", callback_data="adm_list_pending_0")], [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]]), parse_mode="Markdown")
+    elif data.startswith("adm_list_") and uid == ADMIN_ID:
+        parts = data.split("_"); await show_admin_list(uid, cb.message.message_id, context, int(parts[3]), parts[2])
+    elif data.startswith("adm_view_") and uid == ADMIN_ID:
         target = int(data.split("_")[2])
-        async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
-        await cb.edit_message_text("✅ تایید شد."); await context.bot.send_message(target, "🎉 کشور شما تایید شد! /country")
+        async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", target)
+        if not c: return await cb.answer("یافت نشد.", show_alert=True)
+        data_info = COUNTRY_DB.get(c['name'], {})
+        gov_name = GOVERNMENTS.get(c.get('gov_main', ''), {}).get('name', c.get('gov_main', 'نامشخص'))
+        gov_sub = GOVERNMENTS.get(c.get('gov_main', ''), {}).get('subs', {}).get(c.get('gov_sub', ''), '')
+        cities = data_info.get('cities', 'نامشخص')
+        status_fa = {"active": "✅ فعال", "pending": "⏳ در انتظار", "banned": "🚫 بن", "spam_banned": "🤖 اسپم"}.get(c['status'], c['status'])
+        text = f"👤 **پروفایل**\n\n🌍 **کشور:** {c['name']}\n👤 **رهبر:** {c.get('leader', 'نامشخص')}\n⚙️ **حکومت:** {gov_name} - {gov_sub}\n🏙️ **شهرها:** {cities}\n🆔 **آیدی پلیر:** `{c['user_id']}`\n📌 **وضعیت:** {status_fa}\n📈 **GDP:** {fmt_money(c['gdp'])}"
+        buttons = []
+        if c['status'] in ['banned', 'spam_banned']: buttons.append([InlineKeyboardButton("✅ آنبن", callback_data=f"adm_unban_{target}")])
+        else: buttons.append([InlineKeyboardButton("🚫 بن", callback_data=f"adm_ban_{target}")])
+        buttons.append([InlineKeyboardButton("🔄 ریست آمار", callback_data=f"adm_reset_{target}"), InlineKeyboardButton("🗑 حذف کامل", callback_data=f"adm_del_{target}")])
+        buttons.append([InlineKeyboardButton("🔙 بازگشت", callback_data="adm_list_active_0")])
+        await cb.edit_message_text(text, parse_mode="Markdown", reply_markup=kb(buttons))
+    elif data.startswith("adm_ban_") and uid == ADMIN_ID:
+        target = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'banned' WHERE user_id = $1", target)
+        await cb.answer("مسدود شد.", show_alert=True); await show_admin_list(uid, cb.message.message_id, context, 0, "banned")
+    elif data.startswith("adm_unban_") and uid == ADMIN_ID:
+        target = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
+        await cb.answer("آزاد شد.", show_alert=True); await show_admin_list(uid, cb.message.message_id, context, 0, "active")
+    elif data.startswith("adm_reset_") and uid == ADMIN_ID:
+        target = int(data.split("_")[2])
+        async with pool.acquire() as conn:
+            c = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", target)
+            if c:
+                init_data = COUNTRY_DB.get(c['name'])
+                if init_data:
+                    await conn.execute("UPDATE countries SET gdp = $1, mil_budget = $2, army = $3, tanks = $4, jets = $5, refineries = $6, pilots = $7, satisfaction = 50, status = 'active' WHERE user_id = $8", init_data['gdp_init'], init_data['mil_budget_init'], init_data['army_init'], init_data['tanks_init'], init_data['jets_init'], init_data['refineries_init'], PILOT_DB.get(c['name'], 1000), target)
+                    await conn.execute("DELETE FROM deployments WHERE user_id = $1", target)
+        await cb.answer("ریست شد.", show_alert=True); await cb.edit_message_text("✅ ریست شد.")
+    elif data.startswith("adm_del_") and uid == ADMIN_ID:
+        target = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("DELETE FROM countries WHERE user_id = $1", target)
+        await cb.answer("حذف شد.", show_alert=True); await cb.edit_message_text("🗑 حذف شد.")
+    elif data.startswith("adm_ok_"):
+        target = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("UPDATE countries SET status = 'active' WHERE user_id = $1", target)
+        await cb.edit_message_text("✅ تایید شد."); await context.bot.send_message(target, "🎉 تایید شد! /country")
     elif data.startswith("adm_rej_"):
-        target = int(data.split("_")[2])
-        async with pool.acquire() as conn: await conn.execute("DELETE FROM countries WHERE user_id = $1", target)
+        target = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("DELETE FROM countries WHERE user_id = $1", target)
         await cb.edit_message_text("❌ رد شد.")
-    elif data == "adm_list":
-        async with pool.acquire() as conn: countries = await conn.fetch("SELECT * FROM countries WHERE status = 'active'")
-        await cb.edit_message_text("📊 **لیست کشورها:**\n\n" + "".join([f"🏛️ {c['name']} | GDP: {fmt_money(c['gdp'])}\n" for c in countries]), parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("🔙 بازگشت", callback_data="adm_back")]]))
     elif data == "adm_next_turn":
         await cb.edit_message_text("⏳ در حال پردازش..."); await process_turn(context)
     elif data == "adm_set_gdp":
-        await cb.edit_message_text("🆔 آیدی کاربر:"); temp[uid] = {"step": "ADMIN_SET_GDP_ID"}
-    elif data == "adm_back":
-        await cb.edit_message_text("👑 **پنل ادمین**", reply_markup=kb([[InlineKeyboardButton("📋 لیست کشورها", callback_data="adm_list")], [InlineKeyboardButton("⏳ پردازش نوبت", callback_data="adm_next_turn")], [InlineKeyboardButton("💰 تنظیم GDP", callback_data="adm_set_gdp")]]), parse_mode="Markdown")
-
+        await cb.edit_message_text("🆔 آیدی:"); temp[uid] = {"step": "ADMIN_SET_GDP_ID"}
     elif data.startswith("cat_"):
-        category = data.replace("cat_", ""); temp[uid] = {"step": "AWAITING_ORDER_TEXT", "category": category}
-        cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(category, category)
-        await cb.edit_message_text(f"دسته‌بندی: {cat_fa}\n\nلطفاً متن دستور خود را بنویسید و ارسال کنید:")
+        temp[uid] = {"step": "AWAITING_ORDER_TEXT", "category": data.replace("cat_", "")}
+        cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(data.replace("cat_", ""), "")
+        await cb.edit_message_text(f"دسته: {cat_fa}\n\nمتن دستور را بنویسید:")
     elif data == "vis_public" or data == "vis_secret":
         is_public = (data == "vis_public"); ot, category = t.get("order_text"), t.get("category"); temp.pop(uid, None)
         if not ot or not category: return await cb.edit_message_text("⚠️ منقضی شده.")
+        if check_ai_limit(uid): return await cb.answer("⚠️ حداکثر ۴ دستور در دقیقه!", show_alert=True)
         async with pool.acquire() as conn:
             oid = await conn.fetchval("INSERT INTO orders (user_id, order_text, category, is_public) VALUES ($1, $2, $3, $4) RETURNING id", uid, ot, category, is_public)
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
         cat_fa = {"economic": "اقتصادی", "political": "سیاسی", "diplomacy": "دیپلماسی", "military": "نظامی"}.get(category, category)
         vis_fa = "عمومی" if is_public else "محرمانه"
-        if category == "diplomacy":
-            await cb.edit_message_text("⏳ در حال بررسی توسط هوش مصنوعی..."); await send_analysis(cb, context, oid)
+        if category == "diplomacy": await cb.edit_message_text("⏳ تحلیل..."); await send_analysis(cb, context, oid)
         else:
-            await context.bot.send_message(ADMIN_ID, f"📜 **دستور جدید از {c['name']}**\n🗂 دسته: {cat_fa} | وضعیت: {vis_fa}\n📝 متن: {ot}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید و تحلیل", callback_data=f"ord_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
+            await context.bot.send_message(ADMIN_ID, f"📜 **دستور جدید**\n🌍 {c['name']}\n🗂 {cat_fa} | {vis_fa}\n📝 {ot}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید", callback_data=f"ord_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
             await cb.edit_message_text("⏳ ارسال به ادمین.")
-
+    elif data.startswith("res_start_"):
+        tech_name = data.replace("res_start_", "")
+        async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
+        if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0: return await cb.answer("در حال تحقیق هستید!", show_alert=True)
+        tech_info = TECH_TREE.get(c['name'], {}).get(tech_name)
+        if not tech_info: return await cb.answer("نامعتبر.", show_alert=True)
+        if c['gdp'] < tech_info['cost']: return await cb.answer("❌ GDP کافی نیست!", show_alert=True)
+        async with pool.acquire() as conn: await conn.execute("UPDATE countries SET gdp = gdp - $1, researching_tech = $2, research_turns_left = $3 WHERE user_id = $4", tech_info['cost'], tech_name, tech_info['turns'], uid)
+        await cb.edit_message_text(f"✅ تحقیق روی **{tech_name}** آغاز شد.\n⏳ {tech_info['turns']} نوبت.")
     elif data.startswith("diplo_accept_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -677,22 +827,18 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             await conn.execute("UPDATE orders SET status = 'pending_admin', player_approved = TRUE WHERE id = $1", oid)
             sender = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
             receiver = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", uid)
-        await cb.edit_message_text("✅ شما این توافق را پذیرفتید.")
-        try: await context.bot.send_message(order['user_id'], f"🎉 **خبر خوش!**\nکشور {receiver['name']} پیشنهاد دیپلماتیک شما را پذیرفت.")
-        except: pass
-        await context.bot.send_message(ADMIN_ID, f"🤝 **توافق دیپلماتیک**\n👤 فرستنده: {sender['name']}\n🎯 گیرنده: {receiver['name']}\n📝 متن: {order['order_text']}\nوضعیت: {'عمومی' if order['is_public'] else 'محرمانه'}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید نهایی و انتشار", callback_data=f"final_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
+        await cb.edit_message_text("✅ قبول شد.")
+        await context.bot.send_message(ADMIN_ID, f"🤝 **توافق دیپلماتیک**\n👤 {sender['name']} -> {receiver['name']}\n📝 {order['order_text']}", parse_mode="Markdown", reply_markup=kb([[InlineKeyboardButton("✅ تایید نهایی", callback_data=f"final_appr_{oid}")], [InlineKeyboardButton("❌ رد", callback_data=f"ord_rej_{oid}")]]))
     elif data.startswith("diplo_reject_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
             order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", oid)
-            if not order or order['status'] != 'diplo_pending': return await cb.edit_message_text("⚠️ منقضی شده.")
-            await conn.execute("UPDATE orders SET status = 'rejected', player_approved = FALSE WHERE id = $1", oid)
-            sender = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", order['user_id'])
-            receiver = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", uid)
-        await cb.edit_message_text("❌ شما این توافق را رد کردید.")
-        try: await context.bot.send_message(order['user_id'], f"❌ **درخواست رد شد.**\nکشور {receiver['name']} پیشنهاد شما را نپذیرفت.")
-        except: pass
-
+            if order:
+                await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
+                receiver = await conn.fetchrow("SELECT name FROM countries WHERE user_id = $1", uid)
+                try: await context.bot.send_message(order['user_id'], f"❌ {receiver['name']} درخواست شما را رد کرد.")
+                except: pass
+        await cb.edit_message_text("❌ رد شد.")
     elif data.startswith("final_appr_"):
         oid = int(data.split("_")[2])
         async with pool.acquire() as conn:
@@ -702,41 +848,33 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try: ai_data = json.loads(order["ai_analysis_raw"] or "{}")
         except: ai_data = {}
         text_to_send = ai_data.get('narrative_long', 'توافق انجام شد.')
-        sender_name = sender_country['name'] if sender_country else "نامشخص"
-        final_text = f"📢 **بیانیه رسمی {sender_name}**\n\n{text_to_send}"
+        final_text = f"📢 **بیانیه رسمی {sender_country['name']}**\n\n{text_to_send}"
         if order['status'] == 'pending_admin':
             try:
-                g_change, m_change, j_change = int(ai_data.get("gdp_change") or 0), int(ai_data.get("mil_budget_change") or 0), int(ai_data.get("jets_change") or 0)
-                t_change = int(ai_data.get("tanks_change") or 0)
+                g, m, j, t = int(ai_data.get("gdp_change") or 0), int(ai_data.get("mil_budget_change") or 0), int(ai_data.get("jets_change") or 0), int(ai_data.get("tanks_change") or 0)
                 async with pool.acquire() as conn:
-                    await conn.execute("UPDATE countries SET gdp = GREATEST(0, gdp + $1), mil_budget = GREATEST(0, mil_budget + $2), jets = GREATEST(0, jets + $3), tanks = GREATEST(0, tanks + $4) WHERE user_id = $5 OR name = $6", g_change, m_change, j_change, t_change, order['user_id'], order.get('target_country'))
+                    await conn.execute("UPDATE countries SET gdp = GREATEST(0, gdp + $1), mil_budget = GREATEST(0, mil_budget + $2), jets = GREATEST(0, jets + $3), tanks = GREATEST(0, tanks + $4) WHERE user_id = $5 OR name = $6", g, m, j, t, order['user_id'], order.get('target_country'))
                     await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
-            except Exception as e: logger.error(f"Failed to apply diplo changes: {e}")
+            except: pass
         if order['is_public']:
             if GROUP_ID and TOPIC_ID:
                 try: await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown")
-                except Exception as e: logger.error(f"Group publish error: {e}")
-            elif CHANNEL_ID:
-                try: await context.bot.send_message(int(CHANNEL_ID.strip()), final_text)
                 except: pass
-        await cb.edit_message_text("✅ تایید نهایی انجام شد.")
-
+        await cb.edit_message_text("✅ تایید نهایی شد.")
     elif data.startswith("enc_yes_"):
         await cb.edit_message_text("✅ نبرد آغاز شد."); await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
     elif data.startswith("enc_no_"):
-        await cb.edit_message_text("🕊️ عقب‌نشینی ثبت شد."); await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
+        await cb.edit_message_text("🕊️ عقب‌نشینی."); await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
     elif data.startswith("intent_patrol_"):
-        await cb.edit_message_text("🕊️ نیت شما: فقط گشت‌زنی."); await handle_intent_response(context, int(data.split("_")[2]), uid, "patrol")
+        await cb.edit_message_text("🕊️ گشت‌زنی."); await handle_intent_response(context, int(data.split("_")[2]), uid, "patrol")
     elif data.startswith("intent_attack_"):
-        await cb.edit_message_text("⚔️ نیت شما: حمله."); await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
+        await cb.edit_message_text("⚔️ حمله."); await handle_intent_response(context, int(data.split("_")[2]), uid, "attack")
     elif data.startswith("intent_retreat_"):
-        await cb.edit_message_text("🏃 نیت شما: عقب‌نشینی."); await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
-
+        await cb.edit_message_text("🏃 عقب‌نشینی."); await handle_intent_response(context, int(data.split("_")[2]), uid, "retreat")
     elif data.startswith("ord_appr_"):
         oid = int(data.split("_")[2]); await cb.edit_message_text("⏳ تحلیل..."); await send_analysis(cb, context, oid)
     elif data.startswith("ord_rej_"):
-        oid = int(data.split("_")[2])
-        async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
+        oid = int(data.split("_")[2]); async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status = 'rejected' WHERE id = $1", oid)
         await cb.edit_message_text("❌ رد شد.")
     elif data.startswith("pub_short_") or data.startswith("pub_long_"):
         is_short = "pub_short_" in data; oid = int(data.split("_")[2])
@@ -749,18 +887,33 @@ async def callback_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text_to_send = ai_data.get('narrative_short', '') if is_short else ai_data.get('narrative_long', '')
         country_name = country_data['name'] if country_data else "نامشخص"
         final_text = f"📢 **بیانیه رسمی {country_name}**\n\n{text_to_send}"
-        sent = False
-        if GROUP_ID and TOPIC_ID:
-            try: await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown"); sent = True
-            except Exception as e: logger.error(f"Group publish error: {e}")
-        if not sent and CHANNEL_ID:
-            try: await context.bot.send_message(int(CHANNEL_ID.strip()), final_text); sent = True
-            except Exception as e: logger.error(f"Channel publish error: {e}")
-        if sent:
+        is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
+        is_secret = (not order['is_public']) and (not is_attack)
+        
+                if is_secret:
+            try: await context.bot.send_message(order['user_id'], f"🤫 **نتیجه محرمانه:**\n\n{text_to_send}")
+            except: pass
+            try: await context.bot.send_message(ADMIN_ID, f"🤫 **محرمانه از {country_name}:**\n\n{text_to_send}")
+            except: pass
             async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
-            await cb.edit_message_text("✅ با موفقیت منتشر شد.")
-        else: await cb.edit_message_text("❌ خطا در ارسال.")
-    elif data == "cancel_pub": await cb.edit_message_text("❌ لغو شد.")
+            await cb.edit_message_text("✅ محرمانه ارسال شد.")
+        else:
+            if not order['is_public'] and is_attack: final_text = f"🚨 **افشای حمله نظامی!**\n\n{final_text}"
+            sent = False
+            if GROUP_ID and TOPIC_ID:
+                try: await context.bot.send_message(chat_id=int(GROUP_ID), text=final_text, message_thread_id=int(TOPIC_ID), parse_mode="Markdown"); sent = True
+                except: pass
+            if not sent and CHANNEL_ID:
+                try: await context.bot.send_message(int(CHANNEL_ID.strip()), final_text); sent = True
+                except: pass
+            if sent:
+                async with pool.acquire() as conn: await conn.execute("UPDATE orders SET status = 'published' WHERE id = $1", oid)
+                await cb.edit_message_text("✅ منتشر شد.")
+            else: await cb.edit_message_text("❌ خطا در ارسال.")
+            
+    elif data == "cancel_pub": 
+        await cb.edit_message_text("❌ لغو شد.")
+        
     elif data.startswith("fact_build_"):
         sector = data.replace("fact_build_", "")
         async with pool.acquire() as conn: c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", uid)
@@ -775,8 +928,13 @@ async def send_analysis(update_or_cb, context, order_id):
     ai_data = await analyze_and_apply_order(order_id, context)
     st = "✅ موفق" if ai_data.get("success") else "❌ ناموفق"
     ch = f"\n📈 GDP: {ai_data.get('gdp_change',0):+,} $ | ✈️ جنگنده: {ai_data.get('jets_change',0):+,} | 🚜 تانک: {ai_data.get('tanks_change',0):+,} | ❤️ رضایت: {ai_data.get('satisfaction_change',0):+,}\n" if ai_data.get("success") else ""
+    async with pool.acquire() as conn: order = await conn.fetchrow("SELECT * FROM orders WHERE id = $1", order_id)
+    is_attack = ai_data.get('action_type') == 'attack' or ai_data.get('order_intent') == 'attack'
+    is_secret = (not order['is_public']) and (not is_attack)
+    btn1 = "🤫 محرمانه (خلاصه)" if is_secret else "📢 خلاصه"
+    btn2 = "🤫 محرمانه (کامل)" if is_secret else "📜 کامل"
     txt = f"🧠 تحلیل (70B)\n\n📌 وضعیت: {st}\n📝 دلیل: {ai_data.get('reason', '')}\n{ch}\n📰 **خلاصه:**\n{ai_data.get('narrative_short', '')}\n\n📖 **کامل:**\n{ai_data.get('narrative_long', '')}"
-    btn = kb([[InlineKeyboardButton("📢 خلاصه", callback_data=f"pub_short_{order_id}"), InlineKeyboardButton("📜 کامل", callback_data=f"pub_long_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
+    btn = kb([[InlineKeyboardButton(btn1, callback_data=f"pub_short_{order_id}"), InlineKeyboardButton(btn2, callback_data=f"pub_long_{order_id}")], [InlineKeyboardButton("❌ لغو", callback_data="cancel_pub")]])
     if isinstance(update_or_cb, CallbackQuery):
         try: await update_or_cb.edit_message_text(txt, reply_markup=btn); return
         except: pass
@@ -792,7 +950,13 @@ async def process_turn(context):
             if updates:
                 set_clause = ", ".join([f"{k} = {v}" for k, v in updates.items()])
                 await conn.execute(f"UPDATE countries SET {set_clause} WHERE user_id = $1", c['user_id'])
-            
+            if c.get("researching_tech") != 'None' and c.get("research_turns_left", 0) > 0:
+                new_turns = c['research_turns_left'] - 1
+                if new_turns <= 0:
+                    await conn.execute("UPDATE countries SET researching_tech = 'None', research_turns_left = 0, jets = jets + 20 WHERE user_id = $1", c['user_id'])
+                    try: await context.bot.send_message(c['user_id'], f"🎉 **تحقیق تکمیل شد!**\nتکنولوژی **{c['researching_tech']}** توسعه یافت و ۲۰ فروند جنگنده اضافه شد.")
+                    except: pass
+                else: await conn.execute("UPDATE countries SET research_turns_left = $1 WHERE user_id = $2", new_turns, c['user_id'])
         infras = await conn.fetch("SELECT * FROM infrastructure")
         for i in infras:
             c = await conn.fetchrow("SELECT * FROM countries WHERE user_id = $1", i['user_id'])
@@ -806,9 +970,7 @@ async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> N
     logger.error(f"Update {update} caused error {context.error}", exc_info=context.error)
 
 async def post_init(app):
-    await init_db()
-    await set_commands(app)
-    await app.bot.delete_webhook(drop_pending_updates=True)
+    await init_db(); await set_commands(app); await app.bot.delete_webhook(drop_pending_updates=True)
 
 def main():
     app = Application.builder().token(TOKEN).post_init(post_init).build()
@@ -821,7 +983,9 @@ def main():
     app.add_handler(CommandHandler("mines", mines_cmd))
     app.add_handler(CommandHandler("factory", factory_cmd))
     app.add_handler(CommandHandler("order", order_cmd))
+    app.add_handler(CommandHandler("research", research_cmd))
     app.add_handler(CommandHandler("admin", admin_cmd))
+    app.add_handler(CommandHandler("unban", unban_cmd))
     app.add_handler(CallbackQueryHandler(callback_handler))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, message_handler))
     
